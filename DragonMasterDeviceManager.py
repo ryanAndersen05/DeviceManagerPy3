@@ -32,7 +32,7 @@ class DragonMasterDeviceManager:
 
 
     def __init__(self,):
-        self.tcpEventQueue = queue.Queue()#Queue that is used for sending device events to our Unity Application
+        self.tcpEventQueue = queue.Queue()#Queue of all the events that we plan to send to Unity
         return
 
     #TCP Communication ###############################################################
