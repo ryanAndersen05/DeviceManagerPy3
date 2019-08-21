@@ -45,7 +45,7 @@ class DragonMasterDeviceManager:
 
 
     def __init__(self,):
-        self.tcpManager = TCPManager()
+        self.tcpManager = TCPManager(self)
         return
 
     #TCP Communication ###############################################################
@@ -59,6 +59,9 @@ class DragonMasterDeviceManager:
 
     """
     Upon receiving an event from our Unity Application, we will process the command through this method
+
+    Packets that are received will contain the following layout:
+    [Function, playerStationID, data....]
     """
     def process_received_event(self, eventReceived):
 
@@ -71,19 +74,35 @@ class DragonMasterDeviceManager:
 
 
 """
-Class that handles all of our TCP communication
+Class that handles all of our TCP communication. This will send and receive packets between our Unity application
+
+Note: Packets should be sent in the form of [Function, playerStationID, Data.....]
 """
 class TCPManager:
+    MAX_THREADING_COUNT = 150
+    HOST_ADDRESS = "127.0.0.1"
+    SEND_PORT = 25001
+    RECEIVE_PORT = 35001
 
-    def __init__(self):
+    MAX_RECV_BUFFER = 1024
+
+    def __init__(self, deviceManager):
         self.sendingEventsToOurUnityApplication = False
         self.tcpEventQueue = queue.Queue()#Queue of events that we want to send to Unity
+
+        self.start_new_socket_receive_thread()
+        self.start_new_socket_send_thread()
+        self.deviceManager = deviceManager
+        
 
 
     """
     Be sure that the event that is passed through is of the type bytearray
+
+    function - byte value that references the type of function that this event will be
+    playerStationID - an id that is the 
     """
-    def add_event_to_send(self, eventToSend):
+    def add_event_to_send(self, function, playerStationID, data):
         if (eventToSend == None):
             print ("The event added was null.")
             return
@@ -94,21 +113,80 @@ class TCPManager:
         return
 
     """
+    Start a new instance of a socket thread that will send data to our Unity Application
+    """
+    def start_new_socket_send_thread(self):
+        sendThread = threading.Thread(socket_send)
+        sendThread.daemon = False
+        sendThread.start()
+        return
+
+    """
+    Start a new instance of a socket thread that will receive data from our unity application
+    """
+    def start_new_socket_receive_thread(self):
+        receiveThread = threading.Thread(socket_receive)
+        receiveThread.daemon = False
+        receiveThread.start()
+        return
+
+
+    """
     This method sends all of the events that are currently in our event queue to our
     Unity Application
     """
     def socket_send(self):
-        self.sendingEventsToOurUnityApplication = True
+        
+        totalCount = 0
+        socketSend = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        while (totalCount < TCPManager.MAX_THREADING_COUNT):
+            try:
+                socketSend.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                socketSend.bind((TCPManager.HOST_ADDRESS, TCPManager.SEND_PORT))
+                socketSend.listen(1)
 
-
-
-        self.sendingEventsToOurUnityApplication = False
+                conn, addr = socketSend.accept()
+                if conn != None:
+                    bytesToSend = []
+                    while not self.tcpEventQueue.empty():
+                        eventToAdd = self.tcpEventQueue.get()
+                        eventToAdd.insert(0, len(eventToAdd))
+                        bytesToSend.append(eventToAdd)
+                    convertedByteArrayToSend = bytearray(bytesToSend)
+                    conn.send(convertedByteArrayToSend)
+                    conn.close()
+                socketSend.close()
+            except Exception as e:
+                if socketSend != None:
+                    socketSend.close()
+            sleep(.01)
+            totalCount += 1
+            pass
+        self.start_new_socket_send_thread()
         return
 
     """
-    This method will 
+    This method will be called to receive 
     """
     def socket_receive(self):
+        totalCount = 0
+        socketRead = socket.socket()
+        while (totalCount < TCPManager.MAX_THREADING_COUNT):
+            try:
+                byteMessage = []
+                socketRead.connect((TCPManager.HOST_ADDRESS, TCPManager.RECEIVE_PORT))
+                buff = socketRead.recv(TCPManager.MAX_RECV_BUFFER)
+                while buff:
+                    print buff
+                    buff = socketRead.recv(TCPManager.MAX_RECV_BUFFER)
+                socketRead.close()
+            except Exception as e:
+                if socketRead != None:
+                    socketRead.close()
+            sleep(.01)
+            totalCount += 1
+            pass
 
         return
+        self.start_new_socket_receive_thread()
     pass
