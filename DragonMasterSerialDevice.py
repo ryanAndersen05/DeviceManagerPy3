@@ -1,6 +1,10 @@
+from time import sleep
+from time import time
+
+import serial
+import serial.tools.list_ports
 import DragonMasterDevice
 import DragonMasterDeviceManager
-import serial
 
 
 """
@@ -9,8 +13,46 @@ The base class for all devices that use Serial communication
 class SerialDevice(DragonMasterDevice.DragonMasterDevice):
 
     def __init__(self, deviceManager,):
-
+        self.serialObject = None
         return
+
+    #Universal Serial Methods
+    """
+    Method used to safely open our serial device
+    """
+    def open_serial_device(comport, bauderate, readTimeout, writeTimeout):
+        try:
+            serialObject = serial.Serial(
+                port=comport,
+                baudrate=baudrate,
+                parity=serial.PARITY_NONE,
+                bytesize=serial.EIGHTBITS,
+                timeout=5,
+                writeTimeout=writeTimeout,
+                stopbits = serial.STOPBITS_ONE
+            )
+            return serialObject
+        except(OSError, serial.SerialException, Exception) as e:
+            print ("There was an error attempting to open our serrial port: " + comport)
+            print (e)
+        return None
+
+    """
+    Method used to safely close out of our serial port
+    """
+    def close_serial_device():
+        if (self.serialObject == None):
+            return
+        
+        if (self.serialObject.isOpen):
+            try:
+                self.serialObject.close()
+                print ("Serial Device (" + self.serialObject.port + ") successfully closed")
+            except Exception as e:
+                print ("There was an error closing our port")
+                print (e)
+
+    #End Universal Serial Methods
     pass
 
 """
