@@ -48,7 +48,16 @@ class DragonMasterDeviceManager:
 
     def __init__(self,):
         self.tcpManager = TCPManager(self)
+        
         return
+
+
+    #Device Management
+
+    def remove_device(deviceToRemove):
+        print deviceToRemove
+        return
+    #End Device Management
 
     #TCP Communication ###############################################################
     """
