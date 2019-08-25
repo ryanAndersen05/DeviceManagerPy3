@@ -1,8 +1,14 @@
+#STD lib imports
+import time
 from time import sleep
-from time import time
+import re
 
+#external imports
 import serial
 import serial.tools.list_ports
+import threading
+
+#project imports
 import DragonMasterDevice
 import DragonMasterDeviceManager
 
@@ -12,17 +18,28 @@ The base class for all devices that use Serial communication
 """
 class SerialDevice(DragonMasterDevice.DragonMasterDevice):
 
-    
+    SERIAL_NOT_POLLING = 0
+    SERIAL_WAIT_FOR_EVENT = 1
+    SERIAL_IGNORE_EVENT = 2
 
     def __init__(self, deviceManager, comport, baudrate = 9600):
         self.comport = comport
         self.baudrate = baudrate
         self.serialObject = None
+        self.pollingDevice = False
+        self.serialState = SerialDevice.SERIAL_NOT_POLLING
         return
 
     def start_device(self):
         self.serialObject = self.open_serial_device()
+
+        
     #Universal Serial Methods
+    def on_data_received_event(self):
+        pass
+
+
+
     """
     Method used to safely open our serial device
     """
@@ -61,20 +78,21 @@ class SerialDevice(DragonMasterDevice.DragonMasterDevice):
     Polls a serial thread to check if at any point there is something to read from a given serial device
     """
     def poll_serial_thread(self):
-        serialDevice = dragonMasterSerialDevice.serialDevice
+        serialDevice = self.serialObject
+        self.pollingDevice = True
+        self.serialState = SerialDevice.SERIAL_WAIT_FOR_EVENT
         try:
-            while dragonMasterSerialDevice.pollDeviceForEvent:
+            while self.pollingDevice:
+                if self.serialState == SerialDevice.SERIAL_WAIT_FOR_EVENT  and serialDevice.in_waiting > 1:
+                        self.on_data_received_event()
+                sleep(.016)#Adding a sleep so that we do not consume all the resources and allow python to run other threads
+        except Exception as e:
+            print ("There was an error polling device " + self.to_string())
+            print (e)
+            self.deviceManager.remove_device(self)
+            self.pollingDevice = False  # Thread will end if there is an error polling for a device
 
-                if not dragonMasterSerialDevice.blockReadEvent and serialDevice.in_waiting > 1:
-                        dragonMasterSerialDevice.on_data_received_event()
-                sleep(.016)#
-        except:
-            # print serialDevice
-            print ("There was an error polling device " + dragonMasterSerialDevice.to_string())
-            dragonMasterSerialDevice.deviceManager.remove_device(dragonMasterSerialDevice)
-            dragonMasterSerialDevice.pollDeviceForEvent = False  # Thread will end if there is an error polling for a device
-
-        print (dragonMasterSerialDevice.to_string() + " no longer polling for events")#Just want this for testing. want to remove later
+        print (self.to_string() + " no longer polling for events")#Just want this for testing. want to remove later
     #End Universal Serial Methods
     pass
 

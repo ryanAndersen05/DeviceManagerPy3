@@ -55,7 +55,7 @@ class DragonMasterDeviceManager:
     #Device Management
 
     def remove_device(deviceToRemove):
-        print deviceToRemove
+        print (deviceToRemove)
         return
     #End Device Management
 
@@ -149,7 +149,7 @@ class TCPManager:
         return
 
 
-     """
+    """
     This method sends all of the events that are currently in our event queue to our
     Unity Application
     """
