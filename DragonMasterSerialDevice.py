@@ -113,6 +113,13 @@ class SerialDevice(DragonMasterDevice.DragonMasterDevice):
             print ("There was an error reading from our device")
             print (e)
 
+    def write_to_serial(self, messageToSend):
+        try:
+            self.serialObject.write(messageToSend)
+        except Exception as e:
+            print ("There was an error writing to our serial device")
+            print (e)
+
 
     #End READ/WRITE Methods
     #End Universal Serial Methods
