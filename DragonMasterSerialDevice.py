@@ -93,6 +93,28 @@ class SerialDevice(DragonMasterDevice.DragonMasterDevice):
             self.pollingDevice = False  # Thread will end if there is an error polling for a device
 
         print (self.to_string() + " no longer polling for events")#Just want this for testing. want to remove later
+
+    #READ/WRITE Methods
+    """
+    Returns a message if there is one available to read from our serial device
+    """
+    def read_from_serial(self, delayBeforeReadMilliseconds = 0):
+        sleepDelay = float(delayBeforeReadMilliseconds) / 1000
+        self.serialState = SerialDevice.SERIAL_IGNORE_EVENT
+        if sleepDelay > 0:
+            sleep(sleepDelay)
+        
+        try:
+            inWaiting = self.serialObject.in_waiting
+            readLine = self.serialObject.read(size=inWaiting)
+            self.serialState = SerialDevice.SERIAL_WAIT_FOR_EVENT
+            return readLine
+        except Exception as e:
+            print ("There was an error reading from our device")
+            print (e)
+
+
+    #End READ/WRITE Methods
     #End Universal Serial Methods
     pass
 
