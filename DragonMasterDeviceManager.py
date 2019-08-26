@@ -14,6 +14,7 @@ class DragonMasterDeviceManager:
     STATUS_FROM_UNITY = 0X00
     DEVICE_CONNECTED = 0X01
     DEVICE_DISCONNECTED = 0X02
+    OMNI_EVENT = 0x03 #For messages that we send/receive to our omnidongle
 
     ##DRAX COMMANDS
     DRAX_ID = 0X10

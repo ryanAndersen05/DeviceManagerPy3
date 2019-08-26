@@ -159,7 +159,7 @@ class SerialDevice(DragonMasterDevice.DragonMasterDevice):
             print (e)
             self.serialState = SerialDevice.SERIAL_WAIT_FOR_EVENT
             return None
-            
+
         print ("Serial Read Timed Out")
         self.serialState = SerialDevice.SERIAL_WAIT_FOR_EVENT
         return None
@@ -208,8 +208,54 @@ our device, this class strictly relays packets between this device and our Unity
 in this class is whether or not it is connected
 """
 class Omnidongle(SerialDevice):
-    def __init__(self, deviceManager):
+    OMNI_BAUD_RATE = 19200
+    OMNI_BIT_RATE = 8
+    OMNI_SERIAL_DESCRIPTION = "POM OmniDongle"
 
+
+    def __init__(self, deviceManager):
+        SerialDevice.__init__(self, deviceManager)
+        return
+    """
+    Omnidongle start flushes out left over messages on start
+    """
+    def start_device(self):
+        if (not SerialDevice.start_device(self)):
+            return False
+        try:
+            self.serialObject.flush()
+        except Exception as e:
+            print ("There was an error flushing out the Omnidongle")
+            print (e)
+            return False
+        return True
+
+    def set_parent_path(self):
         return
 
+    def disconnect_device(self):
+        return
+
+    """
+    Sends a packet to our omnidongle. This should result in a message that we can return to our
+    Unity Application
+    """
+    def send_data_to_omnidongle(self, packetToSend):
+        if (packetToSend == None):
+            print ("Packet to send was None")
+            return
+        if (len(packetToSend) <= 1):
+            print ("Our packet length was too short")
+            return
+        
+        responsePacket = self.write_serial_wait_for_read(self, packetToSend, minBytesToRead=7, maxMillisecondsToWait=2000, delayBeforeReadMilliseconds=25)
+        if (responsePacket != None):
+            responsePacket.insert(0, DragonMasterDeviceManager.DragonMasterDeviceManager.OMNI_EVENT)
+        else:
+            print ("Our response packet was returned as None")
+            return
+        self.deviceManager.add_event_to_send(responsePacket)
+        return
+
+    
     pass
