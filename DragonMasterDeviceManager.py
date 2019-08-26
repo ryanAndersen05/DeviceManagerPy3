@@ -32,12 +32,20 @@ class DragonMasterDeviceManager:
 
     ##PRINTER COMMANDS
     PRINTER_ID = 0X40
+    PRINTER_CASHOUT_TICKET = 0X41
+    PRINTER_AUDIT_TICKET = 0X042
+    PRINTER_CODEX_TICKET = 0X43
+    PRINTER_TEST_TICKET = 0X44
+    PRINT_COMPLETE_EVENT = 0X45
 
+    #Printer Types
     CUSTOM_TG02 = 0X01
     RELIANCE_PRINTER = 0X02
     PYRAMID_PRINTER = 0X03
     
-
+    #Print Error Codes
+    PRINT_GOOD = 0X00
+    PRINT_ERRORED = 0X01
 
     ##BILL ACCEPTOR COMMANDS
     BILL_ACCEPTOR_ID = 0X80
@@ -55,8 +63,26 @@ class DragonMasterDeviceManager:
 
 
     #Device Management
+    """
+    This method will search for all valid devices that are connected to our machine
+    """
+    def search_for_devices(self):
 
-    def remove_device(deviceToRemove):
+        return
+
+    """
+    Adds a new device to our device manager. This will fail to add a device if the device fails to
+    start up appropriately
+    """
+    def add_new_device(self, deviceToAdd):
+
+        return
+
+    """
+    This method will remove a device from our device manager. This will also process our disconnect command in the device
+    that is passed through to ensure that we are properly disconnected from the device manager
+    """
+    def remove_device(self, deviceToRemove):
         print (deviceToRemove)
         return
     #End Device Management
