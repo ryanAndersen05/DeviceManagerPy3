@@ -40,15 +40,21 @@ class SerialDevice(DragonMasterDevice.DragonMasterDevice):
         except Exception as e:
             print ("There was an error attempting to ")
 
-
+    """
+    The start device method in our serial device begins the polling process to search for 
+    packets to the read in from our serial device
+    """
     def start_device(self):
-        print ("You have not set up a proper start function for your Serial Device")
+        pollingThread = threading.Thread(self.poll_serial_thread)
+        pollingThread.daemon = True
+        pollingThread.start()
         return False
 
     """
     We will want to close our serial port upon disconnecting our device
     """
     def disconnect_device(self):
+        self.pollingDevice = False
         self.close_serial_device()
         self.serialState = SerialDevice.SERIAL_NOT_POLLING
         return
@@ -251,6 +257,7 @@ class Omnidongle(SerialDevice):
             return False
         try:
             self.serialObject.flush()
+            SerialDevice.start_device(self)
         except Exception as e:
             print ("There was an error flushing out the Omnidongle")
             print (e)
@@ -265,6 +272,7 @@ class Omnidongle(SerialDevice):
     to None
     """
     def disconnect_device(self):
+        
         SerialDevice.disconnect_device(self)
         if (self.deviceManager.CONNECTED_OMNIDONGLE == self):
             self.deviceManager.CONNECTED_OMNIDONGLE = None

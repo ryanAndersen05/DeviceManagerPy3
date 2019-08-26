@@ -123,10 +123,10 @@ class TCPManager:
     playerStationID - an id that is the 
     """
     def add_event_to_send(self, function, playerStationID, data):
-        if (eventToSend == None):
+        if (data == None):
             print ("The event added was null.")
             return
-        self.tcpEventQueue.put(eventToSend)
+        self.tcpEventQueue.put(data)
 
         if (not self.sendingEventsToOurUnityApplication):
             self.socket_send()
