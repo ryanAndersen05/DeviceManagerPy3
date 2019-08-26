@@ -11,19 +11,22 @@ It will manages messages between our Unity Application and assign commands to th
 class DragonMasterDeviceManager:
     ##General Device Commands
     #This command will be sent as a single byte event simply to inform python that we are still connected to the our Unity application
-    STATUS_FROM_UNITY = 0X00
-    DEVICE_CONNECTED = 0X01
-    DEVICE_DISCONNECTED = 0X02
+    STATUS_FROM_UNITY = 0x00
+    DEVICE_CONNECTED = 0x01
+    DEVICE_DISCONNECTED = 0x02
     OMNI_EVENT = 0x03 #For messages that we send/receive to our omnidongle
 
     ##DRAX COMMANDS
-    DRAX_ID = 0X10
+    DRAX_ID = 0x10
+
     #Send Events
-    DRAX_INPUT_EVENT = 0X11
+    DRAX_INPUT_EVENT = 0x11
+
     #Receive Events
-    DRAX_OUTPUT_EVENT = 0X12
-    DRAX_OUTPUT_BIT_EVENT = 0X13
-    DRAX_HARD_METER_EVENT = 0X14
+    DRAX_OUTPUT_EVENT = 0x12
+    DRAX_OUTPUT_BIT_ENABLE_EVENT = 0x13
+    DRAX_OUTPUT_BIT_DISABLE_EVENT = 0x14
+    DRAX_HARD_METER_EVENT = 0X15
 
     ##JOYSTICK COMMANDS
     JOYSTICK_ID = 0X20
@@ -32,23 +35,38 @@ class DragonMasterDeviceManager:
 
     ##PRINTER COMMANDS
     PRINTER_ID = 0X40
+    #Receive Events
     PRINTER_CASHOUT_TICKET = 0X41
     PRINTER_AUDIT_TICKET = 0X042
     PRINTER_CODEX_TICKET = 0X43
     PRINTER_TEST_TICKET = 0X44
+    #Send Events
     PRINT_COMPLETE_EVENT = 0X45
 
     #Printer Types
     CUSTOM_TG02 = 0X01
     RELIANCE_PRINTER = 0X02
     PYRAMID_PRINTER = 0X03
-    
+
     #Print Error Codes
     PRINT_GOOD = 0X00
     PRINT_ERRORED = 0X01
 
     ##BILL ACCEPTOR COMMANDS
     BILL_ACCEPTOR_ID = 0X80
+
+    #Send Events
+    BA_BILL_INSERTED_EVENT = 0X81
+    BA_BILL_ACCEPTED_EVENT = 0X82
+    BA_BILL_REJECTED_EVENT = 0X83
+
+    #Receive Events
+    BA_ACCEPT_BILL_EVENT = 0X84
+    BA_REJECT_BILL_EVENT = 0X85
+    BA_IDLE_EVENT = 0X86
+    BA_INHIBIT_EVENT = 0X87
+    BA_RESET_EVENT = 0X88
+
 
 
     #TCP Variables
@@ -144,15 +162,12 @@ class TCPManager:
 
     """
     Be sure that the event that is passed through is of the type bytearray
-
-    function - byte value that references the type of function that this event will be
-    playerStationID - an id that is the 
     """
-    def add_event_to_send(self, function, playerStationID, data):
-        if (data == None):
+    def add_event_to_send(self, eventPacketToSend):
+        if (eventPacketToSend == None):
             print ("The event added was null.")
             return
-        self.tcpEventQueue.put(data)
+        self.tcpEventQueue.put(eventPacketToSend)
 
         if (not self.sendingEventsToOurUnityApplication):
             self.socket_send()
