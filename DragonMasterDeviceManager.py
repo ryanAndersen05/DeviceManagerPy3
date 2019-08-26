@@ -49,6 +49,7 @@ class DragonMasterDeviceManager:
 
     def __init__(self,):
         self.tcpManager = TCPManager(self)
+        self.CONNECTED_OMNIDONGLE = None
         
         return
 

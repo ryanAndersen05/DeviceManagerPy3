@@ -30,27 +30,47 @@ class SerialDevice(DragonMasterDevice.DragonMasterDevice):
         self.serialState = SerialDevice.SERIAL_NOT_POLLING
         return
 
+    """
+    Check to ensure that our serial device is still connected and functioning. This is more
+    of a backup check as ending polling should be immediate grounds to disconnect our device
+    """
+    def has_device_errored(self):
+        try:
+            return not self.serialObject.is_open or self.serialState == SerialDevice.SERIAL_NOT_POLLING
+        except Exception as e:
+            print ("There was an error attempting to ")
+
+
     def start_device(self):
-        self.serialObject = self.open_serial_device()
+        print ("You have not set up a proper start function for your Serial Device")
+        return False
+
+    """
+    We will want to close our serial port upon disconnecting our device
+    """
+    def disconnect_device(self):
+        self.close_serial_device()
+        self.serialState = SerialDevice.SERIAL_NOT_POLLING
+        return
 
         
     #Universal Serial Methods
     def on_data_received_event(self):
-        pass
+        return
 
 
 
     """
     Method used to safely open our serial device
     """
-    def open_serial_device(self, comport, baudrate, readTimeout, writeTimeout):
+    def open_serial_device(self, comport, baudrate, readTimeout=5, writeTimeout=5):
         try:
             serialObject = serial.Serial(
                 port=comport,
                 baudrate=baudrate,
                 parity=serial.PARITY_NONE,
                 bytesize=serial.EIGHTBITS,
-                timeout=5,
+                timeout=readTimeout,
                 writeTimeout=writeTimeout,
                 stopbits = serial.STOPBITS_ONE
             )
@@ -200,6 +220,12 @@ class ReliancePrinterSerial(SerialDevice):
 
         return
 
+    """
+    NOTE: Make it so that we properly disconnect our printer at the end of this method.
+    If we are no longer polling for events, we should disconnect
+    """
+    def poll_serial_thread(self):
+        super().poll_serial_thread()
     pass
 
 """
@@ -213,14 +239,15 @@ class Omnidongle(SerialDevice):
     OMNI_SERIAL_DESCRIPTION = "POM OmniDongle"
 
 
-    def __init__(self, deviceManager):
-        SerialDevice.__init__(self, deviceManager)
+    def __init__(self, deviceManager, comport):
+        SerialDevice.__init__(self, deviceManager, comport)
         return
     """
     Omnidongle start flushes out left over messages on start
     """
     def start_device(self):
-        if (not SerialDevice.start_device(self)):
+        self.serialObject = self.open_serial_device(self.comport, Omnidongle.OMNI_BAUD_RATE, readTimeout=3, writeTimeout=3)
+        if self.serialObject == None:
             return False
         try:
             self.serialObject.flush()
@@ -233,7 +260,14 @@ class Omnidongle(SerialDevice):
     def set_parent_path(self):
         return
 
+    """
+    Disconnect our omnidongle by setting our CONNECTED_OMNIDONGLE value
+    to None
+    """
     def disconnect_device(self):
+        SerialDevice.disconnect_device(self)
+        if (self.deviceManager.CONNECTED_OMNIDONGLE == self):
+            self.deviceManager.CONNECTED_OMNIDONGLE = None
         return
 
     """
@@ -254,7 +288,7 @@ class Omnidongle(SerialDevice):
         else:
             print ("Our response packet was returned as None")
             return
-        self.deviceManager.add_event_to_send(responsePacket)
+        self.deviceManager.add_event_to_send(responsePacket)#We send the response packet that our omnidongle returns after calculating the packet
         return
 
     
