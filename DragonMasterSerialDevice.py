@@ -1,4 +1,4 @@
-#STD lib imports
+#std. lib imports
 import time
 from time import sleep
 import re
@@ -58,7 +58,7 @@ class SerialDevice(DragonMasterDevice.DragonMasterDevice):
         except(OSError, serial.SerialException, Exception) as e:
             print ("There was an error attempting to open our serrial port: " + comport)
             print (e)
-        return None
+        return None#If we failed to create a serial object we will return None
 
     """
     Method used to safely close out of our serial port
@@ -93,6 +93,7 @@ class SerialDevice(DragonMasterDevice.DragonMasterDevice):
             self.pollingDevice = False  # Thread will end if there is an error polling for a device
 
         print (self.to_string() + " no longer polling for events")#Just want this for testing. want to remove later
+        return
 
     #READ/WRITE Methods
     """
@@ -112,13 +113,56 @@ class SerialDevice(DragonMasterDevice.DragonMasterDevice):
         except Exception as e:
             print ("There was an error reading from our device")
             print (e)
+            self.serialState = SerialDevice.SERIAL_WAIT_FOR_EVENT
+        return
 
+    """
+    Safely writes a message to our serial object
+    
+    NOTE: Please be sure that the message is of the type 'bytearray'
+    """
     def write_to_serial(self, messageToSend):
         try:
             self.serialObject.write(messageToSend)
         except Exception as e:
             print ("There was an error writing to our serial device")
             print (e)
+        return
+
+    """
+    In many cases with our serial devices, we will want to send a message and we will expect a response to that message.
+    For this it is recommended that you use this method.
+    """
+    def write_serial_wait_for_read(self, messageToSend, minBytesToRead=1, maxMillisecondsToWait=10, delayBeforeReadMilliseconds=0):
+        self.serialState = SerialDevice.SERIAL_IGNORE_EVENT
+        maxMillisecondsToWaitConverted = float(maxMillisecondsToWait) / 1000
+
+        try:
+            self.serialObject.write(messageToSend)
+        except Exception as e:
+            print ("There was an error writing to our serial device")
+            print (e)
+            self.serialState = SerialDevice.SERIAL_WAIT_FOR_EVENT
+            return None
+
+        initialTime = time()
+        try:
+            while time() - initialTime < maxMillisecondsToWaitConverted:
+                if (self.serialObject.in_waiting >= minBytesToRead):
+                    if (delayBeforeReadMilliseconds > 0):
+                        sleep(float(delayBeforeReadMilliseconds) / 1000)
+                    inWaiting = self.serialObject.in_waiting
+                    readLine = self.serialObject.read(size=inWaiting)
+                    return readLine
+        except Exception as e:
+            print ("There was a problem reading from our device")
+            print (e)
+            self.serialState = SerialDevice.SERIAL_WAIT_FOR_EVENT
+            return None
+            
+        print ("Serial Read Timed Out")
+        self.serialState = SerialDevice.SERIAL_WAIT_FOR_EVENT
+        return None
 
 
     #End READ/WRITE Methods
