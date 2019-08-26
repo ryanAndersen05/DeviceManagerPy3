@@ -8,6 +8,7 @@ class DragonMasterDevice:
 
     def __init__(self, dragonMasterDeviceManager):
         self.dragonMasterDeviceManager = dragonMasterDeviceManager
+        self.deviceParentPath = None
 
     """
     This method should be called every time we connect to a new device for the fist time. If our device does not connect correctly
@@ -28,8 +29,8 @@ class DragonMasterDevice:
     """
     This method sets the parent path of the device
     """
-    def set_parent_path():
-        return
+    def get_parent_path():
+        return None
 
 
 

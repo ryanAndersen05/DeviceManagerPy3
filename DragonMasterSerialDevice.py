@@ -264,8 +264,12 @@ class Omnidongle(SerialDevice):
             return False
         return True
 
-    def set_parent_path(self):
-        return
+    """
+    The parent path for our Omnidongle is not important as it is not assigned to any
+    Player Station
+    """
+    def get_parent_path(self):
+        return None
 
     """
     Disconnect our omnidongle by setting our CONNECTED_OMNIDONGLE value
