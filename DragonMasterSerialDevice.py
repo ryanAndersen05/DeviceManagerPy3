@@ -44,7 +44,9 @@ class SerialDevice(DragonMasterDevice.DragonMasterDevice):
     The start device method in our serial device begins the polling process to search for 
     packets to the read in from our serial device
     """
-    def start_device(self):
+    def start_device(self, deviceElement):
+        DragonMasterDevice.DragonMasterDevice.start_device(self, deviceElement)
+
         pollingThread = threading.Thread(self.poll_serial_thread)
         pollingThread.daemon = True
         pollingThread.start()
@@ -251,13 +253,13 @@ class Omnidongle(SerialDevice):
     """
     Omnidongle start flushes out left over messages on start
     """
-    def start_device(self):
+    def start_device(self, deviceElement):
         self.serialObject = self.open_serial_device(self.comport, Omnidongle.OMNI_BAUD_RATE, readTimeout=3, writeTimeout=3)
         if self.serialObject == None:
             return False
         try:
             self.serialObject.flush()
-            SerialDevice.start_device(self)
+            SerialDevice.start_device(self, deviceElement)
         except Exception as e:
             print ("There was an error flushing out the Omnidongle")
             print (e)
