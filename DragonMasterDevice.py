@@ -1,5 +1,5 @@
 import DragonMasterDeviceManager
-
+import evdev
 
 """
 The Base class for all our Dragon Master Devices
@@ -42,7 +42,7 @@ class DragonMasterDevice:
 Joystick class. Sends events to our Unity application of the current state of the joystick
 """
 class Joystick(DragonMasterDevice):
-
+    JOYSTICK_DEVICE_NAME = "Ultimarc UltraStik Ultimarc Ultra-Stik Player 1"
     pass
 
 """
@@ -65,3 +65,18 @@ Extension of our printer class. This handles special properties for our Reliance
 class ReliancePrinter(Printer):
 
     pass
+
+
+##Retrieve device methods
+"""
+This method will retrieve all valid joysticks that are connected to our machine
+"""
+def get_all_connected_joystick_devices(self):
+    allJoystickDevices = [evdev.InputDevice(fn) for fn in evdev.list_devices] #Creates a list of all connected input devices
+    listOfValidJoysticks = []
+    for dev in allJoystickDevices:
+        if (dev.name == Joystick.JOYSTICK_DEVICE_NAME and "input0" in dev.phys):
+            listOfValidJoysticks.append(dev)
+
+    return listOfValidJoysticks
+##End Retrieve device method
