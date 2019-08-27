@@ -135,6 +135,18 @@ class DragonMasterDeviceManager:
     pass
 
 
+"""
+This class acts as a container of all the devices that are connected to this device
+"""
+class PlayerStationContainer:
+    
+    def __init__(self):
+        self.connectedDraxBoard = None
+        self.connectedBillAcceptor = None
+        self.connectedJoystick = None
+        self.connectedPrinter = None
+
+
 
 #######################################################################################################################################################
 """
