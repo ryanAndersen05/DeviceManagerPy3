@@ -1,5 +1,6 @@
 import DragonMasterDeviceManager
 import evdev
+import threading
 
 """
 The Base class for all our Dragon Master Devices
@@ -7,6 +8,7 @@ The Base class for all our Dragon Master Devices
 class DragonMasterDevice:
 
     def __init__(self, dragonMasterDeviceManager):
+        self.playerStationID = 0
         self.dragonMasterDeviceManager = dragonMasterDeviceManager
         self.deviceParentPath = None
         self.devicePath = None
@@ -43,7 +45,61 @@ Joystick class. Sends events to our Unity application of the current state of th
 """
 class Joystick(DragonMasterDevice):
     JOYSTICK_DEVICE_NAME = "Ultimarc UltraStik Ultimarc Ultra-Stik Player 1"
+
+    def __init__(self, dragonMasterDeviceManager):
+        super().__init__(dragonMasterDeviceManager)
+        self.joystickDevice = None#joystick device is our evdev element that will be used to collect the axes of our joystick
+        self.currentAxes = (0,0)#The current axis values that our joystick is set to
+        self.lastSentAxes = (0,0)#The last sent axes values. This is the last value that we have sent off to Unity
+
+    """
+    Starts up a thread that will check for updates to the axis
+    """
+    def start_device(self, deviceElement):
+        super().start_device(deviceElement)
+        self.joystickDevice = deviceElement
+
+        self.joystickThread = threading.Thread(target=self.joystick_axes_update_thread,)
+        self.joystickThread.daemon = True
+        self.joystickThread.start()
+        return True
+
+
+    """
+    Thread to update the current axis values of our joystick
+    """
+    def joystick_axes_update_thread(self):
+        try:
+            for event in self.joystickDevice.read_loop():
+                if (event.type != evdev.ecodes.EV_SYN):
+                    absevent = evdev.categorize(event)
+                    if 'ABS_X' in str(absevent):
+                        adjustedValue = event.value
+                        updatedAxes = (adjustedValue, self.currentAxes[1])
+                        self.currentAxes = updatedAxes
+                    if 'ABS_Y' in str(absevent):
+                        adjustedValue = event.value
+                        updatedAxes = (self.currentAxes[0], adjustedValue)
+                        self.currentAxes = updatedAxes
+                if self.currentAxes != self.lastSentAxes:
+                    self.lastSentAxes = self.currentAxes
+                    print (self.currentAxes)
+        except Exception as e:
+            print ("There was an error with our joystick connection")
+            print (e)
+            self.dragonMasterDeviceManager.remove_device(self)
+        return
+
+    """
+    Sends an event to update the Joystick axes to our 
+    """
+    def send_updated_joystick_to_unity_application(self):
+        if self.currentAxes != self.lastSentAxes:
+            byteArrayPacketToSend = bytearray([DragonMasterDeviceManager.DragonMasterDeviceManager.JOYSTICK_INPUT_EVENT, self.playerStationID, self.currentAxes[0], self.currentAxes[1]])
+            self.dragonMasterDeviceManager.add_event_to_send(byteArrayPacketToSend)
     pass
+
+
 
 """
 Printer device handles printer events. Sends the status of the printer to Unity
@@ -71,8 +127,8 @@ class ReliancePrinter(Printer):
 """
 This method will retrieve all valid joysticks that are connected to our machine
 """
-def get_all_connected_joystick_devices(self):
-    allJoystickDevices = [evdev.InputDevice(fn) for fn in evdev.list_devices] #Creates a list of all connected input devices
+def get_all_connected_joystick_devices():
+    allJoystickDevices = [evdev.InputDevice(fn) for fn in evdev.list_devices()] #Creates a list of all connected input devices
     listOfValidJoysticks = []
     for dev in allJoystickDevices:
         if (dev.name == Joystick.JOYSTICK_DEVICE_NAME and "input0" in dev.phys):

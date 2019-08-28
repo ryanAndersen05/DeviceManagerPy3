@@ -74,9 +74,13 @@ class DragonMasterDeviceManager:
 
 
     def __init__(self,):
-        self.tcpManager = TCPManager(self)
+        # self.tcpManager = TCPManager(self)
         self.CONNECTED_OMNIDONGLE = None
+        self.allConnectedDevices = []
         
+        while (True):
+            self.search_for_devices()
+            sleep(5)
         return
 
 
@@ -85,15 +89,21 @@ class DragonMasterDeviceManager:
     This method will search for all valid devices that are connected to our machine
     """
     def search_for_devices(self):
-
+        allConnectedJoysticks = DragonMasterDevice.get_all_connected_joystick_devices()
+        for joystick in allConnectedJoysticks:
+            if (joystick != None and not self.device_manager_contains_joystick(joystick)):
+                self.add_new_device(DragonMasterDevice.Joystick(self), joystick)
         return
 
     """
     Adds a new device to our device manager. This will fail to add a device if the device fails to
     start up appropriately
     """
-    def add_new_device(self, deviceToAdd):
-
+    def add_new_device(self, deviceToAdd, deviceElementNode):
+        if (deviceToAdd.start_device(deviceElementNode)):
+            self.allConnectedDevices.append(deviceToAdd)
+        else:
+            print ("Device Failed Start")
         return
 
     """
@@ -133,6 +143,17 @@ class DragonMasterDeviceManager:
 
 
     pass
+
+##Contains Methods
+    def device_manager_contains_joystick(self, joystickDevice):
+        for dev in self.allConnectedDevices:
+            if dev is DragonMasterDevice.Joystick:
+                if dev.joystickDevice.phys == joystickDevice.phys:
+                    return True
+
+
+        return False
+#End Contains Methods
 
 
 """
