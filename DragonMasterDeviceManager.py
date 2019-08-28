@@ -100,9 +100,14 @@ class DragonMasterDeviceManager:
     start up appropriately
     """
     def add_new_device(self, deviceToAdd, deviceElementNode):
+        if (self.allConnectedDevices.__contains__(deviceToAdd)):
+            print ("Device was already added to our device manager. Please double check how we added a device twice")
+            return
         if (deviceToAdd.start_device(deviceElementNode)):
             self.allConnectedDevices.append(deviceToAdd)
+            print (deviceToAdd.to_string() + " was successfully added to our device manager")
         else:
+            deviceToAdd.disconnect_device()#We will run a disconnect device to ensure that we fully disconnect all processes that may be running in our device
             print ("Device Failed Start")
         return
 
@@ -111,7 +116,16 @@ class DragonMasterDeviceManager:
     that is passed through to ensure that we are properly disconnected from the device manager
     """
     def remove_device(self, deviceToRemove):
-        print (deviceToRemove)
+        if deviceToRemove == None:
+            return
+
+        if self.allConnectedDevices.__contains__(deviceToRemove):
+            deviceToRemove.disconnect_device()
+            self.allConnectedDevices.remove(deviceToRemove)
+            print (deviceToRemove.to_string() + " was successfully removed")
+        else:
+            print (deviceToRemove.to_string() + " was not found in our device list. Perhaps it was already removed")
+
         return
     #End Device Management
 
@@ -147,7 +161,7 @@ class DragonMasterDeviceManager:
 ##Contains Methods
     def device_manager_contains_joystick(self, joystickDevice):
         for dev in self.allConnectedDevices:
-            if dev is DragonMasterDevice.Joystick:
+            if isinstance(dev, DragonMasterDevice.Joystick):
                 if dev.joystickDevice.phys == joystickDevice.phys:
                     return True
 

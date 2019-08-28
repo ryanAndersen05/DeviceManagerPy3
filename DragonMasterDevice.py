@@ -20,7 +20,7 @@ class DragonMasterDevice:
     deviceElement - The element that is retrieved from our pyudev search. This will 
     """
     def start_device(self, deviceElement):
-        self.deviceParentPath = self.get_parent_path(deviceElement)
+        self.deviceParentPath = self.fetch_parent_path(deviceElement)
         return False
 
     def disconnect_device(self):
@@ -35,8 +35,14 @@ class DragonMasterDevice:
     """
     This method will retrieve the parent path of our device
     """
-    def get_parent_path(self, deviceElement):
+    def fetch_parent_path(self, deviceElement):
         return None
+
+    """
+    To string method primarily used for debugging purposes. This will return a string name of the device and any other relevant information
+    """
+    def to_string(self):
+        return "Device ToString Not Defined"
 
 
 
@@ -49,8 +55,10 @@ class Joystick(DragonMasterDevice):
     def __init__(self, dragonMasterDeviceManager):
         super().__init__(dragonMasterDeviceManager)
         self.joystickDevice = None#joystick device is our evdev element that will be used to collect the axes of our joystick
-        self.currentAxes = (0,0)#The current axis values that our joystick is set to
-        self.lastSentAxes = (0,0)#The last sent axes values. This is the last value that we have sent off to Unity
+
+        #NOTE: We initialize the joystick axes to 128 as that is the neutral position. The values for our joystick are between 0-255
+        self.currentAxes = (128,128)#The current axis values that our joystick is set to
+        self.lastSentAxes = (128,128)#The last sent axes values. This is the last value that we have sent off to Unity
 
     """
     Starts up a thread that will check for updates to the axis
@@ -64,6 +72,10 @@ class Joystick(DragonMasterDevice):
         self.joystickThread.start()
         return True
 
+    def disconnect_device(self):
+        self.joystickDevice = None
+        return 
+
 
     """
     Thread to update the current axis values of our joystick
@@ -71,6 +83,8 @@ class Joystick(DragonMasterDevice):
     def joystick_axes_update_thread(self):
         try:
             for event in self.joystickDevice.read_loop():
+                if self.joystickDevice == None:
+                    return
                 if (event.type != evdev.ecodes.EV_SYN):
                     absevent = evdev.categorize(event)
                     if 'ABS_X' in str(absevent):
