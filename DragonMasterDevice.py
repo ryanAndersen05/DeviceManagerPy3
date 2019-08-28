@@ -76,6 +76,9 @@ class Joystick(DragonMasterDevice):
         self.joystickDevice = None
         return 
 
+    def to_string(self):
+        return "Joystick"
+
 
     """
     Thread to update the current axis values of our joystick
@@ -97,7 +100,7 @@ class Joystick(DragonMasterDevice):
                         self.currentAxes = updatedAxes
                 if self.currentAxes != self.lastSentAxes:
                     self.lastSentAxes = self.currentAxes
-                    print (self.currentAxes)
+                    # print (self.currentAxes)
         except Exception as e:
             print ("There was an error with our joystick connection")
             print (e)

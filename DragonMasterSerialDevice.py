@@ -22,9 +22,8 @@ class SerialDevice(DragonMasterDevice.DragonMasterDevice):
     SERIAL_WAIT_FOR_EVENT = 1
     SERIAL_IGNORE_EVENT = 2
 
-    def __init__(self, deviceManager, comport, baudrate = 9600):
-        self.comport = comport
-        self.baudrate = baudrate
+    def __init__(self, deviceManager):
+        DragonMasterDevice.DragonMasterDevice.__init__(self, deviceManager)
         self.serialObject = None
         self.pollingDevice = False
         self.serialState = SerialDevice.SERIAL_NOT_POLLING
@@ -47,7 +46,7 @@ class SerialDevice(DragonMasterDevice.DragonMasterDevice):
     def start_device(self, deviceElement):
         DragonMasterDevice.DragonMasterDevice.start_device(self, deviceElement)
 
-        pollingThread = threading.Thread(self.poll_serial_thread)
+        pollingThread = threading.Thread(target=self.poll_serial_thread)
         pollingThread.daemon = True
         pollingThread.start()
         return False
@@ -117,7 +116,7 @@ class SerialDevice(DragonMasterDevice.DragonMasterDevice):
         except Exception as e:
             print ("There was an error polling device " + self.to_string())
             print (e)
-            self.deviceManager.remove_device(self)
+            self.dragonMasterDeviceManager.remove_device(self)
             self.pollingDevice = False  # Thread will end if there is an error polling for a device
 
         print (self.to_string() + " no longer polling for events")#Just want this for testing. want to remove later
@@ -247,19 +246,22 @@ class Omnidongle(SerialDevice):
     OMNI_SERIAL_DESCRIPTION = "POM OmniDongle"
 
 
-    def __init__(self, deviceManager, comport):
-        SerialDevice.__init__(self, deviceManager, comport)
+    def __init__(self, deviceManager):
+        SerialDevice.__init__(self, deviceManager)
         return
     """
     Omnidongle start flushes out left over messages on start
     """
     def start_device(self, deviceElement):
-        self.serialObject = self.open_serial_device(self.comport, Omnidongle.OMNI_BAUD_RATE, readTimeout=3, writeTimeout=3)
+        self.dragonMasterDeviceManager.CONNECTED_OMNIDONGLE = self
+        self.serialObject = self.open_serial_device(deviceElement.device, Omnidongle.OMNI_BAUD_RATE, readTimeout=3, writeTimeout=3)
         if self.serialObject == None:
             return False
         try:
+            self.dragonMasterDeviceManager.CONNECTED_OMNIDONGLE = self
             self.serialObject.flush()
             SerialDevice.start_device(self, deviceElement)
+            
         except Exception as e:
             print ("There was an error flushing out the Omnidongle")
             print (e)
@@ -271,7 +273,7 @@ class Omnidongle(SerialDevice):
     Player Station
     """
     def fetch_parent_path(self, deviceElement):
-        return super().fetch_parent_path(deviceElement)(self)
+        return None
 
     """
     Disconnect our omnidongle by setting our CONNECTED_OMNIDONGLE value
@@ -280,8 +282,8 @@ class Omnidongle(SerialDevice):
     def disconnect_device(self):
         
         SerialDevice.disconnect_device(self)
-        if (self.deviceManager.CONNECTED_OMNIDONGLE == self):
-            self.deviceManager.CONNECTED_OMNIDONGLE = None
+        if (self.dragonMasterDeviceManager.CONNECTED_OMNIDONGLE == self):
+            self.dragonMasterDeviceManager.CONNECTED_OMNIDONGLE = None
         return
 
     """
@@ -302,8 +304,26 @@ class Omnidongle(SerialDevice):
         else:
             print ("Our response packet was returned as None")
             return
-        self.deviceManager.add_event_to_send(responsePacket)#We send the response packet that our omnidongle returns after calculating the packet
+        self.dragonMasterDeviceManager.add_event_to_send(responsePacket)#We send the response packet that our omnidongle returns after calculating the packet
         return
+
+    def to_string(self):
+        return "POM Omnidongle"
 
     
     pass
+
+
+
+##Search Device Methods
+
+def get_omnidongle_comports():
+    allPorts = serial.tools.list_ports.comports()
+
+    for element in allPorts:
+        if element.description.__contains__(Omnidongle.OMNI_SERIAL_DESCRIPTION):
+            return element
+
+    return None
+
+#End Search Device Methods

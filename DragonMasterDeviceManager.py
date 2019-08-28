@@ -1,4 +1,5 @@
 import DragonMasterDevice
+import DragonMasterSerialDevice
 import socket
 import queue
 import threading
@@ -90,6 +91,12 @@ class DragonMasterDeviceManager:
     """
     def search_for_devices(self):
         allConnectedJoysticks = DragonMasterDevice.get_all_connected_joystick_devices()
+
+        if self.CONNECTED_OMNIDONGLE == None:
+            omnidongleElement = DragonMasterSerialDevice.get_omnidongle_comports()
+            if omnidongleElement:
+                self.add_new_device(DragonMasterSerialDevice.Omnidongle(self), omnidongleElement)
+
         for joystick in allConnectedJoysticks:
             if (joystick != None and not self.device_manager_contains_joystick(joystick)):
                 self.add_new_device(DragonMasterDevice.Joystick(self), joystick)
