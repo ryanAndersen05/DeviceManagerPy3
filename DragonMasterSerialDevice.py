@@ -223,6 +223,21 @@ class Draxboard(SerialDevice):
     IN_METER_MACHINE = 0x02
     OUT_METER_MACHINE = 0x03
 
+    ##Return Packet Data
+    REQUEST_STATUS_ID = 0x01
+    INPUT_EVENT_ID = 0xfa
+    INPUT_EVENT_SIZE = 9
+    OUTPUT_EVENT_ID = 0x04
+    OUTPUT_EVENT_SIZE = 8
+    METER_INCREMENT_ID = 0x09
+    METER_INCREMENT_SIZE = 7
+    PENDING_METER_ID = 0x0a
+    PENDING_METER_SIZE = 7
+
+    ##Input Bytes
+    INPUT_INDEX = 3
+    DOOR_STATE_INDEX = 7
+
     ##Draxboard Properties
     DRAX_BAUDRATE = 115200
 
@@ -230,6 +245,8 @@ class Draxboard(SerialDevice):
         super().__init__(self, deviceManager)
         self.versionNumberHigh = 0
         self.versionNumberLow = 0
+        self.draxOutputState = 0
+        self.playerStationNumber = 0
         return
 
     ##Override methods
@@ -238,10 +255,78 @@ class Draxboard(SerialDevice):
         self.serialObject = self.open_serial_device(deviceElement.device, Draxboard.DRAX_BAUDRATE, 5, 5)
         if self.serialObject == None:
             return False
-
         
+        requestStatus = self.write_serial_wait_for_read(self.REQUEST_STATUS)
+
+        if requestStatus == None:
+            return False
+
+        if len(requestStatus) < 18 or requestStatus[0] != Draxboard.REQUEST_STATUS_ID:
+            return False
+
+        self.versionNumberHigh = requestStatus[15]
+        self.versionNumberLow = requestStatus[16]
+
+        self.playerStationNumber = requestStatus[10]
+
+        if self.write_serial_wait_for_read(self, self.DRAXBOARD_OUTPUT_ENABLE) == None:
+            return False
+
+        read = self.send_output_toggle_to_drax(0x180f)
+        if read == None:
+            return False
+
+        return True
+
+    
     #End Override Methods
 
+    def add_input_event_to_tcp_queue(self, inputPacket):
+        if inputPacket == None or len(inputPacket) < Draxboard.INPUT_EVENT_SIZE or inputPacket[0] != Draxboard.INPUT_EVENT_ID:
+            print ("Invalid Input Event Packet. Please Be sure you are correctly interpreting our input packets")
+            return
+        inputPacketToSend = [DragonMasterDeviceManager.DragonMasterDeviceManager.DRAX_INPUT_EVENT, inputPacket[Draxboard.INPUT_INDEX], inputPacket[Draxboard.DOOR_STATE_INDEX]]
+        
+        self.dragonMasterDeviceManager.add_event_to_send(inputPacketToSend)
+        return
+
+    """
+    Due to the fact that we can receive inputs from the player while attempting to write an event to the draxboard, it is
+    possible that the response may contain an input events that we want to filter out and send to our tcp queue in our device manager
+    """
+    def write_serial_check_for_input_events(self, messageToWrite, responseID, responseSize):
+        read = self.write_serial_wait_for_read(self, messageToWrite)
+        validRead = None
+
+        while read != None and len(read) > 0:
+            if read[0] == responseID:
+                if len(read) <= responseSize:
+                    return read
+                else:
+                    validRead = read[0:responseSize]
+                    read = read[responseSize:len(read)]
+            elif self.check_packet_for_input_event(read):
+                if len(read) <= Draxboard.INPUT_EVENT_SIZE:
+                    read = self.read_from_serial(self, 5)
+                else:
+                    read = read[Draxboard.INPUT_EVENT_SIZE:len(read)]
+            else:
+                return validRead
+        return validRead
+
+        
+    """
+    This method verifies that there is an input event packet that can be read in. This method will also send
+    an input method to the tcp queue if there is a valid input found when searching
+    """
+    def check_packet_for_input_event(self, inputPacketLine):
+        if inputPacketLine == None:
+            return False
+
+        if inputPacketLine[0] == 0xfa and len(inputPacketLine) >= Draxboard.INPUT_EVENT_SIZE:
+            self.add_input_event_to_tcp_queue(inputPacketLine)
+            return True
+        return False
     
     pass
 
