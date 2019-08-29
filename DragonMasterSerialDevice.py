@@ -211,10 +211,38 @@ class DBV400(SerialDevice):
 Class that maanages our Draxboard communication and state
 """
 class Draxboard(SerialDevice):
+    REQUEST_STATUS = bytearray([0x01, 0x00, 0x01, 0x02])
+    SET_OUTPUT_STATE = bytearray([0x04, 0x02, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00])
+    DRAXBOARD_OUTPUT_ENABLE = bytearray([0x02, 0x05, 0x09, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x12])
+    METER_INCREMENT = bytearray([0x09, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00])
+
+
+    ##METER INDEX 
+    IN_METER = 0x00
+    OUT_METER = 0x01
+    IN_METER_MACHINE = 0x02
+    OUT_METER_MACHINE = 0x03
+
+    ##Draxboard Properties
+    DRAX_BAUDRATE = 115200
 
     def __init__(self, deviceManager):
+        super().__init__(self, deviceManager)
+        self.versionNumberHigh = 0
+        self.versionNumberLow = 0
         return
 
+    ##Override methods
+    def start_device(self, deviceElement):
+        super().start_device(deviceElement)
+        self.serialObject = self.open_serial_device(deviceElement.device, Draxboard.DRAX_BAUDRATE, 5, 5)
+        if self.serialObject == None:
+            return False
+
+        
+    #End Override Methods
+
+    
     pass
 
 """
