@@ -91,11 +91,15 @@ class DragonMasterDeviceManager:
     """
     def search_for_devices(self):
         allConnectedJoysticks = DragonMasterDevice.get_all_connected_joystick_devices()
+        allConnectedDraxboards = DragonMasterSerialDevice.get_all_connected_draxboard_elements()
 
         if self.CONNECTED_OMNIDONGLE == None:
             omnidongleElement = DragonMasterSerialDevice.get_omnidongle_comports()
             if omnidongleElement:
                 self.add_new_device(DragonMasterSerialDevice.Omnidongle(self), omnidongleElement)
+        for draxElement in allConnectedDraxboards:
+            if draxElement and not self.device_manager_contains_draxboard(draxElement):
+                self.add_new_device(DragonMasterSerialDevice.Draxboard(self), draxElement)
 
         for joystick in allConnectedJoysticks:
             if (joystick != None and not self.device_manager_contains_joystick(joystick)):
@@ -171,8 +175,13 @@ class DragonMasterDeviceManager:
             if isinstance(dev, DragonMasterDevice.Joystick):
                 if dev.joystickDevice.phys == joystickDevice.phys:
                     return True
+        return False
 
-
+    def device_manager_contains_draxboard(self, draxboardElement):
+        for dev in self.allConnectedDevices:
+            if isinstance(dev, DragonMasterSerialDevice.Draxboard):
+                if dev.comport == draxboardElement.device:
+                    return True
         return False
 #End Contains Methods
 

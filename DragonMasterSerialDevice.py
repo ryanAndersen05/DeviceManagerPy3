@@ -1,5 +1,6 @@
 #std. lib imports
 import time
+from time import time
 from time import sleep
 import re
 
@@ -27,6 +28,7 @@ class SerialDevice(DragonMasterDevice.DragonMasterDevice):
         self.serialObject = None
         self.pollingDevice = False
         self.serialState = SerialDevice.SERIAL_NOT_POLLING
+        self.comport = None
         return
 
     """
@@ -45,6 +47,7 @@ class SerialDevice(DragonMasterDevice.DragonMasterDevice):
     """
     def start_device(self, deviceElement):
         DragonMasterDevice.DragonMasterDevice.start_device(self, deviceElement)
+        self.comport = deviceElement.device
 
         pollingThread = threading.Thread(target=self.poll_serial_thread)
         pollingThread.daemon = True
@@ -165,6 +168,7 @@ class SerialDevice(DragonMasterDevice.DragonMasterDevice):
         maxMillisecondsToWaitConverted = float(maxMillisecondsToWait) / 1000
 
         try:
+
             self.serialObject.write(messageToSend)
         except Exception as e:
             print ("There was an error writing to our serial device")
@@ -240,9 +244,11 @@ class Draxboard(SerialDevice):
 
     ##Draxboard Properties
     DRAX_BAUDRATE = 115200
+    DRAX_DESCRIPTION = "DRAX - CDC-ACM 2"
+    ALT_DRAX_DESCRIPTION = "Dual RS-232 Emulation - CDC-ACM 1"
 
     def __init__(self, deviceManager):
-        super().__init__(self, deviceManager)
+        super().__init__(deviceManager)
         self.versionNumberHigh = 0
         self.versionNumberLow = 0
         self.draxOutputState = 0
@@ -251,32 +257,34 @@ class Draxboard(SerialDevice):
 
     ##Override methods
     def start_device(self, deviceElement):
-        super().start_device(deviceElement)
         self.serialObject = self.open_serial_device(deviceElement.device, Draxboard.DRAX_BAUDRATE, 5, 5)
         if self.serialObject == None:
             return False
-        
-        requestStatus = self.write_serial_wait_for_read(self.REQUEST_STATUS)
 
+        requestStatus = self.write_serial_wait_for_read(self.REQUEST_STATUS)
         if requestStatus == None:
             return False
-
         if len(requestStatus) < 18 or requestStatus[0] != Draxboard.REQUEST_STATUS_ID:
             return False
+
 
         self.versionNumberHigh = requestStatus[15]
         self.versionNumberLow = requestStatus[16]
 
         self.playerStationNumber = requestStatus[10]
-
-        if self.write_serial_wait_for_read(self, self.DRAXBOARD_OUTPUT_ENABLE) == None:
+        print ("Step1")
+        if self.write_serial_wait_for_read(self.DRAXBOARD_OUTPUT_ENABLE) == None:
             return False
 
         read = self.send_output_toggle_to_drax(0x180f)
+        print ("Step 2")
         if read == None:
             return False
+        super().start_device(deviceElement)
 
         return True
+
+    
 
     """
     This primarily for retrieving player input as that is the only case where we do not write an event before expecting
@@ -295,6 +303,9 @@ class Draxboard(SerialDevice):
         for i in range(int(len(readEvent) / Draxboard.INPUT_EVENT_SIZE)):
             tempLine = readEvent[i*Draxboard.INPUT_EVENT_SIZE:(i+1*Draxboard.INPUT_EVENT_SIZE)]
             self.check_packet_for_input_event(tempLine)
+
+    def to_string(self):
+        return "Draxboard (" + self.comport + ")"
 
     
     #End Override Methods
@@ -315,7 +326,7 @@ class Draxboard(SerialDevice):
     possible that the response may contain an input events that we want to filter out and send to our tcp queue in our device manager
     """
     def write_serial_check_for_input_events(self, messageToWrite, responseID, responseSize):
-        read = self.write_serial_wait_for_read(self, messageToWrite)
+        read = self.write_serial_wait_for_read(messageToWrite)
         validRead = None
 
         while read != None and len(read) > 0:
@@ -327,12 +338,52 @@ class Draxboard(SerialDevice):
                     read = read[responseSize:len(read)]
             elif self.check_packet_for_input_event(read):
                 if len(read) <= Draxboard.INPUT_EVENT_SIZE:
-                    read = self.read_from_serial(self, 5)
+                    read = self.read_from_serial(5)
                 else:
                     read = read[Draxboard.INPUT_EVENT_SIZE:len(read)]
             else:
                 return validRead
         return validRead
+
+    """
+
+    """
+    def send_output_toggle_to_drax(self, outputToggleu32, toggleMessageType=0):
+        if toggleMessageType == 0:
+            self.draxOutputState = outputToggleu32
+        elif toggleMessageType == 1:
+            outputToggleu32 = self.draxOutputState | outputToggleu32
+        elif toggleMessageType == 2:
+            outputToggleu32 = self.draxOutputState & (~outputToggleu32)
+        else:
+            return None
+
+        byte1 = outputToggleu32 >> 24 & 0xff
+        byte2 = outputToggleu32 >> 16 & 0xff
+        byte3 = outputToggleu32 >> 8 & 0xff
+        byte4 = outputToggleu32 >> 0 & 0xff
+
+        outputMessageArray = self.SET_OUTPUT_STATE
+        checkSumByteIndex = 7
+        outputMessageArray[3] = byte4
+        outputMessageArray[4] = byte3
+        outputMessageArray[5] = byte2
+        outputMessageArray[6] = byte1
+        outputMessageArray[checkSumByteIndex] = self.calculate_checksum(outputMessageArray)
+
+        read = self.write_serial_check_for_input_events(self.SET_OUTPUT_STATE, Draxboard.OUTPUT_EVENT_ID, Draxboard.OUTPUT_EVENT_SIZE)
+        if read != None and len(read) >= Draxboard.OUTPUT_EVENT_SIZE and read[0] == Draxboard.OUTPUT_EVENT_ID:
+            draxState = read[4] + read[3] * 255
+            self.send_current_drax_output_state()
+
+        return read
+        
+    """
+
+    """
+    def send_current_drax_output_state(self):
+
+        return
 
         
     """
@@ -349,6 +400,12 @@ class Draxboard(SerialDevice):
         return False
     
     pass
+
+    """
+    Returns the checksum of the packet that we are going to send to our Draxboard serail
+    """
+    def calculate_checksum(self, packetWeAreSending):
+        return sum(packetWeAreSending) % 256
 
 """
 Supplimentary class to our reliance printers. This class talks to the reliance printer through
@@ -420,6 +477,12 @@ class Omnidongle(SerialDevice):
         return
 
     """
+    To string method that shows the omnidongle description
+    """
+    def to_string(self):
+        return "POM Omnidongle"
+
+    """
     Sends a packet to our omnidongle. This should result in a message that we can return to our
     Unity Application
     """
@@ -458,5 +521,17 @@ def get_omnidongle_comports():
             return element
 
     return None
+
+"""
+Returns a list of all the connected draxboards that are found in our system
+"""
+def get_all_connected_draxboard_elements():
+    allPorts = serial.tools.list_ports.comports()
+    draxboardElements = []
+    for element in allPorts:
+        if element.description.__contains__(Draxboard.DRAX_DESCRIPTION) or element.description.__contains__(Draxboard.ALT_DRAX_DESCRIPTION):
+            draxboardElements.append(element)
+
+    return draxboardElements
 
 #End Search Device Methods
