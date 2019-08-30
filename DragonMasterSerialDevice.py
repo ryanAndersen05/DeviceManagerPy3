@@ -278,6 +278,20 @@ class Draxboard(SerialDevice):
 
         return True
 
+    def on_data_received_event(self):
+        if self.serialState != SerialDevice.SERIAL_WAIT_FOR_EVENT:
+            return
+
+        readEvent = self.read_from_serial(2)
+
+        if readEvent == None:
+            print ("Draxboard read event was none....")
+            return
+
+        for i in range(int(len(readEvent) / Draxboard.INPUT_EVENT_SIZE)):
+            tempLine = readEvent[i*Draxboard.INPUT_EVENT_SIZE:(i+1*Draxboard.INPUT_EVENT_SIZE)]
+            self.check_packet_for_input_event(tempLine)
+
     
     #End Override Methods
 
@@ -286,8 +300,8 @@ class Draxboard(SerialDevice):
             print ("Invalid Input Event Packet. Please Be sure you are correctly interpreting our input packets")
             return
         inputPacketToSend = [DragonMasterDeviceManager.DragonMasterDeviceManager.DRAX_INPUT_EVENT, inputPacket[Draxboard.INPUT_INDEX], inputPacket[Draxboard.DOOR_STATE_INDEX]]
-        
-        self.dragonMasterDeviceManager.add_event_to_send(inputPacketToSend)
+        print (inputPacketToSend)
+        # self.dragonMasterDeviceManager.add_event_to_send(inputPacketToSend)
         return
 
     """
