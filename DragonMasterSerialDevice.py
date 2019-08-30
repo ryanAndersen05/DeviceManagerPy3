@@ -220,7 +220,7 @@ class Draxboard(SerialDevice):
     ##METER INDEX 
     IN_METER = 0x00
     OUT_METER = 0x01
-    IN_METER_MACHINE = 0x02
+    IN_METER_MACHINE = 0x02#In some cases our draxboard will have 4 meters. 3 and 4 are meant to represent the machine money in/out
     OUT_METER_MACHINE = 0x03
 
     ##Return Packet Data
@@ -278,6 +278,10 @@ class Draxboard(SerialDevice):
 
         return True
 
+    """
+    This primarily for retrieving player input as that is the only case where we do not write an event before expecting
+    a response. Inputs are driven entirely by our players and as such can happen at any time
+    """
     def on_data_received_event(self):
         if self.serialState != SerialDevice.SERIAL_WAIT_FOR_EVENT:
             return
@@ -294,7 +298,9 @@ class Draxboard(SerialDevice):
 
     
     #End Override Methods
-
+    """
+    Appropriately adds an input packet to our TCP queue, so that it can be sent at the next availability
+    """
     def add_input_event_to_tcp_queue(self, inputPacket):
         if inputPacket == None or len(inputPacket) < Draxboard.INPUT_EVENT_SIZE or inputPacket[0] != Draxboard.INPUT_EVENT_ID:
             print ("Invalid Input Event Packet. Please Be sure you are correctly interpreting our input packets")
