@@ -317,8 +317,7 @@ class Draxboard(SerialDevice):
             print ("Invalid Input Event Packet. Please Be sure you are correctly interpreting our input packets")
             return
         inputPacketToSend = [DragonMasterDeviceManager.DragonMasterDeviceManager.DRAX_INPUT_EVENT, inputPacket[Draxboard.INPUT_INDEX], inputPacket[Draxboard.DOOR_STATE_INDEX]]
-        print (inputPacketToSend)
-        # self.dragonMasterDeviceManager.add_event_to_send(inputPacketToSend)
+        self.dragonMasterDeviceManager.add_event_to_send(inputPacketToSend)
         return
 
     """
@@ -349,9 +348,9 @@ class Draxboard(SerialDevice):
 
     """
     def send_output_toggle_to_drax(self, outputToggleu32, toggleMessageType=0):
-        if toggleMessageType == 0:
-            self.draxOutputState = outputToggleu32
-        elif toggleMessageType == 1:
+        # if toggleMessageType == 0:
+        #     self.draxOutputState = outputToggleu32
+        if toggleMessageType == 1:
             outputToggleu32 = self.draxOutputState | outputToggleu32
         elif toggleMessageType == 2:
             outputToggleu32 = self.draxOutputState & (~outputToggleu32)
@@ -373,16 +372,17 @@ class Draxboard(SerialDevice):
 
         read = self.write_serial_check_for_input_events(self.SET_OUTPUT_STATE, Draxboard.OUTPUT_EVENT_ID, Draxboard.OUTPUT_EVENT_SIZE)
         if read != None and len(read) >= Draxboard.OUTPUT_EVENT_SIZE and read[0] == Draxboard.OUTPUT_EVENT_ID:
-            draxState = read[4] + read[3] * 255
-            self.send_current_drax_output_state()
+            self.draxOutputState = read[4] + read[3] * 255
+            self.send_current_drax_output_state(read[4], read[3])
 
         return read
         
     """
-
+    Sends a packet to our TCP Manager that contains the output state of the draxboard
     """
-    def send_current_drax_output_state(self):
-
+    def send_current_drax_output_state(self, byte1, byte2):
+        packetToSend = [DragonMasterDeviceManager.DragonMasterDeviceManager.DRAX_OUTPUT_EVENT, byte1, byte2]
+        self.dragonMasterDeviceManager.add_event_to_send(bytearray(packetToSend))
         return
 
         
