@@ -272,12 +272,10 @@ class Draxboard(SerialDevice):
         self.versionNumberLow = requestStatus[16]
 
         self.playerStationNumber = requestStatus[10]
-        print ("Step1")
         if self.write_serial_wait_for_read(self.DRAXBOARD_OUTPUT_ENABLE) == None:
             return False
 
-        read = self.send_output_toggle_to_drax(0x180f)
-        print ("Step 2")
+        read = self.toggle_output_state_of_drax(0x180f)
         if read == None:
             return False
         super().start_device(deviceElement)
@@ -304,13 +302,16 @@ class Draxboard(SerialDevice):
             tempLine = readEvent[i*Draxboard.INPUT_EVENT_SIZE:(i+1*Draxboard.INPUT_EVENT_SIZE)]
             self.check_packet_for_input_event(tempLine)
 
+    """
+    To string displays the comport of the drax device
+    """
     def to_string(self):
         return "Draxboard (" + self.comport + ")"
 
     
     #End Override Methods
     """
-    Appropriately adds an input packet to our TCP queue, so that it can be sent at the next availability
+    Sets up and adds an input packet to our TCP queue, so that it can be sent at the next availability
     """
     def add_input_event_to_tcp_queue(self, inputPacket):
         if inputPacket == None or len(inputPacket) < Draxboard.INPUT_EVENT_SIZE or inputPacket[0] != Draxboard.INPUT_EVENT_ID:
@@ -345,9 +346,15 @@ class Draxboard(SerialDevice):
         return validRead
 
     """
+    Toggles the draxboard output state. This can control certain functions of the draxboard such as
+    the bell, joystick vibrators, button lights, etc
 
+    There are 3 types of toggles
+        Type 0 - output that is passed through is what the state will be
+        Type 1 - output bit enable (Use this to toggle only one bit on)
+        Type 2 - output bit disable (Use this to toggle one bit off)
     """
-    def send_output_toggle_to_drax(self, outputToggleu32, toggleMessageType=0):
+    def toggle_output_state_of_drax(self, outputToggleu32, toggleMessageType=0):
         # if toggleMessageType == 0:
         #     self.draxOutputState = outputToggleu32
         if toggleMessageType == 1:
