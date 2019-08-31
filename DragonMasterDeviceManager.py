@@ -170,6 +170,7 @@ class DragonMasterDeviceManager:
 
         if self.allConnectedDevices.__contains__(deviceToRemove):
             deviceToRemove.disconnect_device()
+            self.remove_device_from_player_station_dictionary(deviceToRemove)
             self.allConnectedDevices.remove(deviceToRemove)
             print (deviceToRemove.to_string() + " was successfully removed")
         else:
