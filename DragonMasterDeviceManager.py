@@ -81,8 +81,9 @@ class DragonMasterDeviceManager:
 
     def __init__(self,):
         # self.tcpManager = TCPManager(self)
-        self.CONNECTED_OMNIDONGLE = None
-        self.allConnectedDevices = []
+        self.CONNECTED_OMNIDONGLE = None #Since there should only be one omnidongle in our machine, we will only search until we find the first connection
+        self.allConnectedDevices = [] #(DragonMasterDevice)
+        self.playerStationDictionary = {}#Key: Parent USB Device Path (string) | Value: Player Station (PlayerStation)
         
         while (True):
             self.search_for_devices()
@@ -119,6 +120,7 @@ class DragonMasterDeviceManager:
         if (self.allConnectedDevices.__contains__(deviceToAdd)):
             print ("Device was already added to our device manager. Please double check how we added a device twice")
             return
+
         if (deviceToAdd.start_device(deviceElementNode)):
             self.allConnectedDevices.append(deviceToAdd)
             print (deviceToAdd.to_string() + " was successfully added to our device manager")
@@ -126,6 +128,17 @@ class DragonMasterDeviceManager:
             deviceToAdd.disconnect_device()#We will run a disconnect device to ensure that we fully disconnect all processes that may be running in our device
             print ("Device Failed Start")
         return
+
+    # """
+
+    # """
+    # def add_device_to_player_station_dictionary(self, deviceToAdd):
+    #     if deviceToAdd.deviceParentPath == None:
+    #             if not isinstance(deviceToAdd, DragonMasterSerialDevice.Omnidongle):
+    #                 print ("Error: The device connected does not contain a parent device path")
+    #     else:
+    #         if deviceToAdd.deviceParentPath in self.playerStationDictionary:
+
 
     """
     This method will remove a device from our device manager. This will also process our disconnect command in the device
