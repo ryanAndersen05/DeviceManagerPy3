@@ -75,12 +75,19 @@ class Joystick(DragonMasterDevice):
         self.joystickThread.start()
         return True
 
+    """
+    Simply just sets the joystick device to be None. Primarily to ensure that we exit
+    our threaded loop that is polling for new axes values
+    """
     def disconnect_device(self):
         self.joystickDevice = None
         return 
 
+    """
+    Returns a string with the name of the device and the physical location of the joystick
+    """
     def to_string(self):
-        return "Joystick"
+        return "Joystick (" + self.joystickDevice.phys + ")"
 
 
     """
@@ -117,6 +124,7 @@ class Joystick(DragonMasterDevice):
         if self.currentAxes != self.lastSentAxes:
             byteArrayPacketToSend = bytearray([DragonMasterDeviceManager.DragonMasterDeviceManager.JOYSTICK_INPUT_EVENT, self.playerStationID, self.currentAxes[0], self.currentAxes[1]])
             self.dragonMasterDeviceManager.add_event_to_send(byteArrayPacketToSend)
+            self.lastSentAxes = self.currentAxes
     pass
 
 
