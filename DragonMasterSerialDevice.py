@@ -9,7 +9,7 @@ import serial
 import serial.tools.list_ports
 import threading
 
-#project imports
+#internal project imports
 import DragonMasterDevice
 import DragonMasterDeviceManager
 

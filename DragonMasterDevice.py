@@ -1,6 +1,9 @@
-import DragonMasterDeviceManager
-import evdev
+#std lib imports
 import threading
+#external lib imports
+import evdev
+#Internal project imports
+import DragonMasterDeviceManager
 
 """
 The Base class for all our Dragon Master Devices

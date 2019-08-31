@@ -1,9 +1,14 @@
-import DragonMasterDevice
-import DragonMasterSerialDevice
+#external lib imports
 import socket
+
+#std lib imports
 import queue
 import threading
 from time import sleep
+
+#internal project imports
+import DragonMasterDevice
+import DragonMasterSerialDevice
 
 """
 Our device manager class that will find and hold all of our connected devices and manage their current state
