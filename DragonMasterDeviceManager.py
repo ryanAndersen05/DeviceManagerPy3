@@ -120,25 +120,45 @@ class DragonMasterDeviceManager:
         if (self.allConnectedDevices.__contains__(deviceToAdd)):
             print ("Device was already added to our device manager. Please double check how we added a device twice")
             return
-
         if (deviceToAdd.start_device(deviceElementNode)):
             self.allConnectedDevices.append(deviceToAdd)
+            self.add_new_device_to_player_station_dictionary(deviceToAdd)
             print (deviceToAdd.to_string() + " was successfully added to our device manager")
         else:
             deviceToAdd.disconnect_device()#We will run a disconnect device to ensure that we fully disconnect all processes that may be running in our device
             print ("Device Failed Start")
         return
 
-    # """
+    """
+    Adds a device to the player station dictionary
+    """
+    def add_new_device_to_player_station_dictionary(self, deviceToAdd):
+        if deviceToAdd.deviceParentPath == None:
+                if not isinstance(deviceToAdd, DragonMasterSerialDevice.Omnidongle):
+                    print ("Error: " + deviceToAdd.to_string() + " does not contain a parent device path. Please be sure to set one up")
+        else:
+            if deviceToAdd.deviceParentPath not in self.playerStationDictionary:
+                self.playerStationDictionary.insert(deviceToAdd.deviceParentPath, PlayerStationContainer())
+            
+            previouslyConnectedDevice = None#Used to warn us that there was already a device connected to this player station
+            if isinstance(deviceToAdd, DragonMasterDevice.Joystick):
+                previouslyConnectedDevice = self.playerStationDictionary.connectedJoystick
+                self.playerStationDictionary[deviceToAdd.deviceParentPath].connectedJoystick = deviceToAdd
+            elif isinstance(deviceToAdd, DragonMasterDevice.Printer):
+                previouslyConnectedDevice = self.playerStationDictionary.connectedPrinter
+                self.playerStationDictionary[deviceToAdd.deviceParentPath].connectedPrinter = deviceToAdd
+            elif isinstance(deviceToAdd, DragonMasterSerialDevice.DBV400):
+                previouslyConnectedDevice = self.playerStationDictionary.connectedBillAcceptor
+                self.playerStationDictionary[deviceToAdd.deviceParentPath].connectedBillAcceptor = deviceToAdd
+            elif isinstance(deviceToAdd, DragonMasterSerialDevice.Draxboard):
+                previouslyConnectedDevice = self.playerStationDictionary.connectedDraxboard
+                self.playerStationDictionary[deviceToAdd.deviceParentPath].connectedDraxBoard = deviceToAdd
 
-    # """
-    # def add_device_to_player_station_dictionary(self, deviceToAdd):
-    #     if deviceToAdd.deviceParentPath == None:
-    #             if not isinstance(deviceToAdd, DragonMasterSerialDevice.Omnidongle):
-    #                 print ("Error: The device connected does not contain a parent device path")
-    #     else:
-    #         if deviceToAdd.deviceParentPath in self.playerStationDictionary:
+            if previouslyConnectedDevice != None:
+                print ("Warning: There are two or more of the same devices connected to our our player station")
+                print ("Previously Connected: " + previouslyConnectedDevice.to_string() + " Newly Added: " + deviceToAdd.to_string())
 
+        return
 
     """
     This method will remove a device from our device manager. This will also process our disconnect command in the device
@@ -155,6 +175,38 @@ class DragonMasterDeviceManager:
         else:
             print (deviceToRemove.to_string() + " was not found in our device list. Perhaps it was already removed")
 
+        return
+
+    """
+    Safely removes a device from our player station device dictionary
+    """
+    def remove_device_from_player_station_dictionary(self, deviceToRemove):
+        if deviceToRemove == None:
+            print ("Device to remove was None...")
+            return
+
+
+        if deviceToRemove.deviceParentPath == None:
+            if not isinstance(deviceToRemove, DragonMasterSerialDevice.Omnidongle):
+                print ("The device path was None. Something was not properly set up...")
+            return
+
+        if deviceToRemove.deviceParentPath not in self.playerStationDictionary:
+            print ("Warning: Parent path was not found in playerstation dictionary...")
+            return
+        
+        if isinstance(deviceToRemove, DragonMasterDevice.Joystick):
+            self.playerStationDictionary[deviceToRemove.deviceParentPath].connectedJoystick = None
+            return
+        elif isinstance(deviceToRemove, DragonMasterDevice.Printer):
+            self.playerStationDictionary[deviceToRemove.deviceParentPath].connectedPrinter = None
+            return
+        elif isinstance(deviceToRemove, DragonMasterSerialDevice.Draxboard):
+            self.playerStationDictionary[deviceToRemove.deviceParentPath].connectedDraxBoard = None
+            return
+        elif isinstance(deviceToRemove, DragonMasterSerialDevice.DBV400):
+            self.playerStationDictionary[deviceToRemove.deviceParentPath].connectedBillAcceptor = None
+            return
         return
     #End Device Management
 

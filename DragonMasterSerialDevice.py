@@ -306,7 +306,10 @@ class Draxboard(SerialDevice):
     To string displays the comport of the drax device
     """
     def to_string(self):
-        return "Draxboard (" + self.comport + ")"
+        if (self.comport != None):
+            return "Draxboard (" + self.comport + ")"
+        else:
+            return "Draxboard (Missing)"
 
     
     #End Override Methods
@@ -511,7 +514,10 @@ class Omnidongle(SerialDevice):
         return
 
     def to_string(self):
-        return "POM Omnidongle"
+        if self.comport != None:
+            return "POM Omnidongle (" + self.comport + ")"
+        else:
+            return "POM Omnidongle (Missing)"
 
     
     pass

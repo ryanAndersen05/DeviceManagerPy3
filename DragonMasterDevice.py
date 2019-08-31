@@ -87,7 +87,10 @@ class Joystick(DragonMasterDevice):
     Returns a string with the name of the device and the physical location of the joystick
     """
     def to_string(self):
-        return "Joystick (" + self.joystickDevice.phys + ")"
+        if self.joystickDevice != None:
+            return "Joystick (" + self.joystickDevice.phys + ")"
+        else:
+            return "Joystick (Missing)"
 
 
     """
