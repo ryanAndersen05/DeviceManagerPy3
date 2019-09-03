@@ -182,7 +182,7 @@ class CustomTG02(Printer):
             return False
         self.printerObject = Usb(idVendor=CustomTG02.VENDOR_ID, idProduct=CustomTG02.PRODUCT_ID, in_ep=CustomTG02.IN_EP, out_ep=CustomTG02.OUT_EP)
         self.printerObject.device = deviceElement
-        
+
         return True
 
     def disconnect_device(self):
@@ -242,13 +242,7 @@ def get_all_connected_joystick_devices():
 
 """
 def get_all_connected_custom_tg02_printer_elements():
-    listOfPrinters = usb.core.find(idVendor=CustomTG02.VENDOR_ID, idProduct=CustomTG02.PRODUCT_ID, find_all=True)
-    for dev in listOfPrinters:
-        print (dev.port_numbers)
-
-        print (dev)
-
-    return
+    return usb.core.find(idVendor=CustomTG02.VENDOR_ID, idProduct=CustomTG02.PRODUCT_ID, find_all=True)
 
 """
 
