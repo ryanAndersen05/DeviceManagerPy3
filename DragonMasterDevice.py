@@ -191,6 +191,10 @@ class CustomTG02(Printer):
     #End Override Methods
     pass
 
+class PhoenixPyramid(Printer):
+
+    pass
+
 """
 Extension of our printer class. This handles special properties for our Reliance Printer
 """
