@@ -178,7 +178,12 @@ class CustomTG02(Printer):
 
     ##Override Methods
     def start_device(self, deviceElement):
-        return super().start_device(deviceElement)
+        if deviceElement == None:
+            return False
+        self.printerObject = Usb(idVendor=CustomTG02.VENDOR_ID, idProduct=CustomTG02.PRODUCT_ID, in_ep=CustomTG02.IN_EP, out_ep=CustomTG02.OUT_EP)
+        self.printerObject.device = deviceElement
+        
+        return True
 
     def disconnect_device(self):
         return super().disconnect_device()
