@@ -1,5 +1,6 @@
 #external lib imports
 import socket
+import pyudev
 
 #std lib imports
 import queue
@@ -96,6 +97,8 @@ class DragonMasterDeviceManager:
     This method will search for all valid devices that are connected to our machine
     """
     def search_for_devices(self):
+        for dev in pyudev.Context().list_devices():
+            print(dev)
         allConnectedJoysticks = DragonMasterDevice.get_all_connected_joystick_devices()
         allConnectedDraxboards = DragonMasterSerialDevice.get_all_connected_draxboard_elements()
 
@@ -103,6 +106,7 @@ class DragonMasterDeviceManager:
             omnidongleElement = DragonMasterSerialDevice.get_omnidongle_comports()
             if omnidongleElement:
                 self.add_new_device(DragonMasterSerialDevice.Omnidongle(self), omnidongleElement)
+            
         for draxElement in allConnectedDraxboards:
             if draxElement and not self.device_manager_contains_draxboard(draxElement):
                 self.add_new_device(DragonMasterSerialDevice.Draxboard(self), draxElement)

@@ -30,12 +30,6 @@ class DragonMasterDevice:
         return
 
     """
-    This method will be called periodically to ensure that our device is still connected and fucntioning correctly
-    """
-    def poll_device_for_errors(self):
-        return False
-
-    """
     This method will retrieve the parent path of our device
     """
     def fetch_parent_path(self, deviceElement):
@@ -136,14 +130,58 @@ class Joystick(DragonMasterDevice):
 Printer device handles printer events. Sends the status of the printer to Unity
 """
 class Printer(DragonMasterDevice):
+    def __init__(self, dragonMasterDeviceManager):
+        super().__init__(dragonMasterDeviceManager)
+        self.currentState = (0,0)#Tuple represents the state of the printer. (Printer Status, Paper Availability)
 
+    """
+    This method formats and prints out a cash-out ticket
+    """
+    def print_cashout_ticket(self, totalCreditsWon, timeTicketRedeemed, playerStation="0", whiteSpaceUnderTicket = 10, isTestTicket=False, isReprintTicket=False):
+
+        return
+
+    """
+
+    """
+    def print_audit_ticket(self, auditTicketData, whiteSpaceUnderTicket=7):
+
+        return
+
+    """
+
+    """
+    def print_codex_ticket(self, codexTicketData, whiteSpaceUnderTicket=6):
+
+        return
+
+    """
+
+    """
+    def get_updated_printer_state_and_paper_state(self):
+
+        return 
     pass
 
 """
-Child class of our printer object. This handles special properties for our Custom TG02 printer
+Extension of our printer object. This handles special properties for our Custom TG02 printer
 """
 class CustomTG02(Printer):
 
+
+    ##Override Methods
+    def start_device(self, deviceElement):
+        return super().start_device(deviceElement)
+
+    def disconnect_device(self):
+        return super().disconnect_device()
+
+    def fetch_parent_path(self, deviceElement):
+        return super().fetch_parent_path(deviceElement)
+
+    def to_string(self):
+        return "CustomTG02(" + ")"
+    #End Override Methods
     pass
 
 """
@@ -151,6 +189,20 @@ Extension of our printer class. This handles special properties for our Reliance
 """
 class ReliancePrinter(Printer):
 
+
+    ##Override methods
+    def start_device(self, deviceElement):
+        return super().start_device(deviceElement)
+
+    def disconnect_device(self):
+        return super().disconnect_device()
+
+    def fetch_parent_path(self, deviceElement):
+        return super().fetch_parent_path(deviceElement)
+
+    def to_string(self):
+        return "Reliance(" + ")"
+    #End Override Methods
     pass
 
 
