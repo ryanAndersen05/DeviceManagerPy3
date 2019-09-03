@@ -101,13 +101,14 @@ class DragonMasterDeviceManager:
         allConnectedJoysticks = DragonMasterDevice.get_all_connected_joystick_devices()
         allConnectedDraxboards = DragonMasterSerialDevice.get_all_connected_draxboard_elements()
         allConnectedCustomTG02Printers = DragonMasterDevice.get_all_connected_custom_tg02_printer_elements()
+        allConnectedReliancePrinters = DragonMasterDevice.get_all_connected_reliance_printer_elements()
+
         if self.CONNECTED_OMNIDONGLE == None:
             omnidongleElement = DragonMasterSerialDevice.get_omnidongle_comports()
             if omnidongleElement:
                 self.add_new_device(DragonMasterSerialDevice.Omnidongle(self), omnidongleElement)
 
         
-        # allConnectedReliancePrinters = DragonMasterDevice.get_all_connected_reliance_printer_elements()
             
         for draxElement in allConnectedDraxboards:
             if draxElement and not self.device_manager_contains_draxboard(draxElement):
@@ -120,6 +121,10 @@ class DragonMasterDeviceManager:
         for printer in allConnectedCustomTG02Printers:
             if (printer != None and not self.device_manager_contains_printer(printer)):
                 self.add_new_device(DragonMasterDevice.CustomTG02(self), printer)
+
+        for printer in allConnectedReliancePrinters:
+            if printer != None and not self.device_manager_contains_printer(printer):
+                self.add_new_device(DragonMasterDevice.ReliancePrinter(self), printer)
         return
 
     """
