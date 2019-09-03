@@ -230,7 +230,7 @@ class DragonMasterDeviceManager:
     Packets that are received will contain the following layout:
     [Function, playerStationID, data....]
     """
-    def process_received_event(self, eventList):
+    def execute_received_event(self, eventList):
         if (len(eventList) <= 0):
             return
 
@@ -391,7 +391,7 @@ class TCPManager:
                     if (buff):
                         fullResponse = fullResponse + buff
                 if (len(fullResponse) > 0):
-                    self.deviceManager.process_received_event(self.separate_events_received_into_list(fullResponse))
+                    self.deviceManager.execute_received_event(self.separate_events_received_into_list(fullResponse))
                 socketRead.shutdown(socket.SHUT_RDWR)
             except Exception as e:
                 if socketRead != None:
