@@ -2,6 +2,7 @@
 import threading
 #external lib imports
 import evdev
+import usb.core
 #Internal project imports
 import DragonMasterDeviceManager
 
@@ -167,7 +168,10 @@ class Printer(DragonMasterDevice):
 Extension of our printer object. This handles special properties for our Custom TG02 printer
 """
 class CustomTG02(Printer):
-
+    VENDOR_ID = 0x0dd4
+    PRODUCT_ID = 0x0186
+    IN_EP = 0x81
+    OUT_EP = 0x02
 
     ##Override Methods
     def start_device(self, deviceElement):
@@ -188,7 +192,10 @@ class CustomTG02(Printer):
 Extension of our printer class. This handles special properties for our Reliance Printer
 """
 class ReliancePrinter(Printer):
-
+    VENDOR_ID = 0x0425
+    PRODUCT_ID = 0x8147
+    IN_EP = 0x87
+    OUT_EP = 0x08
 
     ##Override methods
     def start_device(self, deviceElement):
@@ -218,4 +225,18 @@ def get_all_connected_joystick_devices():
             listOfValidJoysticks.append(dev)
 
     return listOfValidJoysticks
+
+"""
+
+"""
+def get_all_connected_custom_tg02_printer_elements():
+    usb.core.find(idVendor=0x0425, idProduct=0x0412)
+    return
+
+"""
+
+"""
+def get_all_connected_reliance_printer_elements():
+
+    return
 ##End Retrieve device method
