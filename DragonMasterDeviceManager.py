@@ -97,8 +97,7 @@ class DragonMasterDeviceManager:
     This method will search for all valid devices that are connected to our machine
     """
     def search_for_devices(self):
-        for dev in pyudev.Context().list_devices():
-            print(dev)
+        
         allConnectedJoysticks = DragonMasterDevice.get_all_connected_joystick_devices()
         allConnectedDraxboards = DragonMasterSerialDevice.get_all_connected_draxboard_elements()
 
@@ -106,6 +105,8 @@ class DragonMasterDeviceManager:
             omnidongleElement = DragonMasterSerialDevice.get_omnidongle_comports()
             if omnidongleElement:
                 self.add_new_device(DragonMasterSerialDevice.Omnidongle(self), omnidongleElement)
+
+        DragonMasterDevice.get_all_connected_custom_tg02_printer_elements()
             
         for draxElement in allConnectedDraxboards:
             if draxElement and not self.device_manager_contains_draxboard(draxElement):
@@ -271,6 +272,10 @@ class DragonMasterDeviceManager:
     Returns whether or not the printer that is passed through was already added to our device manager
     """
     def device_manager_contains_printer(self, printerElement):
+        for dev in self.allConnectedDevices:
+            if isinstance(dev, DragonMasterDevice.Printer):
+                if dev.printerObject != None and dev.printerObject.device.port_numbers == printerElement.port_numbers:
+                    return True
         return False
 #End Contains Methods
 

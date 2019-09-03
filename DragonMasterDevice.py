@@ -3,6 +3,8 @@ import threading
 #external lib imports
 import evdev
 import usb.core
+
+from escpos.printer import Usb
 #Internal project imports
 import DragonMasterDeviceManager
 
@@ -133,13 +135,14 @@ Printer device handles printer events. Sends the status of the printer to Unity
 class Printer(DragonMasterDevice):
     def __init__(self, dragonMasterDeviceManager):
         super().__init__(dragonMasterDeviceManager)
+        self.printerObject = None
         self.currentState = (0,0)#Tuple represents the state of the printer. (Printer Status, Paper Availability)
 
     """
     This method formats and prints out a cash-out ticket
     """
     def print_cashout_ticket(self, totalCreditsWon, timeTicketRedeemed, playerStation="0", whiteSpaceUnderTicket = 10, isTestTicket=False, isReprintTicket=False):
-
+        
         return
 
     """
@@ -230,7 +233,12 @@ def get_all_connected_joystick_devices():
 
 """
 def get_all_connected_custom_tg02_printer_elements():
-    usb.core.find(idVendor=0x0425, idProduct=0x0412)
+    listOfPrinters = usb.core.find(idVendor=CustomTG02.VENDOR_ID, idProduct=CustomTG02.PRODUCT_ID, find_all=True)
+    for dev in listOfPrinters:
+        print (dev.port_numbers)
+
+        print (dev)
+
     return
 
 """
