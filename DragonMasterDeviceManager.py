@@ -92,7 +92,7 @@ class DragonMasterDeviceManager:
         return
 
 
-    #Device Management
+    ##Device Management
     """
     This method will search for all valid devices that are connected to our machine
     """
@@ -215,7 +215,7 @@ class DragonMasterDeviceManager:
         return
     #End Device Management
 
-    #TCP Communication ###############################################################
+    ##TCP Communication
     """
     Queue up an event to send to our Unity Application. This should always be of the type
     byteArray
@@ -239,12 +239,16 @@ class DragonMasterDeviceManager:
             pass
         return
         
-    #END TCP Communication ###########################################################
+    #END TCP Communication
 
 
     pass
 
 ##Contains Methods
+    """
+    Returns whether or not the joystick that is passed into the method was already added to our
+    device manager list
+    """
     def device_manager_contains_joystick(self, joystickDevice):
         for dev in self.allConnectedDevices:
             if isinstance(dev, DragonMasterDevice.Joystick):
@@ -252,11 +256,21 @@ class DragonMasterDeviceManager:
                     return True
         return False
 
+    """
+    Returns whether or not the draxboard that was passed into the method was already added to our
+    device manager list
+    """
     def device_manager_contains_draxboard(self, draxboardElement):
         for dev in self.allConnectedDevices:
             if isinstance(dev, DragonMasterSerialDevice.Draxboard):
                 if dev.comport == draxboardElement.device:
                     return True
+        return False
+
+    """
+    Returns whether or not the printer that is passed through was already added to our device manager
+    """
+    def device_manager_contains_printer(self, printerElement):
         return False
 #End Contains Methods
 
