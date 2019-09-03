@@ -248,6 +248,7 @@ def get_all_connected_custom_tg02_printer_elements():
 
 """
 def get_all_connected_reliance_printer_elements():
+    return usb.core.find(idVendor=ReliancePrinter.VENDOR_ID, idProduct=ReliancePrinter.PRODUCT_ID, find_all=True)
 
-    return
+
 ##End Retrieve device method
