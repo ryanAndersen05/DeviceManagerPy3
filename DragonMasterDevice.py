@@ -3,6 +3,9 @@ import threading
 #external lib imports
 import evdev
 import usb.core
+import usb.util
+
+
 
 from escpos.printer import Usb
 #Internal project imports
@@ -133,6 +136,10 @@ class Joystick(DragonMasterDevice):
 Printer device handles printer events. Sends the status of the printer to Unity
 """
 class Printer(DragonMasterDevice):
+    CROSS_FIRE_PNG_PATH = ""
+    DRAGON_MASTER_LOGO_PNG_PATH = ""
+    LOCATION_NAME = "PlaceHolder"
+
     def __init__(self, dragonMasterDeviceManager):
         super().__init__(dragonMasterDeviceManager)
         self.printerObject = None
@@ -142,7 +149,34 @@ class Printer(DragonMasterDevice):
     This method formats and prints out a cash-out ticket
     """
     def print_cashout_ticket(self, totalCreditsWon, timeTicketRedeemed, playerStation="0", whiteSpaceUnderTicket = 10, isTestTicket=False, isReprintTicket=False):
-        
+        characterCount = 24
+        try:
+            self.printerObject.set(align='center', font='b', height=12)
+            self.printerObject.textln('=' * characterCount)
+            self.printerObject.set(align='center')
+            try:
+                self.printerObject.image(Printer.CROSS_FIRE_PNG_PATH, high_density_horizontal=True, high_density_vertical=True)
+            except Exception as e:
+                print("There was an error printing out the cross fire png")
+                print(e)
+                self.printerObject.textln("Cross-Fire")
+            self.printerObject.set(align='center', font='b', height=12)
+            self.printerObject.textln(Printer.LOCATION_NAME)
+            self.printerObject.set(align='center', font='b', height=12)
+
+            if isReprintTicket:
+                self.printerObject.textln("REPRINT")
+            elif isTestTicket:
+                self.printerObject.textln("TEST TICKET")
+            else:
+                self.printerObject.textln("VOUCHER TICKET")
+            
+            self.printerObject.textln("STATION " + playerStation)
+            
+
+        except Exception as e:
+            print ("There was an error printing our Cash-Out Ticket")
+
         return
 
     """
@@ -181,6 +215,8 @@ class CustomTG02(Printer):
         if deviceElement == None:
             return False
         self.printerObject = Usb(idVendor=CustomTG02.VENDOR_ID, idProduct=CustomTG02.PRODUCT_ID, in_ep=CustomTG02.IN_EP, out_ep=CustomTG02.OUT_EP)
+        if self.printerObject == None:
+            return False
         self.printerObject.device = deviceElement
 
         return True
@@ -211,7 +247,18 @@ class ReliancePrinter(Printer):
 
     ##Override methods
     def start_device(self, deviceElement):
-        return super().start_device(deviceElement)
+        try:
+            if not deviceElement.is_kernel_driver_active(0):
+                deviceElement.attach_kernel_driver(0)
+        except Exception as e:
+            print (e)
+        print ("Step 1")
+        self.printerObject = Usb(idVendor=ReliancePrinter.VENDOR_ID, idProduct=ReliancePrinter.PRODUCT_ID, in_ep=ReliancePrinter.IN_EP, out_ep=ReliancePrinter.OUT_EP)
+        if self.printerObject == None:
+            return False
+        print("Step 2")
+        self.printerObject.device = deviceElement
+        return True
 
     def disconnect_device(self):
         return super().disconnect_device()

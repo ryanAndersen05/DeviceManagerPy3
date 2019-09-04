@@ -284,7 +284,8 @@ class DragonMasterDeviceManager:
     def device_manager_contains_printer(self, printerElement):
         for dev in self.allConnectedDevices:
             if isinstance(dev, DragonMasterDevice.Printer):
-                if dev.printerObject != None and dev.printerObject.device.port_numbers == printerElement.port_numbers:
+                if dev.printerObject != None and dev.printerObject.device.port_numbers == printerElement.port_numbers\
+                    and dev.printerObject.device.bus == printerElement.bus:
                     return True
         return False
 #End Contains Methods
