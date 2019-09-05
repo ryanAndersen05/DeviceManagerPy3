@@ -424,6 +424,14 @@ serial communication to retrieve the state of the device and the paper level. Ha
 commands that are special to the reliance printer as well
 """
 class ReliancePrinterSerial(SerialDevice):
+    #####Command List for Reliance Printer#####
+    PRINTER_STATUS_REQUEST = bytearray([0x10, 0x04, 0x14])
+    PAPER_STATUS_REQUEST = bytearray([0x10, 0x04, 0x04])
+    PAPER_FULL_CUT = bytearray([0x1b, 0x69])
+    PAPER_RETRACT = bytearray([0x1d, 0x65, 0x02])
+    PAPER_PRESENT_TO_CUSTOMER = bytearray([0x1d, 0x65, 0x20, 0x0c, 0x0a])
+
+
     def __init__(self, deviceManager):
 
         return

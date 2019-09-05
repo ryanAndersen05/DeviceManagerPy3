@@ -75,11 +75,6 @@ class DragonMasterDeviceManager:
     BA_RESET_EVENT = 0X88
 
 
-
-    #TCP Variables
-
-
-
     def __init__(self,):
         # self.tcpManager = TCPManager(self)
         self.CONNECTED_OMNIDONGLE = None #Since there should only be one omnidongle in our machine, we will only search until we find the first connection
