@@ -431,10 +431,24 @@ class ReliancePrinterSerial(SerialDevice):
     PAPER_RETRACT = bytearray([0x1d, 0x65, 0x02])
     PAPER_PRESENT_TO_CUSTOMER = bytearray([0x1d, 0x65, 0x20, 0x0c, 0x0a])
 
+    RELIANCE_BAUDE_RATE = 19200
+
 
     def __init__(self, deviceManager):
-
+        super().__init__(deviceManager)
         return
+
+    def start_device(self, deviceElement):
+        self.serialObject = self.open_serial_device(deviceElement.device, ReliancePrinterSerial.RELIANCE_BAUDE_RATE, readTimeout=3, writeTimeout=15)
+        if self.serialObject == None:
+            return False
+        try:
+            super().start_device(deviceElement)
+        except Exception as e:
+            print ("There was an error starting our Reliance Printer")
+            print (e)
+
+        return True 
 
     """
     NOTE: Make it so that we properly disconnect our printer at the end of this method.
