@@ -526,6 +526,22 @@ class Omnidongle(SerialDevice):
 
 ##Search Device Methods
 
+"""
+Returns a list of all connected DBV 400 comports
+"""
+def get_all_connected_dbv400_comports():
+    dbv400Elements = []
+    allPorts = serial.tools.list_ports.comports()
+
+    for element in allPorts:
+        if element.description.__contains__("DBV-400"):
+            dbv400Elements.append(element)
+    
+    return dbv400Elements
+
+"""
+Returns the first omnidongle comport that we find
+"""
 def get_omnidongle_comports():
     allPorts = serial.tools.list_ports.comports()
 
