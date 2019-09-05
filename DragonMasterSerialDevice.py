@@ -434,8 +434,9 @@ class ReliancePrinterSerial(SerialDevice):
     RELIANCE_BAUDE_RATE = 19200
 
 
-    def __init__(self, deviceManager):
+    def __init__(self, deviceManager, associatedReliancePrinter):
         super().__init__(deviceManager)
+        self.associatedReliancePrinter = associatedReliancePrinter
         return
 
     def start_device(self, deviceElement):
@@ -456,6 +457,16 @@ class ReliancePrinterSerial(SerialDevice):
     """
     def poll_serial_thread(self):
         super().poll_serial_thread()
+        
+    """
+    Disconnect
+    """
+    def disconnect_device(self):
+        if not self.pollingDevice:
+            return
+        self.associatedReliancePrinter.disconnect_device()
+        super().disconnect_device()
+
     pass
 
 """
