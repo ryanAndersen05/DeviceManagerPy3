@@ -111,6 +111,16 @@ class DragonMasterDeviceManager:
                     print (e)
         return
 
+
+    """
+    This thread will be used to periodically poll for newly connected devices. This is more used as a back up incase our
+    newly connected event thread fails to detect a new connection
+    """
+    def periodically_poll_for_devices_thread(self):
+        
+
+        return
+
     #End threaded events
 
 
