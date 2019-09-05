@@ -204,6 +204,7 @@ class SerialDevice(DragonMasterDevice.DragonMasterDevice):
 A class that handles all our Bill Acceptor Actions
 """
 class DBV400(SerialDevice):
+    DBV_DESCRIPTION = "DBV-400"
 
     def __init__(self, deviceManager):
 
@@ -534,7 +535,7 @@ def get_all_connected_dbv400_comports():
     allPorts = serial.tools.list_ports.comports()
 
     for element in allPorts:
-        if element.description.__contains__("DBV-400"):
+        if element.description.__contains__(DBV400.DBV_DESCRIPTION):
             dbv400Elements.append(element)
     
     return dbv400Elements

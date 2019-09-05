@@ -92,6 +92,28 @@ class DragonMasterDeviceManager:
         return
 
 
+    ##Threaded events
+
+    """
+    This thread is used to poll our application to search for new devices every time a new plugged in device is detected
+    """
+    def device_connected_thread(self):
+        context = pyudev.Context()
+        monitor = pyudev.Monitor.from_netlink(context)
+        monitor.filter_by(subsytem='usb')
+
+        for device in iter(monitor.poll, None):
+            if device.action == 'add':
+                try:
+                    self.search_for_devices()
+                except Exception as e:
+                    print ("There was an error searching for new devices")
+                    print (e)
+        return
+
+    #End threaded events
+
+
     ##Device Management
     def initialize_printers(self, vendorID, productID):
 
