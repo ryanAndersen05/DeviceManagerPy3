@@ -180,21 +180,21 @@ class Printer(DragonMasterDevice):
         return
 
     """
-
+    Prints and formats our audit ticket
     """
     def print_audit_ticket(self, auditTicketData, whiteSpaceUnderTicket=7):
 
         return
 
     """
-
+    Prints and formats a code exchange ticket
     """
     def print_codex_ticket(self, codexTicketData, whiteSpaceUnderTicket=6):
 
         return
 
     """
-
+    Returns the updated printer state and paper state as a tuple. These values should both be returned as byte values
     """
     def get_updated_printer_state_and_paper_state(self):
 
@@ -232,6 +232,9 @@ class CustomTG02(Printer):
     #End Override Methods
     pass
 
+"""
+Extension of our printer class. Handles special properties for our phoenix printer
+"""
 class PhoenixPyramid(Printer):
 
     pass
@@ -287,13 +290,13 @@ def get_all_connected_joystick_devices():
     return listOfValidJoysticks
 
 """
-
+Returns a list of all the connected custom TG02 printers. We do this by searching for a matching vid and pid
 """
 def get_all_connected_custom_tg02_printer_elements():
     return usb.core.find(idVendor=CustomTG02.VENDOR_ID, idProduct=CustomTG02.PRODUCT_ID, find_all=True)
 
 """
-
+Searches for a list of all connected reliance printers. This is done be searching for matching vid and pid
 """
 def get_all_connected_reliance_printer_elements():
     return usb.core.find(idVendor=ReliancePrinter.VENDOR_ID, idProduct=ReliancePrinter.PRODUCT_ID, find_all=True)
