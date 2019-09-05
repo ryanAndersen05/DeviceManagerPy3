@@ -93,15 +93,23 @@ class DragonMasterDeviceManager:
 
 
     ##Device Management
+    def initialize_printers(self, vendorID, productID):
+
+        return
+
     """
     This method will search for all valid devices that are connected to our machine
     """
     def search_for_devices(self):
         
+        
+
         allConnectedJoysticks = DragonMasterDevice.get_all_connected_joystick_devices()
         allConnectedDraxboards = DragonMasterSerialDevice.get_all_connected_draxboard_elements()
         allConnectedCustomTG02Printers = DragonMasterDevice.get_all_connected_custom_tg02_printer_elements()
         allConnectedReliancePrinters = DragonMasterDevice.get_all_connected_reliance_printer_elements()
+        
+        deviceContext = pyudev.Context()
 
         if self.CONNECTED_OMNIDONGLE == None:
             omnidongleElement = DragonMasterSerialDevice.get_omnidongle_comports()

@@ -172,7 +172,7 @@ class Printer(DragonMasterDevice):
                 self.printerObject.textln("VOUCHER TICKET")
             
             self.printerObject.textln("STATION " + playerStation)
-            
+
 
         except Exception as e:
             print ("There was an error printing our Cash-Out Ticket")
@@ -249,6 +249,7 @@ class ReliancePrinter(Printer):
     def start_device(self, deviceElement):
         try:
             if not deviceElement.is_kernel_driver_active(0):
+                print ("I made it here")
                 deviceElement.attach_kernel_driver(0)
         except Exception as e:
             print (e)
