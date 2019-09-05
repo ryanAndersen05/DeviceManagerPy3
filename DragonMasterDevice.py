@@ -249,6 +249,10 @@ class ReliancePrinter(Printer):
     OUT_EP = 0x08
 
     ##Override methods
+    def __init__(self, dragonMasterDeviceManager):
+        super().__init__(dragonMasterDeviceManager)
+        self.associatedRelianceSerial = None
+
     def start_device(self, deviceElement):
         try:
             if not deviceElement.is_kernel_driver_active(0):
@@ -256,15 +260,20 @@ class ReliancePrinter(Printer):
                 deviceElement.attach_kernel_driver(0)
         except Exception as e:
             print (e)
-        print ("Step 1")
+        
         self.printerObject = Usb(idVendor=ReliancePrinter.VENDOR_ID, idProduct=ReliancePrinter.PRODUCT_ID, in_ep=ReliancePrinter.IN_EP, out_ep=ReliancePrinter.OUT_EP)
         if self.printerObject == None:
             return False
-        print("Step 2")
         self.printerObject.device = deviceElement
         return True
 
+    """
+    Disconnects both the associated Reliance Serial class and disconnects this printer device
+    """
     def disconnect_device(self):
+        if self.associatedRelianceSerial  != None:
+            self.associatedRelianceSerial.disconnect_device()
+        
         return super().disconnect_device()
 
     def fetch_parent_path(self, deviceElement):

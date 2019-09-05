@@ -224,7 +224,8 @@ class DragonMasterDeviceManager:
             self.allConnectedDevices.remove(deviceToRemove)
             print (deviceToRemove.to_string() + " was successfully removed")
         else:
-            print (deviceToRemove.to_string() + " was not found in our device list. Perhaps it was already removed")
+            if not isinstance(deviceToRemove, DragonMasterSerialDevice.ReliancePrinterSerial):#reliance serial is the one excpetion where we don't remove it normally
+                print (deviceToRemove.to_string() + " was not found in our device list. Perhaps it was already removed")
 
         return
 

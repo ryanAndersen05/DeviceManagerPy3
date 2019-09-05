@@ -432,7 +432,7 @@ class ReliancePrinterSerial(SerialDevice):
     PAPER_PRESENT_TO_CUSTOMER = bytearray([0x1d, 0x65, 0x20, 0x0c, 0x0a])
 
     RELIANCE_BAUDE_RATE = 19200
-
+    RELIANCE_SERIAL_DESCRIPTION = "Reliance"
 
     def __init__(self, deviceManager, associatedReliancePrinter):
         super().__init__(deviceManager)
@@ -459,7 +459,7 @@ class ReliancePrinterSerial(SerialDevice):
         super().poll_serial_thread()
         
     """
-    Disconnect
+    Disconnects both our serial 
     """
     def disconnect_device(self):
         if not self.pollingDevice:
@@ -596,5 +596,14 @@ def get_all_connected_draxboard_elements():
             draxboardElements.append(element)
 
     return draxboardElements
+
+def get_all_reliance_printer_serial_elements():
+    allPorts = serial.tools.list_ports.comports()
+    relianceElements = []
+    for element in relianceElements:
+        if element.description.__contains__(ReliancePrinterSerial.RELIANCE_SERIAL_DESCRIPTION):
+            relianceElements.append(element)
+
+    return relianceElements
 
 #End Search Device Methods
