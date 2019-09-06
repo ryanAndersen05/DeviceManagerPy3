@@ -600,8 +600,9 @@ def get_all_connected_draxboard_elements():
 def get_all_reliance_printer_serial_elements():
     allPorts = serial.tools.list_ports.comports()
     relianceElements = []
-    for element in relianceElements:
+    for element in allPorts:
         if element.description.__contains__(ReliancePrinterSerial.RELIANCE_SERIAL_DESCRIPTION):
+            print (element.location)
             relianceElements.append(element)
 
     return relianceElements
