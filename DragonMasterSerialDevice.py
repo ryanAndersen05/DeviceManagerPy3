@@ -597,6 +597,9 @@ def get_all_connected_draxboard_elements():
 
     return draxboardElements
 
+"""
+Returns a list of all Reliance serial comports
+"""
 def get_all_reliance_printer_serial_elements():
     allPorts = serial.tools.list_ports.comports()
     relianceElements = []

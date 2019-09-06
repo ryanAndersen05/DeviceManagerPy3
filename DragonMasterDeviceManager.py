@@ -136,6 +136,8 @@ class DragonMasterDeviceManager:
         DragonMasterSerialDevice.get_all_reliance_printer_serial_elements()
         allConnectedCustomTG02Printers = DragonMasterDevice.get_all_connected_custom_tg02_printer_elements()
         allConnectedReliancePrinters = DragonMasterDevice.get_all_connected_reliance_printer_elements()
+
+        allConnectedDBV400Elements = DragonMasterSerialDevice.get_all_connected_dbv400_comports()
         
         deviceContext = pyudev.Context()
 
@@ -144,8 +146,6 @@ class DragonMasterDeviceManager:
             if omnidongleElement:
                 self.add_new_device(DragonMasterSerialDevice.Omnidongle(self), omnidongleElement)
 
-        
-            
         for draxElement in allConnectedDraxboards:
             if draxElement and not self.device_manager_contains_draxboard(draxElement):
                 self.add_new_device(DragonMasterSerialDevice.Draxboard(self), draxElement)
@@ -161,6 +161,10 @@ class DragonMasterDeviceManager:
         for printer in allConnectedReliancePrinters:
             if printer != None and not self.device_manager_contains_printer(printer):
                 self.add_new_device(DragonMasterDevice.ReliancePrinter(self), printer)
+
+        for dbv in allConnectedDBV400Elements:
+            if dbv != None and not self.device_manager_contains_dbv400(dbv):
+                self.add_new_device(DragonMasterSerialDevice.DBV400(self), dbv)
         return
 
     """
@@ -312,6 +316,18 @@ class DragonMasterDeviceManager:
         for dev in self.allConnectedDevices:
             if isinstance(dev, DragonMasterSerialDevice.Draxboard):
                 if dev.comport == draxboardElement.device:
+                    return True
+        return False
+
+
+    """
+    Returns whether or not the draxboard that was passed into the method was already added to our
+    device manager list
+    """
+    def device_manager_contains_dbv400(self, dbvElement):
+        for dev in self.allConnectedDevices:
+            if isinstance(dev, DragonMasterSerialDevice.DBV400):
+                if dev.comport == dbvElement.device:
                     return True
         return False
 
