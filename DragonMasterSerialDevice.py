@@ -32,16 +32,6 @@ class SerialDevice(DragonMasterDevice.DragonMasterDevice):
         return
 
     """
-    Check to ensure that our serial device is still connected and functioning. This is more
-    of a backup check as ending polling should be immediate grounds to disconnect our device
-    """
-    def has_device_errored(self):
-        try:
-            return not self.serialObject.is_open or self.serialState == SerialDevice.SERIAL_NOT_POLLING
-        except Exception as e:
-            print ("There was an error attempting to ")
-
-    """
     The start device method in our serial device begins the polling process to search for 
     packets to the read in from our serial device
     """
@@ -205,10 +195,25 @@ A class that handles all our Bill Acceptor Actions
 """
 class DBV400(SerialDevice):
     DBV_DESCRIPTION = "DBV-400"
+    DBV_BAUDRATE = 9600
 
     def __init__(self, deviceManager):
+        super().__init__(deviceManager)
 
         return
+
+    ##Override Methods
+    def start_device(self, deviceElement):
+        self.serialObject = self.open_serial_device(deviceElement.device, Draxboard.DRAX_BAUDRATE, 5, 5)
+        if self.serialObject == None:
+            return False
+
+        super().start_device(deviceElement)
+
+    
+
+    ##
+
     pass
 
 
@@ -216,6 +221,7 @@ class DBV400(SerialDevice):
 Class that maanages our Draxboard communication and state
 """
 class Draxboard(SerialDevice):
+    
     REQUEST_STATUS = bytearray([0x01, 0x00, 0x01, 0x02])
     SET_OUTPUT_STATE = bytearray([0x04, 0x02, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00])
     DRAXBOARD_OUTPUT_ENABLE = bytearray([0x02, 0x05, 0x09, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x12])
