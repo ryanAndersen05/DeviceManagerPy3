@@ -184,6 +184,50 @@ class DragonMasterDeviceManager:
             print ("Device Failed Start")
         return
 
+
+    """
+    If a device was connected this method should be called to notify our Unity application of which device was connected
+    """
+    def send_device_connected_event(self, deviceThatWasAdded):
+        deviceTypeID = 0x00
+        if isinstance(deviceThatWasAdded, DragonMasterDevice.Joystick):
+
+            pass
+        if isinstance(deviceThatWasAdded, DragonMasterDevice.Printer):
+
+            pass
+        if isinstance(deviceThatWasAdded, DragonMasterSerialDevice.Draxboard):
+
+            pass
+        if isinstance(deviceThatWasAdded, DragonMasterSerialDevice.DBV400):
+
+            pass
+        if isinstance(deviceThatWasAdded, DragonMasterSerialDevice.Omnidongle):
+
+            pass
+
+    """
+    If a device was removed we should call this method, so that we appropriately notify our Unity Applcation
+    """
+    def send_device_disconnected_event(self, deviceThatWasRemoved):
+        deviceTypeID = 0x00
+        if isinstance(deviceThatWasRemoved, DragonMasterDevice.Joystick):
+
+            pass
+        elif isinstance(deviceThatWasRemoved, DragonMasterDevice.Printer):
+
+            pass
+        elif isinstance(deviceThatWasRemoved, DragonMasterSerialDevice.Draxboard):
+
+            pass
+        elif isinstance(deviceThatWasRemoved, DragonMasterSerialDevice.DBV400):
+
+            pass
+        elif isinstance(deviceThatWasRemoved, DragonMasterSerialDevice.Omnidongle):
+
+            pass
+
+
     """
     Adds a device to the player station dictionary
     """
