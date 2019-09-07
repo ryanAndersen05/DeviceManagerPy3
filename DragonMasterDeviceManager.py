@@ -91,7 +91,6 @@ class DragonMasterDeviceManager:
 
 
     #region Threaded events
-
     """
     This thread is used to poll our application to search for new devices every time a new plugged in device is detected
     """
@@ -311,6 +310,26 @@ class DragonMasterDeviceManager:
             self.playerStationDictionary[deviceToRemove.deviceParentPath].connectedBillAcceptor = None
             return
         return
+
+    """
+    Returns an int value that represents the player station that the device is connected.
+
+    NOTE: This has will return 0 if there is no draxboard connected to the player station. This should only be true if teh draxboard
+    has completely malfunctioned or you are connecting the device to a random port that is not through the draxboard usb hub
+    """
+    def get_player_station_hash_for_device(self, device):
+        playerStationParentPath = device.deviceParentPath
+
+        if playerStationParentPath == None or playerStationParentPath not in self.playerStationDictionary:
+            return 0
+
+        playerStation = self.playerStationDictionary[playerStationParentPath]
+        
+        if playerStation.connectedDraxboard == None:
+            return 0
+
+        return playerStation.connectedDraxboard.playerStationHash
+
     #endregion Device Management
 
     #region TCP Communication
