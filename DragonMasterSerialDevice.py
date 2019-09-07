@@ -197,22 +197,70 @@ class DBV400(SerialDevice):
     DBV_DESCRIPTION = "DBV-400"
     DBV_BAUDRATE = 9600
 
+    #region Commands
+
+    STATUS_REQUEST = bytearray([0x12, 0x08, 0x00, 0x00, 0x00, 0x10, 0x10, 0x00])
+    POWER_ACK = bytearray([0x12, 0x09, 0x00, 0x10, 0x00, 0x81, 0x00, 0x00, 0x06])
+    SET_UID = bytearray([0x12, 0x09, 0x00, 0x10, 0x00, 0x20, 0x01, 0x00, 0x01])
+    RESET_REQUEST = bytearray([0x12, 0x08, 0x00, 0x10, 0x01, 0x00, 0x11, 0x00])
+    INHIBIT_ACK = bytearray([0x12, 0x09, 0x00, 0x10, 0x01, 0x82, 0x00, 0x01, 0x06])
+    INHIBIT_REQUEST = bytearray([0x12, 0x08, 0x00, 0x10, 0x01, 0x00, 0x12, 0x00])
+    IDLE_REQUEST = bytearray([0x12, 0x08, 0x00, 0x10, 0x01, 0x00, 0x13, 0x10])
+    IDLE_ACK = bytearray([0x12, 0x09, 0x00, 0x10, 0x01, 0x83, 0x01, 0x11, 0x06])
+    ESCROW_ACK = bytearray([0x12, 0x09, 0x00, 0x10, 0x01, 0x85, 0x02, 0x11, 0x06])
+    BILL_REJECT = bytearray([0x12, 0x09, 0x00, 0x10, 0x02, 0x80, 0x04, 0x11, 0x06])
+    ERROR_ACK = bytearray([0x12, 0x09, 0x00, 0x10, 0x00, 0x80, 0x01, 0x12, 0x06])
+    STACK_INHIBIT = bytearray([0x12, 0x08, 0x00, 0x10, 0x02, 0x00, 0x14, 0x10])
+    VEND_VALID_ACK = bytearray([0x12, 0x09, 0x00, 0x10, 0x02, 0x86, 0x03, 0x11, 0x06])
+    ERROR_ACK = bytearray([0x12, 0x09, 0x00, 0x10, 0x00, 0x80, 0x01, 0x12, 0x06])
+    HOLD_BILL = bytearray([0x12, 0x0a, 0x00, 0x10, 0x01, 0x00, 0x16, 0x10, 0x3c, 0x00])
+
+    REJECT_COMMAND = bytearray([0x12, 0x08, 0x00, 0x10, 0x2a, 0x00, 0x15, 0x10])
+    REJECT_ACK = bytearray([0x12, 0x09, 0x00, 0x10, 0x2a, 0x00, 0x05, 0x11, 0x06])
+
+    NOTE_STAY_ACK = bytearray([0x12, 0x09, 0x00, 0x10, 0x2a, 0x87, 0x01, 0x13, 0x06])
+
+    DENOM_GET = bytearray([0x12,0x08,0x00,0x10,0x01,0x10,0x21,0x10])
+    DENOM_DISABLE = bytearray([0x12,0x0a,0x00,0x10,0x10,0x20,0x21,0x10,0x00,0x00])
+    ENABLE_1 = True # $1
+    ENABLE_5 = True # $5
+    ENABLE_10 = True # $10
+    ENABLE_20 = True # $20
+    ENABLE_50 = True # $50
+    ENABLE_100 = True # $100
+
+    #endregion
+
+    #region States
+
+    NOT_INIT_STATE = 0 # DBV not initialized.
+    POWER_UP_NACK_STATE = 1 # Power up ACK not received by DBV yet. Write POWER_UP_ACK to DBV (with event id set) to move past this.
+    POWER_UP_STATE = 2 # DBV UID set and powered on. Needs to be reset.
+    IDLE_STATE = 3  # DBV can accept bills in this state. Bezel light on.
+    INHIBIT_STATE = 4 # DBV CANNOT accept bills in this state. Bezel light off.
+    ESCROW_STATE = 5 # DBV is currently accepting a bill
+    UNSUPPORTED_STATE = 6  # UID not set. Write SET_UID to DBV UID and move past this state.
+    ERROR_STATE = 7 # DBV has encountered an error. Reset the DBV or wait for error to clear.
+    ERROR_STATE_STACKER_FAILURE = 8 # The stacker has error when attempting to accept credits. This can usually be fixed with a reset.
+    ERROR_STATE_BOX_REMOVED = 9 # The container where credits are stored in the DBV has been removed. This might mean that the operator is removing the credits inserted.
+    ERROR_STATE_ACCEPTOR_JAM = 10 # The stacker on top of the DBV has been removed for a few seconds. Re-insert it, and reset.
+    CLEAR_STATE = 11  # DBV error has cleared.
+    NOTE_STAY_STATE = 12 # A bill has been left in the acceptor slot of the DBV. When removed, the DBV will proceed as normal.
+
+    #endregion
+
     def __init__(self, deviceManager):
         super().__init__(deviceManager)
-
         return
 
-    ##Override Methods
+    #region Override Methods
     def start_device(self, deviceElement):
         self.serialObject = self.open_serial_device(deviceElement.device, Draxboard.DRAX_BAUDRATE, 5, 5)
         if self.serialObject == None:
             return False
 
         super().start_device(deviceElement)
-
-    
-
-    ##
+    #endregion
 
     pass
 
@@ -571,7 +619,6 @@ class Omnidongle(SerialDevice):
 
     
     pass
-
 
 
 ##Search Device Methods
