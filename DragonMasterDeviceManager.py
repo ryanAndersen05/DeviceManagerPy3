@@ -49,15 +49,12 @@ class DragonMasterDeviceManager:
     PRINTER_TEST_TICKET = 0X44
     #Send Events
     PRINT_COMPLETE_EVENT = 0X45
+    PRINT_ERROR_EVENT = 0x46
 
     #Printer Types
     CUSTOM_TG02 = 0X01
     RELIANCE_PRINTER = 0X02
     PYRAMID_PRINTER = 0X03
-
-    #Print Error Codes
-    PRINT_GOOD = 0X00
-    PRINT_ERRORED = 0X01
 
     ##BILL ACCEPTOR COMMANDS
     BILL_ACCEPTOR_ID = 0X80
@@ -80,10 +77,16 @@ class DragonMasterDeviceManager:
         self.CONNECTED_OMNIDONGLE = None #Since there should only be one omnidongle in our machine, we will only search until we find the first connection
         self.allConnectedDevices = [] #(DragonMasterDevice)
         self.playerStationDictionary = {}#Key: Parent USB Device Path (string) | Value: Player Station (PlayerStation)
-        
-        while (True):
-            self.search_for_devices()
-            sleep(5)
+
+        #Start a thread to search for newly connected devices
+        deviceAddedThread = threading.Thread(target=self.device_connected_thread,)
+        deviceAddedThread.isDaemon = True
+        deviceAddedThread.start()
+        sleep(.3)
+        self.search_for_devices()
+        # while (True):
+        #     self.search_for_devices()
+        #     sleep(5)
         return
 
 
@@ -113,7 +116,6 @@ class DragonMasterDeviceManager:
     """
     def periodically_poll_for_devices_thread(self):
         
-
         return
 
     #End threaded events
@@ -128,9 +130,6 @@ class DragonMasterDeviceManager:
     This method will search for all valid devices that are connected to our machine
     """
     def search_for_devices(self):
-        
-        
-
         allConnectedJoysticks = DragonMasterDevice.get_all_connected_joystick_devices()
         allConnectedDraxboards = DragonMasterSerialDevice.get_all_connected_draxboard_elements()
         DragonMasterSerialDevice.get_all_reliance_printer_serial_elements()
@@ -178,6 +177,7 @@ class DragonMasterDeviceManager:
         if (deviceToAdd.start_device(deviceElementNode)):
             self.allConnectedDevices.append(deviceToAdd)
             self.add_new_device_to_player_station_dictionary(deviceToAdd)
+            self.send_device_connected_event(deviceToAdd)
             print (deviceToAdd.to_string() + " was successfully added to our device manager")
         else:
             deviceToAdd.disconnect_device()#We will run a disconnect device to ensure that we fully disconnect all processes that may be running in our device
@@ -191,20 +191,21 @@ class DragonMasterDeviceManager:
     def send_device_connected_event(self, deviceThatWasAdded):
         deviceTypeID = 0x00
         if isinstance(deviceThatWasAdded, DragonMasterDevice.Joystick):
-
+            deviceTypeID = DragonMasterDeviceManager.JOYSTICK_ID
             pass
         if isinstance(deviceThatWasAdded, DragonMasterDevice.Printer):
-
+            deviceTypeID = DragonMasterDeviceManager.PRINTER_ID
             pass
         if isinstance(deviceThatWasAdded, DragonMasterSerialDevice.Draxboard):
-
+            deviceTypeID = DragonMasterDeviceManager.DRAX_ID
             pass
         if isinstance(deviceThatWasAdded, DragonMasterSerialDevice.DBV400):
-
+            deviceTypeID = DragonMasterDeviceManager.BILL_ACCEPTOR_ID
             pass
         if isinstance(deviceThatWasAdded, DragonMasterSerialDevice.Omnidongle):
-
+            deviceTypeID = DragonMasterDeviceManager.OMNI_EVENT
             pass
+        print (deviceTypeID)
 
     """
     If a device was removed we should call this method, so that we appropriately notify our Unity Applcation
@@ -212,20 +213,21 @@ class DragonMasterDeviceManager:
     def send_device_disconnected_event(self, deviceThatWasRemoved):
         deviceTypeID = 0x00
         if isinstance(deviceThatWasRemoved, DragonMasterDevice.Joystick):
-
+            deviceTypeID = DragonMasterDeviceManager.JOYSTICK_ID
             pass
-        elif isinstance(deviceThatWasRemoved, DragonMasterDevice.Printer):
-
+        if isinstance(deviceThatWasRemoved, DragonMasterDevice.Printer):
+            deviceTypeID = DragonMasterDeviceManager.PRINTER_ID
             pass
-        elif isinstance(deviceThatWasRemoved, DragonMasterSerialDevice.Draxboard):
-
+        if isinstance(deviceThatWasRemoved, DragonMasterSerialDevice.Draxboard):
+            deviceTypeID = DragonMasterDeviceManager.DRAX_ID
             pass
-        elif isinstance(deviceThatWasRemoved, DragonMasterSerialDevice.DBV400):
-
+        if isinstance(deviceThatWasRemoved, DragonMasterSerialDevice.DBV400):
+            deviceTypeID = DragonMasterDeviceManager.BILL_ACCEPTOR_ID
             pass
-        elif isinstance(deviceThatWasRemoved, DragonMasterSerialDevice.Omnidongle):
-
+        if isinstance(deviceThatWasRemoved, DragonMasterSerialDevice.Omnidongle):
+            deviceTypeID = DragonMasterDeviceManager.OMNI_EVENT
             pass
+        print (deviceTypeID)
 
 
     """
@@ -331,7 +333,7 @@ class DragonMasterDeviceManager:
             return
 
         for event in eventList:
-
+            print (event)
             pass
         return
         
@@ -442,7 +444,7 @@ class TCPManager:
     Start a new instance of a socket thread that will send data to our Unity Application
     """
     def start_new_socket_send_thread(self):
-        sendThread = threading.Thread(socket_send)
+        sendThread = threading.Thread(target=self.socket_send)
         sendThread.daemon = False
         sendThread.start()
         return
@@ -451,7 +453,7 @@ class TCPManager:
     Start a new instance of a socket thread that will receive data from our unity application
     """
     def start_new_socket_receive_thread(self):
-        receiveThread = threading.Thread(socket_receive)
+        receiveThread = threading.Thread(target=self.socket_receive)
         receiveThread.daemon = False
         receiveThread.start()
         return
@@ -506,7 +508,6 @@ class TCPManager:
         
         while (totalCount < TCPManager.MAX_THREADING_COUNT):
             try:
-                byteMessage = []
                 socketRead = socket.socket()
                 socketRead.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
                 socketRead.connect((TCPManager.HOST_ADDRESS, TCPManager.RECEIVE_PORT))

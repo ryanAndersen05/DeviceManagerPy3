@@ -260,6 +260,8 @@ class Draxboard(SerialDevice):
         self.versionNumberLow = 0
         self.draxOutputState = 0
         self.playerStationNumber = 0
+
+        self.playerStationHash = 0#The player station hash is a value assigned only to our Draxboard. It is a value derived from the usb path to our draxboard
         return
 
     ##Override methods
@@ -317,6 +319,14 @@ class Draxboard(SerialDevice):
             return "Draxboard (" + self.comport + ")"
         else:
             return "Draxboard (Missing)"
+
+    """
+
+    """
+    def get_draxboard_device_path_hash(self, draxElement):
+
+        return
+
 
     
     #End Override Methods
