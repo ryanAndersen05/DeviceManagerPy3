@@ -238,20 +238,20 @@ class DragonMasterDeviceManager:
                     print ("Error: " + deviceToAdd.to_string() + " does not contain a parent device path. Please be sure to set one up")
         else:
             if deviceToAdd.deviceParentPath not in self.playerStationDictionary:
-                self.playerStationDictionary.insert(deviceToAdd.deviceParentPath, PlayerStationContainer())
+                self.playerStationDictionary[deviceToAdd.deviceParentPath] = PlayerStationContainer()
             
             previouslyConnectedDevice = None#Used to warn us that there was already a device connected to this player station
             if isinstance(deviceToAdd, DragonMasterDevice.Joystick):
-                previouslyConnectedDevice = self.playerStationDictionary.connectedJoystick
+                previouslyConnectedDevice = self.playerStationDictionary[deviceToAdd.deviceParentPath].connectedJoystick
                 self.playerStationDictionary[deviceToAdd.deviceParentPath].connectedJoystick = deviceToAdd
             elif isinstance(deviceToAdd, DragonMasterDevice.Printer):
-                previouslyConnectedDevice = self.playerStationDictionary.connectedPrinter
+                previouslyConnectedDevice = self.playerStationDictionary[deviceToAdd.deviceParentPath].connectedPrinter
                 self.playerStationDictionary[deviceToAdd.deviceParentPath].connectedPrinter = deviceToAdd
             elif isinstance(deviceToAdd, DragonMasterSerialDevice.DBV400):
-                previouslyConnectedDevice = self.playerStationDictionary.connectedBillAcceptor
+                previouslyConnectedDevice = self.playerStationDictionary[deviceToAdd.deviceParentPath].connectedBillAcceptor
                 self.playerStationDictionary[deviceToAdd.deviceParentPath].connectedBillAcceptor = deviceToAdd
             elif isinstance(deviceToAdd, DragonMasterSerialDevice.Draxboard):
-                previouslyConnectedDevice = self.playerStationDictionary.connectedDraxboard
+                previouslyConnectedDevice = self.playerStationDictionary[deviceToAdd.deviceParentPath].connectedDraxboard
                 self.playerStationDictionary[deviceToAdd.deviceParentPath].connectedDraxBoard = deviceToAdd
 
             if previouslyConnectedDevice != None:

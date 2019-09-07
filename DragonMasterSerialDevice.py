@@ -274,12 +274,12 @@ class DBV400(SerialDevice):
         self.write_to_serial(message)
 
     def idle_dbv(self):
-        if self.State != DBV400.INHIBIT_STATE
+        if self.State != DBV400.INHIBIT_STATE:
             return
         self.send_dbv_message(self,DBV400.IDLE_REQUEST)
     
     def inhibit_dbv(self):
-        if self.State != DBV400.IDLE_STATE
+        if self.State != DBV400.IDLE_STATE:
             return
         self.send_dbv_message(self,DBV400.INHIBIT_REQUEST)
     
@@ -287,7 +287,7 @@ class DBV400(SerialDevice):
         self.send_dbv_message(self, DBV400.SETUID)
     
     def reset_dbv(self):
-        if (self.State == DBV400.ERROR_STATE_BOX_REMOVED or self.State == DBV400.ERROR_STATE_ACCEPTOR_JAM)
+        if (self.State == DBV400.ERROR_STATE_BOX_REMOVED or self.State == DBV400.ERROR_STATE_ACCEPTOR_JAM):
             return
         self.send_dbv_message(self,DBV400.RESET_REQUEST)
     
