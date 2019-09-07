@@ -13,7 +13,6 @@ import threading
 import DragonMasterDevice
 import DragonMasterDeviceManager
 
-
 """
 The base class for all devices that use Serial communication
 """
@@ -22,6 +21,7 @@ class SerialDevice(DragonMasterDevice.DragonMasterDevice):
     SERIAL_NOT_POLLING = 0
     SERIAL_WAIT_FOR_EVENT = 1
     SERIAL_IGNORE_EVENT = 2
+
 
     def __init__(self, deviceManager):
         DragonMasterDevice.DragonMasterDevice.__init__(self, deviceManager)
@@ -321,7 +321,7 @@ class Draxboard(SerialDevice):
     DRAXBOARD_OUTPUT_ENABLE = bytearray([0x02, 0x05, 0x09, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x12])
     METER_INCREMENT = bytearray([0x09, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00])
 
-
+    #region const varialbes
     ##METER INDEX 
     IN_METER = 0x00
     OUT_METER = 0x01
@@ -347,6 +347,7 @@ class Draxboard(SerialDevice):
     DRAX_BAUDRATE = 115200
     DRAX_DESCRIPTION = "DRAX - CDC-ACM 2"
     ALT_DRAX_DESCRIPTION = "Dual RS-232 Emulation - CDC-ACM 1"
+    #endregion const variables
 
     def __init__(self, deviceManager):
         super().__init__(deviceManager)
@@ -358,7 +359,7 @@ class Draxboard(SerialDevice):
         self.playerStationHash = 0#The player station hash is a value assigned only to our Draxboard. It is a value derived from the usb path to our draxboard
         return
 
-    ##Override methods
+    #region Override methods
     def start_device(self, deviceElement):
         self.serialObject = self.open_serial_device(deviceElement.device, Draxboard.DRAX_BAUDRATE, 5, 5)
         if self.serialObject == None:
@@ -423,7 +424,7 @@ class Draxboard(SerialDevice):
 
 
     
-    #End Override Methods
+    #endregion Override Methods
     """
     Sets up and adds an input packet to our TCP queue, so that it can be sent at the next availability
     """

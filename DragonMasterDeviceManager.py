@@ -90,8 +90,7 @@ class DragonMasterDeviceManager:
         return
 
 
-    ##Threaded events
-
+    #region Threaded events
     """
     This thread is used to poll our application to search for new devices every time a new plugged in device is detected
     """
@@ -118,10 +117,10 @@ class DragonMasterDeviceManager:
         
         return
 
-    #End threaded events
+    #endregion threaded events
 
 
-    ##Device Management
+    #region Device Management
     def initialize_printers(self, vendorID, productID):
 
         return
@@ -311,9 +310,29 @@ class DragonMasterDeviceManager:
             self.playerStationDictionary[deviceToRemove.deviceParentPath].connectedBillAcceptor = None
             return
         return
-    #End Device Management
 
-    ##TCP Communication
+    """
+    Returns an int value that represents the player station that the device is connected.
+
+    NOTE: This has will return 0 if there is no draxboard connected to the player station. This should only be true if teh draxboard
+    has completely malfunctioned or you are connecting the device to a random port that is not through the draxboard usb hub
+    """
+    def get_player_station_hash_for_device(self, device):
+        playerStationParentPath = device.deviceParentPath
+
+        if playerStationParentPath == None or playerStationParentPath not in self.playerStationDictionary:
+            return 0
+
+        playerStation = self.playerStationDictionary[playerStationParentPath]
+        
+        if playerStation.connectedDraxboard == None:
+            return 0
+
+        return playerStation.connectedDraxboard.playerStationHash
+
+    #endregion Device Management
+
+    #region TCP Communication
     """
     Queue up an event to send to our Unity Application. This should always be of the type
     byteArray
@@ -337,12 +356,12 @@ class DragonMasterDeviceManager:
             pass
         return
         
-    #END TCP Communication
+    #endregion TCP Communication
 
 
     pass
 
-##Contains Methods
+#region Contains Methods
     """
     Returns whether or not the joystick that is passed into the method was already added to our
     device manager list
@@ -387,9 +406,9 @@ class DragonMasterDeviceManager:
                     and dev.printerObject.device.bus == printerElement.bus:
                     return True
         return False
-#End Contains Methods
+#endregion Contains Methods
 
-
+#region helper classes
 """
 This class acts as a container of all the devices that are connected to this device
 """
@@ -400,7 +419,7 @@ class PlayerStationContainer:
         self.connectedBillAcceptor = None
         self.connectedJoystick = None
         self.connectedPrinter = None
-
+#endregion helper classes
 
 
 #######################################################################################################################################################
