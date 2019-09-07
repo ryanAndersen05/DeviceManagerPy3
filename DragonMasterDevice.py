@@ -5,8 +5,6 @@ import evdev
 import usb.core
 import usb.util
 
-
-
 from escpos.printer import Usb
 #Internal project imports
 import DragonMasterDeviceManager
@@ -20,7 +18,6 @@ class DragonMasterDevice:
         self.playerStationID = 0
         self.dragonMasterDeviceManager = dragonMasterDeviceManager
         self.deviceParentPath = None
-        self.devicePath = None
 
     """
     This method should be called every time we connect to a new device for the fist time. If our device does not connect correctly
@@ -63,6 +60,7 @@ class Joystick(DragonMasterDevice):
         self.currentAxes = (128,128)#The current axis values that our joystick is set to
         self.lastSentAxes = (128,128)#The last sent axes values. This is the last value that we have sent off to Unity
 
+    #region override methods
     """
     Starts up a thread that will check for updates to the axis
     """
@@ -92,6 +90,25 @@ class Joystick(DragonMasterDevice):
         else:
             return "Joystick (Missing)"
 
+    """
+    Returns the device parent path of our joystick device
+    """
+    def fetch_parent_path(self, deviceElement):
+        usbKey  = ''
+        physSplit = deviceElement.phys.split('-')
+        if len(physSplit) > 1:
+            usbKey = physSplit[len(physSplit) - 1]
+            usbKey = usbKey.split('/')[0]
+
+        for dev in self.dragonMasterDeviceManager.deviceContext.list_devices():
+            if "js" in dev.sys_name and usbKey in dev.device_path:
+                self.deviceParentPath = dev.parent.parent.parent.parent.parent.devicePath
+                return
+        return
+        
+        
+
+    #endregion override methods
 
     """
     Thread to update the current axis values of our joystick

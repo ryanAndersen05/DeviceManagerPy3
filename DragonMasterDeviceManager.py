@@ -137,7 +137,7 @@ class DragonMasterDeviceManager:
 
         allConnectedDBV400Elements = DragonMasterSerialDevice.get_all_connected_dbv400_comports()
         
-        deviceContext = pyudev.Context()
+        self.deviceContext = pyudev.Context() #we set our device context
 
         if self.CONNECTED_OMNIDONGLE == None:
             omnidongleElement = DragonMasterSerialDevice.get_omnidongle_comports()
