@@ -102,8 +102,7 @@ class Joystick(DragonMasterDevice):
 
         for dev in self.dragonMasterDeviceManager.deviceContext.list_devices():
             if "js" in dev.sys_name and usbKey in dev.device_path:
-                self.deviceParentPath = dev.parent.parent.parent.parent.parent.devicePath
-                return
+                return dev.parent.parent.parent.parent.parent.device_path
         return
         
         

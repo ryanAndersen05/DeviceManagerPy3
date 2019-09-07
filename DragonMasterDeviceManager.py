@@ -97,7 +97,7 @@ class DragonMasterDeviceManager:
     def device_connected_thread(self):
         context = pyudev.Context()
         monitor = pyudev.Monitor.from_netlink(context)
-        monitor.filter_by(subsytem='usb')
+        monitor.filter_by(subsystem='usb')
 
         for device in iter(monitor.poll, None):
             if device.action == 'add':
