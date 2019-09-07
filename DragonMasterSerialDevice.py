@@ -194,9 +194,11 @@ class SerialDevice(DragonMasterDevice.DragonMasterDevice):
 A class that handles all our Bill Acceptor Actions
 """
 class DBV400(SerialDevice):
+    #region Constants
     DBV_DESCRIPTION = "DBV-400"
     DBV_BAUDRATE = 9600
-
+    UID = 0x42
+    #endregion
     #region Commands
 
     STATUS_REQUEST = bytearray([0x12, 0x08, 0x00, 0x00, 0x00, 0x10, 0x10, 0x00])
@@ -230,7 +232,6 @@ class DBV400(SerialDevice):
     ENABLE_100 = True # $100
 
     #endregion
-
     #region States
 
     NOT_INIT_STATE = 0 # DBV not initialized.
@@ -249,9 +250,54 @@ class DBV400(SerialDevice):
 
     #endregion
 
+    #region variables
+    UidSet = False
+    State = NOT_INIT_STATE
+    #endregion
+
     def __init__(self, deviceManager):
         super().__init__(deviceManager)
         return
+
+    #region on data received
+
+    def on_data_received_event(self):
+        pass
+
+    #endregion
+
+    #region Command Methods
+
+    def send_dbv_message(self, message):
+        if self.UidSet or message == DBV400.SET_UID:
+            message[4] = self.UID
+        self.write_to_serial(message)
+
+    def idle_dbv(self):
+        if self.State != DBV400.INHIBIT_STATE
+            return
+        self.send_dbv_message(self,DBV400.IDLE_REQUEST)
+    
+    def inhibit_dbv(self):
+        if self.State != DBV400.IDLE_STATE
+            return
+        self.send_dbv_message(self,DBV400.INHIBIT_REQUEST)
+    
+    def power_up_dbv(self):
+        self.send_dbv_message(self, DBV400.SETUID)
+    
+    def reset_dbv(self):
+        if (self.State == DBV400.ERROR_STATE_BOX_REMOVED or self.State == DBV400.ERROR_STATE_ACCEPTOR_JAM)
+            return
+        self.send_dbv_message(self,DBV400.RESET_REQUEST)
+    
+    def get_dbv_state(self):
+        message = DBV400.STATUS_REQUEST
+        if self.UidSet:
+            message[3] = 0x10
+        self.send_dbv_message(self,message)
+    
+    #endregion
 
     #region Override Methods
     def start_device(self, deviceElement):
