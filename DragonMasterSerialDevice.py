@@ -294,7 +294,12 @@ class DBV400(SerialDevice):
     def on_status_update_received(self, message):
         if message[10] == 0x00 and message[11] == 0x00:
             self.on_power_up_success()
+        if message[10] == 0x00 and message[11] == 0x01:
+            self.State = DBV400.INHIBIT_STATE
+        if message[10] == 0x01 and message[11] == 0x011:
+            self.State = DBV400.IDLE_STATE
 
+        print("New State: " + self.State)
     def on_power_up_nack_received(self,message):
         powerUpAck = DBV400.POWER_ACK
         powerUpAck[5] = message[5]
