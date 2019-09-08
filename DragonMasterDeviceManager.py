@@ -72,7 +72,12 @@ class DragonMasterDeviceManager:
     BA_RESET_EVENT = 0X88
 
 
+    #region debug variables
+    DEBUG_PRINT_EVENTS_SENT_TO_UNITY = False
+    DEBUG_PRINT_EVENTS_RECEIVED_FROM_UNITY = False
+
     
+    #endregion debum variables
 
 
     def __init__(self,):
@@ -86,7 +91,12 @@ class DragonMasterDeviceManager:
         deviceAddedThread.isDaemon = True
         deviceAddedThread.start()
         sleep(.3)
-        self.search_for_devices()
+        try: 
+            print ('start search')
+            self.search_for_devices()
+        except Exception as e:
+            print ("There was an error with our inital search")
+            print (e)
         # while (True):
         #     self.search_for_devices()
         #     sleep(5)
@@ -257,6 +267,8 @@ class DragonMasterDeviceManager:
                 previouslyConnectedDevice = self.playerStationDictionary[deviceToAdd.deviceParentPath].connectedDraxboard
                 self.playerStationDictionary[deviceToAdd.deviceParentPath].connectedDraxBoard = deviceToAdd
 
+            print (self.playerStationDictionary[deviceToAdd.deviceParentPath].to_stirng())
+
             if previouslyConnectedDevice != None:
                 print ("Warning: There are two or more of the same devices connected to our our player station")
                 print ("Previously Connected: " + previouslyConnectedDevice.to_string() + " Newly Added: " + deviceToAdd.to_string())
@@ -421,7 +433,21 @@ class PlayerStationContainer:
         self.connectedDraxBoard = None
         self.connectedBillAcceptor = None
         self.connectedJoystick = None
-        self.connectedPrinter = None
+        self.connectedPrinter = None    
+
+    def to_string(self):
+        playerStationString = '-' * 32
+        if self.connectedJoystick:
+            playerStationString += '\nJOY   |' + self.connectedJoystick.to_string()
+        if self.connectedDraxBoard:
+            playerStationString += '\nDRAX  |' + self.connectedDraxBoard.to_string()
+        if self.connectedPrinter:
+            playerStationString += '\nPRINT |' + self.connectedPrinter.to_stirng()
+        if self.connectedBillAcceptor:
+            playerStationString += '\nDBV   |' + self.connectedBillAcceptor.to_string()
+        playerStationString += '\n' + '-' * 32
+        
+
 #endregion helper classes
 
 
@@ -458,9 +484,7 @@ class TCPManager:
             print ("The event added was null.")
             return
         self.tcpEventQueue.put(eventPacketToSend)
-
-        if (not self.sendingEventsToOurUnityApplication):
-            self.socket_send()
+        
         return
 
     """
@@ -577,3 +601,12 @@ class TCPManager:
         
 
     pass
+
+
+
+#region debug methods
+def debug_print_all_player_stations(deviceManager):
+
+    return
+
+#endregion debug methods
