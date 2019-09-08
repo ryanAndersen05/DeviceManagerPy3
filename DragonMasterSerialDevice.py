@@ -277,12 +277,15 @@ class DBV400(SerialDevice):
             elif read[5] == 0x20 and read[6] == 0x01 and read[7] == 0x00:
                 self.on_uid_success()
         elif (length >= 9):
-            if read[6] == 0x00 and read[7] == 0x00"
+            if read[6] == 0x00 and read[7] == 0x00:
                 self.on_power_up_nack_received(read)
             elif read[6] == 0x11 and read[7] == 0x00 and read[8] == 0x06:
                 self.on_reset_request_received()
             elif read[6] == 0x11 and read[7] == 0x00 and read[8] == 0xE2:
                 self.on_unsupported_received(read)
+        elif (length >= 10):
+            if read[7] == 0x00 and read[8] == 0x06 and read[9] == 0x04:
+                self.on_status_update_received(read)
 
 
         
@@ -290,6 +293,10 @@ class DBV400(SerialDevice):
     #endregion
 
     #region on read methods
+    
+    def on_status_update_received(self, message):
+        if message[10] == 0x00 and message[11] == 0x00:
+            self.on_power_up_success()
 
     def on_power_up_nack_received(self,message):
         powerUpAck = DBV400.POWER_ACK
@@ -297,11 +304,17 @@ class DBV400(SerialDevice):
         self.State = DBV400.POWER_UP_NACK_STATE
         self.send_dbv_message(powerUpAck)
         sleep(1)
+        self.send_dbv_message(DBV400.STATUS_REQUEST)
 
+    def on_power_up_success(self):
+        print("power up success")
+        self.power_up_dbv()
+        
     def on_unsupported_received(self,message):
         print("new uid: " + message[5])
         self.State = DBV400.UNSUPPORTED_STATE
         self.UID = message[5]
+        self.send_dbv_message(DBV400.STATUS_REQUEST)
 
     def on_uid_success(self):
         self.UidSet = True
@@ -329,7 +342,6 @@ class DBV400(SerialDevice):
         self.State = DBV400.IDLE_STATE
         print("New state: IDLE")
         self.send_dbv_message(idleMessage)
-
         
     #endregion
 
