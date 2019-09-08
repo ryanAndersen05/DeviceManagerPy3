@@ -174,7 +174,8 @@ class DragonMasterDeviceManager:
                 self.add_new_device(DragonMasterDevice.ReliancePrinter(self), printer)
 
         for dbv in allConnectedDBV400Elements:
-            if dbv != None and not self.device_manager_contains_dbv400(dbv):
+            if dbv and not self.device_manager_contains_dbv400(dbv):
+                print ("Found")
                 self.add_new_device(DragonMasterSerialDevice.DBV400(self), dbv)
         return
 
@@ -267,6 +268,7 @@ class DragonMasterDeviceManager:
                 previouslyConnectedDevice = self.playerStationDictionary[deviceToAdd.deviceParentPath].connectedDraxboard
                 self.playerStationDictionary[deviceToAdd.deviceParentPath].connectedDraxboard = deviceToAdd
 
+            print (deviceToAdd.deviceParentPath)
             print (self.playerStationDictionary[deviceToAdd.deviceParentPath].to_string())
 
             if previouslyConnectedDevice != None:
@@ -405,6 +407,7 @@ class DragonMasterDeviceManager:
     device manager list
     """
     def device_manager_contains_dbv400(self, dbvElement):
+        print (dbvElement)
         for dev in self.allConnectedDevices:
             if isinstance(dev, DragonMasterSerialDevice.DBV400):
                 if dev.comport == dbvElement.device:

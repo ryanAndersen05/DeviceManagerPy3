@@ -224,12 +224,13 @@ class DBV400(SerialDevice):
 
     DENOM_GET = bytearray([0x12,0x08,0x00,0x10,0x01,0x10,0x21,0x10])
     DENOM_DISABLE = bytearray([0x12,0x0a,0x00,0x10,0x10,0x20,0x21,0x10,0x00,0x00])
-    ENABLE_1 = True # $1
-    ENABLE_5 = True # $5
-    ENABLE_10 = True # $10
-    ENABLE_20 = True # $20
-    ENABLE_50 = True # $50
-    ENABLE_100 = True # $100
+
+    # ENABLE_1 = True # $1
+    # ENABLE_5 = True # $5
+    # ENABLE_10 = True # $10
+    # ENABLE_20 = True # $20
+    # ENABLE_50 = True # $50
+    # ENABLE_100 = True # $100
 
     #endregion
     #region States
@@ -264,7 +265,8 @@ class DBV400(SerialDevice):
         read = self.read_from_serial()
         if read == None or len(read) < 2:
             return
-        length = int(read[2],16)
+        length = read[1]
+        print (read.hex())
         if (length >= 8):
             if read[6] == 0x12 and read[7] == 0x00:
                 self.on_inhibit_request_received()
@@ -382,11 +384,16 @@ class DBV400(SerialDevice):
 
     #region Override Methods
     def start_device(self, deviceElement):
-        self.serialObject = self.open_serial_device(deviceElement.device, Draxboard.DRAX_BAUDRATE, 5, 5)
+        self.serialObject = self.open_serial_device(deviceElement.device, DBV400.DBV_BAUDRATE, 5, 5)
+        print (self.serialObject)
         if self.serialObject == None:
             return False
 
         super().start_device(deviceElement)
+        return True
+
+    def to_string(self):
+        return "DBV-400"
     #endregion
 
     pass
@@ -474,13 +481,15 @@ class Draxboard(SerialDevice):
 
 
     def fetch_parent_path(self, deviceElement):
-        print(type(deviceElement))
+        devToReturn = None
+        timesWeWereFound = 0
         for dev in self.dragonMasterDeviceManager.deviceContext.list_devices():
-            if dev.device_path.__contains__(deviceElement.location):
-                return dev.parent.parent.parent.device_path
-
-        print ("Didn't find nohting")
-        return None
+            if dev.device_path.__contains__(deviceElement.location) and dev.device_path.__contains__(deviceElement.name):
+                timesWeWereFound += 1
+                devToReturn = dev.parent.parent.parent.device_path
+        
+        print ("Didn't find nohting" + str(timesWeWereFound))
+        return devToReturn
 
     
 
