@@ -217,7 +217,7 @@ class DragonMasterDeviceManager:
         if isinstance(deviceThatWasAdded, DragonMasterSerialDevice.Omnidongle):
             deviceTypeID = DragonMasterDeviceManager.OMNI_EVENT
             pass
-        print ("Device Added ID: " + deviceTypeID)
+        print ("Device Added ID: " + str(deviceTypeID))
 
     """
     If a device was removed we should call this method, so that we appropriately notify our Unity Applcation
@@ -239,7 +239,7 @@ class DragonMasterDeviceManager:
         if isinstance(deviceThatWasRemoved, DragonMasterSerialDevice.Omnidongle):
             deviceTypeID = DragonMasterDeviceManager.OMNI_EVENT
             pass
-        print ("Device Removed ID: " + deviceTypeID)
+        print ("Device Removed ID: " + str(deviceTypeID))
 
 
     """
@@ -265,9 +265,9 @@ class DragonMasterDeviceManager:
                 self.playerStationDictionary[deviceToAdd.deviceParentPath].connectedBillAcceptor = deviceToAdd
             elif isinstance(deviceToAdd, DragonMasterSerialDevice.Draxboard):
                 previouslyConnectedDevice = self.playerStationDictionary[deviceToAdd.deviceParentPath].connectedDraxboard
-                self.playerStationDictionary[deviceToAdd.deviceParentPath].connectedDraxBoard = deviceToAdd
+                self.playerStationDictionary[deviceToAdd.deviceParentPath].connectedDraxboard = deviceToAdd
 
-            print (self.playerStationDictionary[deviceToAdd.deviceParentPath].to_stirng())
+            print (self.playerStationDictionary[deviceToAdd.deviceParentPath].to_string())
 
             if previouslyConnectedDevice != None:
                 print ("Warning: There are two or more of the same devices connected to our our player station")
@@ -319,7 +319,7 @@ class DragonMasterDeviceManager:
             self.playerStationDictionary[deviceToRemove.deviceParentPath].connectedPrinter = None
             return
         elif isinstance(deviceToRemove, DragonMasterSerialDevice.Draxboard):
-            self.playerStationDictionary[deviceToRemove.deviceParentPath].connectedDraxBoard = None
+            self.playerStationDictionary[deviceToRemove.deviceParentPath].connectedDraxboard = None
             return
         elif isinstance(deviceToRemove, DragonMasterSerialDevice.DBV400):
             self.playerStationDictionary[deviceToRemove.deviceParentPath].connectedBillAcceptor = None
@@ -430,7 +430,7 @@ This class acts as a container of all the devices that are connected to this dev
 class PlayerStationContainer:
     
     def __init__(self):
-        self.connectedDraxBoard = None
+        self.connectedDraxboard = None
         self.connectedBillAcceptor = None
         self.connectedJoystick = None
         self.connectedPrinter = None    
@@ -439,13 +439,14 @@ class PlayerStationContainer:
         playerStationString = '-' * 32
         if self.connectedJoystick:
             playerStationString += '\nJOY   |' + self.connectedJoystick.to_string()
-        if self.connectedDraxBoard:
-            playerStationString += '\nDRAX  |' + self.connectedDraxBoard.to_string()
+        if self.connectedDraxboard:
+            playerStationString += '\nDRAX  |' + self.connectedDraxboard.to_string()
         if self.connectedPrinter:
-            playerStationString += '\nPRINT |' + self.connectedPrinter.to_stirng()
+            playerStationString += '\nPRINT |' + self.connectedPrinter.to_string()
         if self.connectedBillAcceptor:
             playerStationString += '\nDBV   |' + self.connectedBillAcceptor.to_string()
         playerStationString += '\n' + '-' * 32
+        return playerStationString
         
 
 #endregion helper classes

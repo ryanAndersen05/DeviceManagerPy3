@@ -287,9 +287,6 @@ class DBV400(SerialDevice):
             if read[7] == 0x00 and read[8] == 0x06 and read[9] == 0x04:
                 self.on_status_update_received(read)
 
-
-        
-
     #endregion
 
     #region on read methods
@@ -471,7 +468,14 @@ class Draxboard(SerialDevice):
         return True
 
 
-    
+    def fetch_parent_path(self, deviceElement):
+        print(type(deviceElement))
+        for dev in self.dragonMasterDeviceManager.deviceContext.list_devices():
+            if dev.device_path.__contains__(deviceElement.location):
+                return dev.parent.parent.parent.device_path
+
+        print ("Didn't find nohting")
+        return None
 
     
 
@@ -603,7 +607,6 @@ class Draxboard(SerialDevice):
     def check_packet_for_input_event(self, inputPacketLine):
         if inputPacketLine == None:
             return False
-
         if inputPacketLine[0] == 0xfa and len(inputPacketLine) >= Draxboard.INPUT_EVENT_SIZE:
             self.add_input_event_to_tcp_queue(inputPacketLine)
             return True
