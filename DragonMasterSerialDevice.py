@@ -359,6 +359,11 @@ class DBV400(SerialDevice):
             message[4] = self.UID
         self.write_to_serial(message)
 
+    def set_uid(self):
+        uidMessage = DBV400.SET_UID
+        uidMessage[8] = self.UID
+        self.send_dbv_message(uidMessage)
+
     def idle_dbv(self):
         if self.State != DBV400.INHIBIT_STATE:
             return
@@ -393,6 +398,7 @@ class DBV400(SerialDevice):
             return False
 
         super().start_device(deviceElement)
+        self.send_dbv_message(DBV400.STATUS_REQUEST)
         return True
 
     def to_string(self):
