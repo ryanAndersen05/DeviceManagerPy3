@@ -278,10 +278,10 @@ class DBV400(SerialDevice):
                 self.on_idle_success(read)
             elif read[5] == 0x20 and read[6] == 0x01 and read[7] == 0x00:
                 self.on_uid_success()
-        elif (length >= 9):
-            if read[6] == 0x00 and read[7] == 0x00:
+            elif read[6] == 0x00 and read[7] == 0x00:
                 self.on_power_up_nack_received(read)
-            elif read[6] == 0x11 and read[7] == 0x00 and read[8] == 0x06:
+        elif (length >= 9):
+            if read[6] == 0x11 and read[7] == 0x00 and read[8] == 0x06:
                 self.on_reset_request_received()
             elif read[6] == 0x11 and read[7] == 0x00 and read[8] == 0xE2:
                 self.on_unsupported_received(read)
