@@ -262,8 +262,50 @@ class DBV400(SerialDevice):
     #region on data received
 
     def on_data_received_event(self):
-        pass
+        read = self.read_from_serial()
+        if read == None or len(read) < 2:
+            return
+        length = int(read[2],16)
 
+        
+
+    #endregion
+
+    #region on read methods
+
+    def on_unsupported_received(self,message):
+        print("new uid: " + message[5])
+        self.State = DBV400.UNSUPPORTED_STATE
+        self.UID = message[5]
+
+    def on_uid_received(self):
+        self.UidSet = True
+        self.reset_dbv()
+
+    def on_reset_request_received(self):
+        print("resetting")
+
+    def on_inhibit_request_received(self):
+        print("inhibit received")
+    
+    def on_inhibit_received(self,message):
+        inhibitMessage = DBV400.INHIBIT_REQUEST
+        inhibitMessage[5] = message[5]
+        self.State = DBV400.INHIBIT_STATE
+        print("New state: INHIBIT")
+        self.send_dbv_message(inhibitMessage)
+
+    def on_idle_request_received(self):
+        print("idle request received")
+    
+    def on_idle_request(self,message):
+        idleMessage = DBV400.IDLE_REQUEST
+        idleMessage[5] = message[5]
+        self.State = DBV400.IDLE_STATE
+        print("New state: IDLE")
+        self.send_dbv_message(idleMessage)
+
+        
     #endregion
 
     #region Command Methods
@@ -276,26 +318,26 @@ class DBV400(SerialDevice):
     def idle_dbv(self):
         if self.State != DBV400.INHIBIT_STATE:
             return
-        self.send_dbv_message(self,DBV400.IDLE_REQUEST)
+        self.send_dbv_message(DBV400.IDLE_REQUEST)
     
     def inhibit_dbv(self):
         if self.State != DBV400.IDLE_STATE:
             return
-        self.send_dbv_message(self,DBV400.INHIBIT_REQUEST)
+        self.send_dbv_message(DBV400.INHIBIT_REQUEST)
     
     def power_up_dbv(self):
-        self.send_dbv_message(self, DBV400.SETUID)
+        self.send_dbv_message(DBV400.SET_UID)
     
     def reset_dbv(self):
         if (self.State == DBV400.ERROR_STATE_BOX_REMOVED or self.State == DBV400.ERROR_STATE_ACCEPTOR_JAM):
             return
-        self.send_dbv_message(self,DBV400.RESET_REQUEST)
+        self.send_dbv_message(DBV400.RESET_REQUEST)
     
     def get_dbv_state(self):
         message = DBV400.STATUS_REQUEST
         if self.UidSet:
             message[3] = 0x10
-        self.send_dbv_message(self,message)
+        self.send_dbv_message(message)
     
     #endregion
 
