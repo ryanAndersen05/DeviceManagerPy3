@@ -267,7 +267,8 @@ class DBV400(SerialDevice):
             return
         length = read[1]
         print (read.hex())
-        if (length >= 8):
+        print (length)
+        if (length <= 8):
             if read[6] == 0x12 and read[7] == 0x00:
                 self.on_inhibit_request_received()
             elif read[6] == 0x00 and read[7] == 0x01:
@@ -278,9 +279,8 @@ class DBV400(SerialDevice):
                 self.on_idle_success(read)
             elif read[5] == 0x20 and read[6] == 0x01 and read[7] == 0x00:
                 self.on_uid_success()
-            elif read[6] == 0x00 and read[7] == 0x00:
-                self.on_power_up_nack_received(read)
-        elif (length >= 9):
+            
+        elif (length <= 9):
             if read[6] == 0x11 and read[7] == 0x00 and read[8] == 0x06:
                 self.on_reset_request_received()
             elif read[6] == 0x11 and read[7] == 0x00 and read[8] == 0xE2:
@@ -288,12 +288,15 @@ class DBV400(SerialDevice):
         elif (length >= 10):
             if read[7] == 0x00 and read[8] == 0x06 and read[9] == 0x04:
                 self.on_status_update_received(read)
+            elif read[6] == 0x00 and read[7] == 0x00:
+                self.on_power_up_nack_received(read)
 
     #endregion
 
     #region on read methods
     
     def on_status_update_received(self, message):
+        print ("Status")
         if message[10] == 0x00 and message[11] == 0x00:
             self.on_power_up_success()
         if message[10] == 0x00 and message[11] == 0x01:
@@ -301,7 +304,7 @@ class DBV400(SerialDevice):
         if message[10] == 0x01 and message[11] == 0x011:
             self.State = DBV400.IDLE_STATE
 
-        print("New State: " + self.State)
+        print("New State: " + str(self.State))
     def on_power_up_nack_received(self,message):
         powerUpAck = DBV400.POWER_ACK
         powerUpAck[5] = message[5]
@@ -315,7 +318,7 @@ class DBV400(SerialDevice):
         self.power_up_dbv()
         
     def on_unsupported_received(self,message):
-        print("new uid: " + message[5])
+        print("new uid: " + str(message[5]))
         self.State = DBV400.UNSUPPORTED_STATE
         self.UID = message[5]
         self.send_dbv_message(DBV400.STATUS_REQUEST)
