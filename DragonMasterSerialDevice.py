@@ -277,15 +277,12 @@ class DBV400(SerialDevice):
             elif read[5] == 0x20 and read[6] == 0x01 and read[7] == 0x00:
                 self.on_uid_success()
         elif (length >= 9):
-            if read[6] == 0x00 and read[7] == 0x00"
+            if read[6] == 0x00 and read[7] == 0x00:
                 self.on_power_up_nack_received(read)
             elif read[6] == 0x11 and read[7] == 0x00 and read[8] == 0x06:
                 self.on_reset_request_received()
             elif read[6] == 0x11 and read[7] == 0x00 and read[8] == 0xE2:
                 self.on_unsupported_received(read)
-
-
-        
 
     #endregion
 
@@ -459,7 +456,14 @@ class Draxboard(SerialDevice):
         return True
 
 
-    
+    def fetch_parent_path(self, deviceElement):
+        print(type(deviceElement))
+        for dev in self.dragonMasterDeviceManager.deviceContext.list_devices():
+            if dev.device_path.__contains__(deviceElement.location):
+                return dev.parent.parent.parent.device_path
+
+        print ("Didn't find nohting")
+        return None
 
     
 
@@ -591,7 +595,6 @@ class Draxboard(SerialDevice):
     def check_packet_for_input_event(self, inputPacketLine):
         if inputPacketLine == None:
             return False
-
         if inputPacketLine[0] == 0xfa and len(inputPacketLine) >= Draxboard.INPUT_EVENT_SIZE:
             self.add_input_event_to_tcp_queue(inputPacketLine)
             return True
