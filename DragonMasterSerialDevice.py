@@ -367,8 +367,11 @@ class Draxboard(SerialDevice):
 
         requestStatus = self.write_serial_wait_for_read(self.REQUEST_STATUS)
         if requestStatus == None:
+            print ("Request Status Was None")
             return False
         if len(requestStatus) < 18 or requestStatus[0] != Draxboard.REQUEST_STATUS_ID:
+            print ("Reqeust Status length was too short or invalid: " + str(requestStatus))
+            
             return False
 
 
@@ -377,14 +380,19 @@ class Draxboard(SerialDevice):
 
         self.playerStationNumber = requestStatus[10]
         if self.write_serial_wait_for_read(self.DRAXBOARD_OUTPUT_ENABLE) == None:
+            print ("Output Enable was not successful")
             return False
 
         read = self.toggle_output_state_of_drax(0x180f)
         if read == None:
+            print ("Default output assignement was not successful")
             return False
         super().start_device(deviceElement)
 
         return True
+
+
+    
 
     
 
@@ -470,9 +478,10 @@ class Draxboard(SerialDevice):
         Type 2 - output bit disable (Use this to toggle one bit off)
     """
     def toggle_output_state_of_drax(self, outputToggleu32, toggleMessageType=0):
-        # if toggleMessageType == 0:
-        #     self.draxOutputState = outputToggleu32
-        if toggleMessageType == 1:
+        if toggleMessageType == 0:
+            pass
+            # self.draxOutputState = outputToggleu32
+        elif toggleMessageType == 1:
             outputToggleu32 = self.draxOutputState | outputToggleu32
         elif toggleMessageType == 2:
             outputToggleu32 = self.draxOutputState & (~outputToggleu32)

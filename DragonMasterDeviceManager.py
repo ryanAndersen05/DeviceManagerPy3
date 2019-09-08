@@ -72,8 +72,11 @@ class DragonMasterDeviceManager:
     BA_RESET_EVENT = 0X88
 
 
+    
+
+
     def __init__(self,):
-        # self.tcpManager = TCPManager(self)
+        self.tcpManager = TCPManager(self)
         self.CONNECTED_OMNIDONGLE = None #Since there should only be one omnidongle in our machine, we will only search until we find the first connection
         self.allConnectedDevices = [] #(DragonMasterDevice)
         self.playerStationDictionary = {}#Key: Parent USB Device Path (string) | Value: Player Station (PlayerStation)
@@ -204,7 +207,7 @@ class DragonMasterDeviceManager:
         if isinstance(deviceThatWasAdded, DragonMasterSerialDevice.Omnidongle):
             deviceTypeID = DragonMasterDeviceManager.OMNI_EVENT
             pass
-        print (deviceTypeID)
+        print ("Device Added ID: " + deviceTypeID)
 
     """
     If a device was removed we should call this method, so that we appropriately notify our Unity Applcation
@@ -226,7 +229,7 @@ class DragonMasterDeviceManager:
         if isinstance(deviceThatWasRemoved, DragonMasterSerialDevice.Omnidongle):
             deviceTypeID = DragonMasterDeviceManager.OMNI_EVENT
             pass
-        print (deviceTypeID)
+        print ("Device Removed ID: " + deviceTypeID)
 
 
     """
@@ -440,8 +443,9 @@ class TCPManager:
         self.sendingEventsToOurUnityApplication = False
         self.tcpEventQueue = queue.Queue()#Queue of events that we want to send to Unity
 
-        self.start_new_socket_receive_thread()
-        self.start_new_socket_send_thread()
+        #REMEBER TO UNCOMMENT
+        # self.start_new_socket_receive_thread()
+        # self.start_new_socket_send_thread()
         self.deviceManager = deviceManager
         
 
@@ -508,6 +512,7 @@ class TCPManager:
                     conn.close()
                 socketSend.close()
             except Exception as e:
+                print ("Error for socket send")
                 print (e)
                 if socketSend != None:
                     socketSend.close()
@@ -530,7 +535,7 @@ class TCPManager:
                 socketRead = socket.socket()
                 socketRead.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
                 socketRead.connect((TCPManager.HOST_ADDRESS, TCPManager.RECEIVE_PORT))
-                
+
                 buff = socketRead.recv(TCPManager.MAX_RECV_BUFFER)
                 fullResponse = buff
                 while buff:
@@ -541,8 +546,10 @@ class TCPManager:
                     self.deviceManager.execute_received_event(self.separate_events_received_into_list(fullResponse))
                 socketRead.shutdown(socket.SHUT_RDWR)
             except Exception as e:
+                print ("Receive Error")
                 if socketRead != None:
                     socketRead.close()
+                
                 print (e)
             sleep(.02)
             totalCount += 1
