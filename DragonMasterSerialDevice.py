@@ -269,22 +269,21 @@ class DBV400(SerialDevice):
         print (read.hex())
         print (length)
         if (length <= 8):
-            if read[6] == 0x12 and read[7] == 0x00:
-                self.on_inhibit_request_received()
-            elif read[6] == 0x00 and read[7] == 0x01:
+            if read[6] == 0x00 and read[7] == 0x01:
                 self.on_inhibit_success(read)
-            elif read[6] == 0x13 and read[7] == 0x10:
-                self.on_idle_request_received()
             elif read[6] == 0x01 and read[7] == 0x11:
                 self.on_idle_success(read)
-            elif read[5] == 0x20 and read[6] == 0x01 and read[7] == 0x00:
-                self.on_uid_success()
-            
         elif (length <= 9):
             if read[6] == 0x11 and read[7] == 0x00 and read[8] == 0x06:
                 self.on_reset_request_received()
-            elif read[6] == 0x11 and read[7] == 0x00 and read[8] == 0xE2:
+            elif read[8] == 0xE2:
                 self.on_unsupported_received(read)
+            elif read[5] == 0x20 and read[6] == 0x01 and read[7] == 0x00:
+                self.on_uid_success()
+            elif read[6] == 0x12 and read[7] == 0x00:
+                self.on_inhibit_request_received()
+            elif read[6] == 0x13 and read[7] == 0x10:
+                self.on_idle_request_received()
         elif (length >= 10):
             if read[7] == 0x00 and read[8] == 0x06 and read[9] == 0x04:
                 self.on_status_update_received(read)
@@ -306,11 +305,14 @@ class DBV400(SerialDevice):
 
         print("New State: " + str(self.State))
     def on_power_up_nack_received(self,message):
+        print("power up nack received")
         powerUpAck = DBV400.POWER_ACK
         powerUpAck[5] = message[5]
         self.State = DBV400.POWER_UP_NACK_STATE
+        #self.serialObject.flushInput()
+        #self.serialObject.flushOutput()
         self.send_dbv_message(powerUpAck)
-        sleep(1)
+        sleep(.05)
         self.send_dbv_message(DBV400.STATUS_REQUEST)
 
     def on_power_up_success(self):
@@ -318,9 +320,9 @@ class DBV400(SerialDevice):
         self.power_up_dbv()
         
     def on_unsupported_received(self,message):
-        print("new uid: " + str(message[5]))
         self.State = DBV400.UNSUPPORTED_STATE
-        self.UID = message[5]
+        self.UID = message[4]
+        self.UidSet = True
         self.send_dbv_message(DBV400.STATUS_REQUEST)
 
     def on_uid_success(self):
@@ -334,29 +336,36 @@ class DBV400(SerialDevice):
         print("inhibit received")
     
     def on_inhibit_success(self,message):
-        inhibitMessage = DBV400.INHIBIT_REQUEST
+        inhibitMessage = DBV400.INHIBIT_ACK
         inhibitMessage[5] = message[5]
         self.State = DBV400.INHIBIT_STATE
         print("New state: INHIBIT")
         self.send_dbv_message(inhibitMessage)
+        sleep(2)
+        self.idle_dbv()
 
     def on_idle_request_received(self):
         print("idle request received")
     
     def on_idle_success(self,message):
-        idleMessage = DBV400.IDLE_REQUEST
+        idleMessage = DBV400.IDLE_ACK
         idleMessage[5] = message[5]
         self.State = DBV400.IDLE_STATE
         print("New state: IDLE")
         self.send_dbv_message(idleMessage)
+        sleep(.5)
+        self.inhibit_dbv()
         
     #endregion
 
     #region Command Methods
 
     def send_dbv_message(self, message):
-        if self.UidSet or message == DBV400.SET_UID:
+        if self.UidSet == True:
+            print("setting uid")
             message[4] = self.UID
+        print("message: " + str(type(message)))
+        print (message)
         self.write_to_serial(message)
 
     def set_uid(self):
@@ -375,7 +384,7 @@ class DBV400(SerialDevice):
         self.send_dbv_message(DBV400.INHIBIT_REQUEST)
     
     def power_up_dbv(self):
-        self.send_dbv_message(DBV400.SET_UID)
+        self.set_uid()
     
     def reset_dbv(self):
         if (self.State == DBV400.ERROR_STATE_BOX_REMOVED or self.State == DBV400.ERROR_STATE_ACCEPTOR_JAM):
@@ -398,6 +407,7 @@ class DBV400(SerialDevice):
             return False
 
         super().start_device(deviceElement)
+        # self.serialObject.flush()
         self.send_dbv_message(DBV400.STATUS_REQUEST)
         return True
 
