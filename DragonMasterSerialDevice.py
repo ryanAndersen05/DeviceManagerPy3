@@ -249,7 +249,6 @@ class DBV400(SerialDevice):
     NOTE_STAY_STATE = 12 # A bill has been left in the acceptor slot of the DBV. When removed, the DBV will proceed as normal.
 
     #endregion
-
     #region variables
     UidSet = False
     State = NOT_INIT_STATE
@@ -266,6 +265,25 @@ class DBV400(SerialDevice):
         if read == None or len(read) < 2:
             return
         length = int(read[2],16)
+        if (length >= 8):
+            if read[6] == 0x12 and read[7] == 0x00:
+                self.on_inhibit_request_received()
+            elif read[6] == 0x00 and read[7] == 0x01:
+                self.on_inhibit_success(read)
+            elif read[6] == 0x13 and read[7] == 0x10:
+                self.on_idle_request_received()
+            elif read[6] == 0x01 and read[7] == 0x11:
+                self.on_idle_success(read)
+            elif read[5] == 0x20 and read[6] == 0x01 and read[7] == 0x00:
+                self.on_uid_success()
+        elif (length >= 9):
+            if read[6] == 0x00 and read[7] == 0x00"
+                self.on_power_up_nack_received(read)
+            elif read[6] == 0x11 and read[7] == 0x00 and read[8] == 0x06:
+                self.on_reset_request_received()
+            elif read[6] == 0x11 and read[7] == 0x00 and read[8] == 0xE2:
+                self.on_unsupported_received(read)
+
 
         
 
@@ -273,12 +291,19 @@ class DBV400(SerialDevice):
 
     #region on read methods
 
+    def on_power_up_nack_received(self,message):
+        powerUpAck = DBV400.POWER_ACK
+        powerUpAck[5] = message[5]
+        self.State = DBV400.POWER_UP_NACK_STATE
+        self.send_dbv_message(powerUpAck)
+        sleep(1)
+
     def on_unsupported_received(self,message):
         print("new uid: " + message[5])
         self.State = DBV400.UNSUPPORTED_STATE
         self.UID = message[5]
 
-    def on_uid_received(self):
+    def on_uid_success(self):
         self.UidSet = True
         self.reset_dbv()
 
@@ -288,7 +313,7 @@ class DBV400(SerialDevice):
     def on_inhibit_request_received(self):
         print("inhibit received")
     
-    def on_inhibit_received(self,message):
+    def on_inhibit_success(self,message):
         inhibitMessage = DBV400.INHIBIT_REQUEST
         inhibitMessage[5] = message[5]
         self.State = DBV400.INHIBIT_STATE
@@ -298,7 +323,7 @@ class DBV400(SerialDevice):
     def on_idle_request_received(self):
         print("idle request received")
     
-    def on_idle_request(self,message):
+    def on_idle_success(self,message):
         idleMessage = DBV400.IDLE_REQUEST
         idleMessage[5] = message[5]
         self.State = DBV400.IDLE_STATE
