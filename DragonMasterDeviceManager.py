@@ -16,7 +16,7 @@ Our device manager class that will find and hold all of our connected devices an
 It will manages messages between our Unity Application and assign commands to the correct devices.
 """
 class DragonMasterDeviceManager:
-    ##General Device Commands
+    #region TCP Device Commands
     #This command will be sent as a single byte event simply to inform python that we are still connected to the our Unity application
     STATUS_FROM_UNITY = 0x00
     DEVICE_CONNECTED = 0x01
@@ -71,6 +71,8 @@ class DragonMasterDeviceManager:
     BA_INHIBIT_EVENT = 0X87
     BA_RESET_EVENT = 0X88
 
+    #endregion TCP Device Commands
+
 
     #region debug variables
     DEBUG_PRINT_EVENTS_SENT_TO_UNITY = False
@@ -86,17 +88,18 @@ class DragonMasterDeviceManager:
         self.allConnectedDevices = [] #(DragonMasterDevice)
         self.playerStationDictionary = {}#Key: Parent USB Device Path (string) | Value: Player Station (PlayerStation)
 
+
+        self.searchingForDevices = False
+
         #Start a thread to search for newly connected devices
         deviceAddedThread = threading.Thread(target=self.device_connected_thread,)
         deviceAddedThread.isDaemon = True
         deviceAddedThread.start()
+        
         sleep(.3)
-        try: 
-            print ('start search')
-            self.search_for_devices()
-        except Exception as e:
-            print ("There was an error with our inital search")
-            print (e)
+        print ('starting search')
+        self.search_for_devices()
+        
         # while (True):
         #     self.search_for_devices()
         #     sleep(5)
@@ -114,11 +117,7 @@ class DragonMasterDeviceManager:
 
         for device in iter(monitor.poll, None):
             if device.action == 'add':
-                try:
-                    self.search_for_devices()
-                except Exception as e:
-                    print ("There was an error searching for new devices")
-                    print (e)
+                self.search_for_devices()
         return
 
 
@@ -142,41 +141,50 @@ class DragonMasterDeviceManager:
     This method will search for all valid devices that are connected to our machine
     """
     def search_for_devices(self):
-        allConnectedJoysticks = DragonMasterDevice.get_all_connected_joystick_devices()
-        allConnectedDraxboards = DragonMasterSerialDevice.get_all_connected_draxboard_elements()
-        DragonMasterSerialDevice.get_all_reliance_printer_serial_elements()
-        allConnectedCustomTG02Printers = DragonMasterDevice.get_all_connected_custom_tg02_printer_elements()
-        allConnectedReliancePrinters = DragonMasterDevice.get_all_connected_reliance_printer_elements()
+        if (self.searchingForDevices):
+            print ("We skipped searching for devices. We are already searching")
+            return
+        self.searchingForDevices = True
+        try:
+            allConnectedJoysticks = DragonMasterDevice.get_all_connected_joystick_devices()
+            allConnectedDraxboards = DragonMasterSerialDevice.get_all_connected_draxboard_elements()
+            DragonMasterSerialDevice.get_all_reliance_printer_serial_elements()
+            allConnectedCustomTG02Printers = DragonMasterDevice.get_all_connected_custom_tg02_printer_elements()
+            allConnectedReliancePrinters = DragonMasterDevice.get_all_connected_reliance_printer_elements()
 
-        allConnectedDBV400Elements = DragonMasterSerialDevice.get_all_connected_dbv400_comports()
-        
-        self.deviceContext = pyudev.Context() #we set our device context
+            allConnectedDBV400Elements = DragonMasterSerialDevice.get_all_connected_dbv400_comports()
+            
+            self.deviceContext = pyudev.Context() #we set our device context
 
-        if self.CONNECTED_OMNIDONGLE == None:
-            omnidongleElement = DragonMasterSerialDevice.get_omnidongle_comports()
-            if omnidongleElement:
-                self.add_new_device(DragonMasterSerialDevice.Omnidongle(self), omnidongleElement)
+            if self.CONNECTED_OMNIDONGLE == None:
+                omnidongleElement = DragonMasterSerialDevice.get_omnidongle_comports()
+                if omnidongleElement:
+                    self.add_new_device(DragonMasterSerialDevice.Omnidongle(self), omnidongleElement)
 
-        for draxElement in allConnectedDraxboards:
-            if draxElement and not self.device_manager_contains_draxboard(draxElement):
-                self.add_new_device(DragonMasterSerialDevice.Draxboard(self), draxElement)
+            for draxElement in allConnectedDraxboards:
+                if draxElement and not self.device_manager_contains_draxboard(draxElement):
+                    self.add_new_device(DragonMasterSerialDevice.Draxboard(self), draxElement)
 
-        for joystick in allConnectedJoysticks:
-            if (joystick != None and not self.device_manager_contains_joystick(joystick)):
-                self.add_new_device(DragonMasterDevice.Joystick(self), joystick)
+            for joystick in allConnectedJoysticks:
+                if (joystick != None and not self.device_manager_contains_joystick(joystick)):
+                    self.add_new_device(DragonMasterDevice.Joystick(self), joystick)
 
-        for printer in allConnectedCustomTG02Printers:
-            if (printer != None and not self.device_manager_contains_printer(printer)):
-                self.add_new_device(DragonMasterDevice.CustomTG02(self), printer)
+            for printer in allConnectedCustomTG02Printers:
+                if (printer != None and not self.device_manager_contains_printer(printer)):
+                    self.add_new_device(DragonMasterDevice.CustomTG02(self), printer)
 
-        for printer in allConnectedReliancePrinters:
-            if printer != None and not self.device_manager_contains_printer(printer):
-                self.add_new_device(DragonMasterDevice.ReliancePrinter(self), printer)
+            for printer in allConnectedReliancePrinters:
+                if printer != None and not self.device_manager_contains_printer(printer):
+                    self.add_new_device(DragonMasterDevice.ReliancePrinter(self), printer)
 
-        for dbv in allConnectedDBV400Elements:
-            if dbv and not self.device_manager_contains_dbv400(dbv):
-                print ("Found")
-                self.add_new_device(DragonMasterSerialDevice.DBV400(self), dbv)
+            for dbv in allConnectedDBV400Elements:
+                if dbv and not self.device_manager_contains_dbv400(dbv):
+                    print ("Found")
+                    self.add_new_device(DragonMasterSerialDevice.DBV400(self), dbv)
+        except Exception as e:
+            print ("There was an error while searching for devices.")
+            print (e)
+        self.searchingForDevices = False
         return
 
     """
@@ -196,6 +204,7 @@ class DragonMasterDeviceManager:
             deviceToAdd.disconnect_device()#We will run a disconnect device to ensure that we fully disconnect all processes that may be running in our device
             print ("Device Failed Start")
         return
+
 
 
     """
