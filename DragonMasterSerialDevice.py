@@ -91,6 +91,7 @@ class SerialDevice(DragonMasterDevice.DragonMasterDevice):
             try:
                 self.serialObject.close()
                 print ("Serial Device (" + self.serialObject.port + ") successfully closed")
+                self.serialObject = None
             except Exception as e:
                 print ("There was an error closing our port")
                 print (e)
@@ -468,6 +469,7 @@ class Draxboard(SerialDevice):
 
     #region Override methods
     def start_device(self, deviceElement):
+
         self.serialObject = self.open_serial_device(deviceElement.device, Draxboard.DRAX_BAUDRATE, 5, 5)
         if self.serialObject == None:
             return False
@@ -566,6 +568,7 @@ class Draxboard(SerialDevice):
     """
     def write_serial_check_for_input_events(self, messageToWrite, responseID, responseSize):
         read = self.write_serial_wait_for_read(messageToWrite)
+        print ("READ: " + str(read))
         validRead = None
 
         while read != None and len(read) > 0:
@@ -609,7 +612,7 @@ class Draxboard(SerialDevice):
         byte3 = outputToggleu32 >> 8 & 0xff
         byte4 = outputToggleu32 >> 0 & 0xff
 
-        outputMessageArray = self.SET_OUTPUT_STATE
+        outputMessageArray = self.SET_OUTPUT_STATE.copy()
         checkSumByteIndex = 7
         outputMessageArray[3] = byte4
         outputMessageArray[4] = byte3
@@ -617,7 +620,8 @@ class Draxboard(SerialDevice):
         outputMessageArray[6] = byte1
         outputMessageArray[checkSumByteIndex] = self.calculate_checksum(outputMessageArray)
 
-        read = self.write_serial_check_for_input_events(self.SET_OUTPUT_STATE, Draxboard.OUTPUT_EVENT_ID, Draxboard.OUTPUT_EVENT_SIZE)
+
+        read = self.write_serial_check_for_input_events(outputMessageArray, Draxboard.OUTPUT_EVENT_ID, Draxboard.OUTPUT_EVENT_SIZE)
         if read != None and len(read) >= Draxboard.OUTPUT_EVENT_SIZE and read[0] == Draxboard.OUTPUT_EVENT_ID:
             self.draxOutputState = read[4] + read[3] * 255
             self.send_current_drax_output_state(read[4], read[3])
@@ -629,7 +633,7 @@ class Draxboard(SerialDevice):
     """
     def send_current_drax_output_state(self, byte1, byte2):
         packetToSend = [DragonMasterDeviceManager.DragonMasterDeviceManager.DRAX_OUTPUT_EVENT, byte1, byte2]
-        self.dragonMasterDeviceManager.add_event_to_send(bytearray(packetToSend))
+        self.dragonMasterDeviceManager.add_event_to_send(packetToSend)
         return
 
         

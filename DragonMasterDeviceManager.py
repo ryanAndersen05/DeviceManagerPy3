@@ -486,8 +486,8 @@ class TCPManager:
         self.tcpEventQueue = queue.Queue()#Queue of events that we want to send to Unity
 
         #REMEBER TO UNCOMMENT
-        self.start_new_socket_receive_thread()
-        self.start_new_socket_send_thread()
+        # self.start_new_socket_receive_thread()
+        # self.start_new_socket_send_thread()
         self.deviceManager = deviceManager
         
 
