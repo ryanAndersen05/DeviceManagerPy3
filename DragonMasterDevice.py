@@ -152,7 +152,16 @@ class Joystick(DragonMasterDevice):
 Printer device handles printer events. Sends the status of the printer to Unity
 """
 class Printer(DragonMasterDevice):
+    AUDIT_TICKET = 0x05
+    CODEX_TICKET = 0x04
+
+    REPRINT_TICKET = 0x02
+    TEST_TICKET = 0x01
+    VOUCHER_TICKET = 0x00
+
+    #The path of our Cross fire png image
     CROSS_FIRE_PNG_PATH = ""
+    #The file path to our dragon master logo png
     DRAGON_MASTER_LOGO_PNG_PATH = ""
     LOCATION_NAME = "PlaceHolder"
 
@@ -164,7 +173,7 @@ class Printer(DragonMasterDevice):
     """
     This method formats and prints out a cash-out ticket
     """
-    def print_cashout_ticket(self, totalCreditsWon, timeTicketRedeemed, playerStation="0", whiteSpaceUnderTicket = 10, isTestTicket=False, isReprintTicket=False):
+    def print_voucher_ticket(self, totalCreditsWon, timeTicketRedeemed, playerStation="0", whiteSpaceUnderTicket = 10, ticketType = 0):
         characterCount = 24
         try:
             self.printerObject.set(align='center', font='b', height=12)
@@ -180,9 +189,9 @@ class Printer(DragonMasterDevice):
             self.printerObject.textln(Printer.LOCATION_NAME)
             self.printerObject.set(align='center', font='b', height=12)
 
-            if isReprintTicket:
+            if ticketType == Printer.REPRINT_TICKET:
                 self.printerObject.textln("REPRINT")
-            elif isTestTicket:
+            elif ticketType == Printer.TEST_TICKET:
                 self.printerObject.textln("TEST TICKET")
             else:
                 self.printerObject.textln("VOUCHER TICKET")

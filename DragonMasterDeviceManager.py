@@ -87,7 +87,7 @@ class DragonMasterDeviceManager:
         self.CONNECTED_OMNIDONGLE = None #Since there should only be one omnidongle in our machine, we will only search until we find the first connection
         self.allConnectedDevices = [] #(DragonMasterDevice)
         self.playerStationDictionary = {}#Key: Parent USB Device Path (string) | Value: Player Station (PlayerStation)
-
+        
 
         self.searchingForDevices = False
 
@@ -133,6 +133,9 @@ class DragonMasterDeviceManager:
 
 
     #region Device Management
+    """
+    NOTE: This may not be entirely necessary. Will look into it more later
+    """
     def initialize_printers(self, vendorID, productID):
 
         return
@@ -618,8 +621,39 @@ class TCPManager:
 
 
 #region debug methods
+"""
+Debug method that prints all the currently connected player station devices
+"""
 def debug_print_all_player_stations(deviceManager):
+    widthOfPrint = 32
+    print ("State Of All Collected Devices")
+    print ('=' * widthOfPrint)
+    for pStation in deviceManager.playerStationDictionary.values:
+        print (pStation.to_string())
 
+    print ('=' * widthOfPrint)
+
+    return
+
+"""
+
+"""
+def debug_set_dbv_to_idle(dbvComport):
+
+    return
+
+"""
+Debug method that will set our dbv to the inhibit state based on the dbv comport that is passed in
+"""
+def debug_set_dbv_to_inhibit(dbvComport):
+
+    return
+
+"""
+Debug method that will reset our DBV based on the comport
+"""
+def debug_reset_dbv(dbvComport):
+    
     return
 
 #endregion debug methods
