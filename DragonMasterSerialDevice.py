@@ -438,6 +438,7 @@ class Draxboard(SerialDevice):
 
     ##Return Packet Data
     REQUEST_STATUS_ID = 0x01
+    REQUEST_STATUS_SIZE = 18
     INPUT_EVENT_ID = 0xfa
     INPUT_EVENT_SIZE = 9
     OUTPUT_EVENT_ID = 0x04
@@ -474,13 +475,12 @@ class Draxboard(SerialDevice):
         if self.serialObject == None:
             return False
 
-        requestStatus = self.write_serial_wait_for_read(self.REQUEST_STATUS)
+        requestStatus = self.write_serial_check_for_input_events(self.REQUEST_STATUS, Draxboard.REQUEST_STATUS_ID, Draxboard.REQUEST_STATUS_SIZE)
         if requestStatus == None:
             print ("Request Status Was None")
             return False
-        if len(requestStatus) < 18 or requestStatus[0] != Draxboard.REQUEST_STATUS_ID:
+        if len(requestStatus) < Draxboard.REQUEST_STATUS_SIZE or requestStatus[0] != Draxboard.REQUEST_STATUS_ID:
             print ("Reqeust Status length was too short or invalid: " + str(requestStatus))
-            
             return False
 
 
@@ -497,7 +497,9 @@ class Draxboard(SerialDevice):
             print ("Default output assignement was not successful")
             return False
         super().start_device(deviceElement)
-
+        self.playerStationHash = self.get_draxboard_device_path_hash(deviceElement)
+        print ("Hash: " + str(self.playerStationHash))
+        print ("Type: " + str(type(self.playerStationHash)))
         return True
 
 
@@ -509,7 +511,6 @@ class Draxboard(SerialDevice):
                 timesWeWereFound += 1
                 devToReturn = dev.parent.parent.parent.device_path
         
-        print ("Didn't find nohting" + str(timesWeWereFound))
         return devToReturn
 
     
@@ -542,11 +543,18 @@ class Draxboard(SerialDevice):
             return "Draxboard (Missing)"
 
     """
-
+    This method returns a hash value that is a derivation of the physical path our draxboard device
     """
     def get_draxboard_device_path_hash(self, draxElement):
-
-        return
+        print (draxElement.location)
+        split = draxElement.location.split(':')
+        splitUp = split[0].split('-')
+        hashString = ""
+        for st in splitUp:
+            for value in st.split('.'):
+                hashString += value
+        
+        return int(hashString)
 
 
     
@@ -568,7 +576,6 @@ class Draxboard(SerialDevice):
     """
     def write_serial_check_for_input_events(self, messageToWrite, responseID, responseSize):
         read = self.write_serial_wait_for_read(messageToWrite)
-        print ("READ: " + str(read))
         validRead = None
 
         while read != None and len(read) > 0:

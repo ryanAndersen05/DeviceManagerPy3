@@ -390,7 +390,7 @@ class DragonMasterDeviceManager:
 
     pass
 
-#region Contains Methods
+    #region Contains Methods
     """
     Returns whether or not the joystick that is passed into the method was already added to our
     device manager list
@@ -586,11 +586,11 @@ class TCPManager:
                     self.deviceManager.execute_received_event(self.separate_events_received_into_list(fullResponse))
                 socketRead.shutdown(socket.SHUT_RDWR)
             except Exception as e:
-                print ("Receive Error")
+                # print ("Receive Error")
                 if socketRead != None:
                     socketRead.close()
                 
-                print (e)
+                # print (e)
             sleep(.02)
             totalCount += 1
             pass
