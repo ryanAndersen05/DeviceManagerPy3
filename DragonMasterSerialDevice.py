@@ -498,8 +498,7 @@ class Draxboard(SerialDevice):
             return False
         super().start_device(deviceElement)
         self.playerStationHash = self.get_draxboard_device_path_hash(deviceElement)
-        print ("Hash: " + str(self.playerStationHash))
-        print ("Type: " + str(type(self.playerStationHash)))
+        
         return True
 
 
@@ -510,6 +509,7 @@ class Draxboard(SerialDevice):
             if dev.device_path.__contains__(deviceElement.location) and dev.device_path.__contains__(deviceElement.name):
                 timesWeWereFound += 1
                 devToReturn = dev.parent.parent.parent.device_path
+
         
         return devToReturn
 
@@ -543,21 +543,29 @@ class Draxboard(SerialDevice):
             return "Draxboard (Missing)"
 
     """
-    This method returns a hash value that is a derivation of the physical path our draxboard device
+    This method returns a hash value that is a derivation of the physical path our draxboard device.
+
+    This creates an integer has that we can use to identify our player station group of devices
+    This is based entirely on the usb path of our draxboard, so it should be unique
     """
     def get_draxboard_device_path_hash(self, draxElement):
-        print (draxElement.location)
-        split = draxElement.location.split(':')
-        splitUp = split[0].split('-')
-        hashString = ""
-        for st in splitUp:
-            for value in st.split('.'):
-                hashString += value
-        
-        return int(hashString)
+        try:
+            split = draxElement.location.split(':')
+            splitUp = split[0].split('-')
+            hashString = ""
 
+            for st in splitUp:
+                for value in st.split('.'):
+                    hashString += value
+            playerStationHash = int(hashString)
 
-    
+            return playerStationHash
+        except Exception as e:
+            print ("There was an error trying to create the draxboard hash")
+            print (e)
+            return 0
+
+            
     #endregion Override Methods
     """
     Sets up and adds an input packet to our TCP queue, so that it can be sent at the next availability
