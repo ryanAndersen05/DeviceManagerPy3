@@ -254,6 +254,7 @@ class DBV400(SerialDevice):
     #region variables
     UidSet = False
     State = NOT_INIT_STATE
+    AutoReject = False
     #endregion
 
     def __init__(self, deviceManager):
@@ -290,6 +291,8 @@ class DBV400(SerialDevice):
                 self.on_status_update_received(read)
             elif read[6] == 0x00 and read[7] == 0x00:
                 self.on_power_up_nack_received(read)
+            elif read[6] == 0x02 and read[7] == 0x11:
+                self.on_bill_inserted(message)
 
     #endregion
 
@@ -356,7 +359,14 @@ class DBV400(SerialDevice):
         self.send_dbv_message(idleMessage)
         sleep(.5)
         self.inhibit_dbv()
-        
+    
+    def on_bill_inserted(self, message):
+        escrowMessage = DBV400.ESCROW_ACK
+        escrowMessage[5] = message[5]
+        self.send_dbv_message(escrowMessage)
+        self.send_dbv_message(DBV400.HOLD_BILL)
+        sleep(5)
+        #send bill inserted to unity
     #endregion
 
     #region Command Methods
