@@ -1,5 +1,6 @@
 #std lib imports
 import threading
+import os
 #external lib imports
 import evdev
 import usb.core
@@ -165,15 +166,31 @@ class Printer(DragonMasterDevice):
     VOUCHER_TICKET = 0x00
 
     #The path of our Cross fire png image
-    CROSS_FIRE_PNG_PATH = ""
+    CROSS_FIRE_PNG_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Cross-fire.png")
     #The file path to our dragon master logo png
-    DRAGON_MASTER_LOGO_PNG_PATH = ""
+    DRAGON_MASTER_PNG_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "DragonMaster.png")
     LOCATION_NAME = "PlaceHolder"
+    MACHINE_NUMBER = "00001"
 
     def __init__(self, dragonMasterDeviceManager):
         super().__init__(dragonMasterDeviceManager)
         self.printerObject = None
         self.currentState = (0,0)#Tuple represents the state of the printer. (Printer Status, Paper Availability)
+
+
+    # """
+    # NOTE: This may not be entirely necessary. Will look into it more later
+    # """
+    def initialize_printers(vendorID, productID):
+        # for dev in usb.core.find(find_all=True, idVendor=vendorID, idProduct=productID):
+        #     #We apparently had to do this to find the printers.  Ryan doesn't know what this is.
+        #     try:
+        #         if not dev.is_kernel_driver_active(0):
+                    
+        #             dev.attach_kernel_driver(0)
+        #     except:
+        #         pass
+        return
 
     """
     This method formats and prints out a cash-out ticket
@@ -238,7 +255,7 @@ class Printer(DragonMasterDevice):
             self.printerObject.set(align='center', font='b', height=12)
             self.printerObject.textln('------------------------')
             #self.printerObject.textln('CFS 101.01 DM1  ' + u"\u00a9" + str(time.strftime('%Y')))   # I need to ask Chris what this means.
-            self.printerObject.textln(DragonMasterDeviceManager.set_string_length_multiple(self.deviceManager.DRAGON_MASTER_VERSION_NUMBER ,u"\u00a9" + str(time.strftime('%Y')), 23))
+            self.printerObject.textln(DragonMasterDeviceManager.set_string_length_multiple("VERSION NUMBER GOES HERE" ,u"\u00a9" + str(time.strftime('%Y')), 23))
             self.printerObject.textln('------------------------')
             self.printerObject.ln(1)
 
@@ -264,6 +281,7 @@ class Printer(DragonMasterDevice):
 
         except Exception as e:
             print ("There was an error printing our Cash-Out Ticket")
+            print (e)
 
         return
 
@@ -333,7 +351,7 @@ class Printer(DragonMasterDevice):
 
             self.printerObject.set(align='center', bold=True)
             #self.printerObject.textln('SKL503.07CPN     BANK1')
-            self.printerObject.textln(self.deviceManager.DRAGON_MASTER_VERSION_NUMBER)
+            self.printerObject.textln(self.dragonMasterDeviceManager.DRAGON_MASTER_VERSION_NUMBER)
             self.printerObject.textln("TID: " + auditInfoString[55])
             self.printerObject.set(align = 'center', bold=True)
             # self.printerObject.textln('Ver: ' + DragonMasterDeviceManager.DRAGON_MASTER_VERSION_NUMBER)
@@ -419,7 +437,7 @@ class Printer(DragonMasterDevice):
             self.printerObject.set(align='center')
             self.printerObject.textln('VOID IF MUTILATED')
             self.printerObject.textln('VAL# ' + str(1522789371186))
-            self.printerObject.textln(DragonMasterDeviceManager.set_string_length(self.deviceManager.DRAGON_MASTER_VERSION_NUMBER, 21, '-'))
+            self.printerObject.textln(DragonMasterDeviceManager.set_string_length(self.dragonMasterDeviceManager.DRAGON_MASTER_VERSION_NUMBER, 21, '-'))
             self.printerObject.textln(u"\u00a9" + '2017-2019 ALL RIGHTS\nRESERVED')
 
             self.printerObject.textln('\n' * whiteSpaceUnderTicket)#Give a little bit of white space between tickets
@@ -465,14 +483,36 @@ class CustomTG02(Printer):
         if self.printerObject == None:
             return False
         self.printerObject.device = deviceElement
+        super().start_device(deviceElement)
 
+        self.print_voucher_ticket(0, "")
         return True
 
     def disconnect_device(self):
         return super().disconnect_device()
 
     def fetch_parent_path(self, deviceElement):
-        return super().fetch_parent_path(deviceElement)
+        pathString = ""
+        pathString += str(deviceElement.bus) + "-"
+        
+        for p in deviceElement.port_numbers:
+            pathString += str(p) + "."
+
+        pathString = pathString[:len(pathString) - 1]
+        for dev in self.dragonMasterDeviceManager.deviceContext.list_devices():
+            if dev.sys_name == pathString:
+                return dev.parent.device_path
+                
+        return None
+            
+
+        # self.parentPath = self.deviceNode.parent.parent.parent.device_path
+        # self.devicePath = self.deviceNode.device_path
+
+    def config_text(self):
+        msg = '\x1b\xc1\x30'
+        self.printerObject.device.write(CustomTG02.OUT_EP, msg, 1)
+
 
     def to_string(self):
         return "CustomTG02(" + ")"

@@ -8,8 +8,8 @@ import threading
 from time import sleep
 
 #internal project imports
-import DragonMasterDevice
 import DragonMasterSerialDevice
+import DragonMasterDevice
 
 """
 Our device manager class that will find and hold all of our connected devices and manage their current state
@@ -133,12 +133,7 @@ class DragonMasterDeviceManager:
 
 
     #region Device Management
-    """
-    NOTE: This may not be entirely necessary. Will look into it more later
-    """
-    def initialize_printers(self, vendorID, productID):
-
-        return
+    
 
     """
     This method will search for all valid devices that are connected to our machine
@@ -149,6 +144,8 @@ class DragonMasterDeviceManager:
             return
         self.searchingForDevices = True
         try:
+            DragonMasterDevice.Printer.initialize_printers(DragonMasterDevice.CustomTG02.VENDOR_ID, DragonMasterDevice.CustomTG02.PRODUCT_ID)
+
             allConnectedJoysticks = DragonMasterDevice.get_all_connected_joystick_devices()
             allConnectedDraxboards = DragonMasterSerialDevice.get_all_connected_draxboard_elements()
             DragonMasterSerialDevice.get_all_reliance_printer_serial_elements()
