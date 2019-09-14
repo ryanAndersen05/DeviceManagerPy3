@@ -500,8 +500,10 @@ class CustomTG02(Printer):
 
         pathString = pathString[:len(pathString) - 1]
         for dev in self.dragonMasterDeviceManager.deviceContext.list_devices():
-            if dev.device_path.__contains__(pathString):
-                print (dev.device_path)
+            if dev.sys_name == pathString:
+                return dev.parent.device_path
+                
+        return None
             
 
         # self.parentPath = self.deviceNode.parent.parent.parent.device_path
