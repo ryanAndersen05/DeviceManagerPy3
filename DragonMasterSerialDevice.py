@@ -216,6 +216,7 @@ class DBV400(SerialDevice):
     STACK_INHIBIT = bytearray([0x12, 0x08, 0x00, 0x10, 0x02, 0x00, 0x14, 0x10])
     VEND_VALID_ACK = bytearray([0x12, 0x09, 0x00, 0x10, 0x02, 0x86, 0x03, 0x11, 0x06])
     ERROR_ACK = bytearray([0x12, 0x09, 0x00, 0x10, 0x00, 0x80, 0x01, 0x12, 0x06])
+    CLEAR_ACK = bytearray([0x12, 0x09, 0x00, 0x10, 0x00, 0x80, 0x00, 0x12, 0x06])
     HOLD_BILL = bytearray([0x12, 0x0a, 0x00, 0x10, 0x01, 0x00, 0x16, 0x10, 0x3c, 0x00])
 
     REJECT_COMMAND = bytearray([0x12, 0x08, 0x00, 0x10, 0x2a, 0x00, 0x15, 0x10])
@@ -250,6 +251,7 @@ class DBV400(SerialDevice):
     ERROR_STATE_ACCEPTOR_JAM = 10 # The stacker on top of the DBV has been removed for a few seconds. Re-insert it, and reset.
     CLEAR_STATE = 11  # DBV error has cleared.
     NOTE_STAY_STATE = 12 # A bill has been left in the acceptor slot of the DBV. When removed, the DBV will proceed as normal.
+    ACTIVE_STATE = 13 # DBV is actively holding or accepting bill.
 
     #endregion
     #region variables
@@ -277,6 +279,12 @@ class DBV400(SerialDevice):
                 self.on_idle_success(read)
             elif read[6] == 0x03 and read[7] == 0x11:
                 self.on_vend_valid(read)
+            elif read[6] == 0x01 and read[7] == 0x13:
+                self.on_note_stay_received(read)
+            elif read[6] == 0x01 and read[7] == 0x12:
+                self.on_operation_error(read)
+            elif read[6] == 0x00 and read[7] == 0x12:
+                self.on_operation_error_clear(read)
         elif (length <= 9):
             if read[6] == 0x11 and read[7] == 0x00 and read[8] == 0x06:
                 self.on_reset_request_received()
@@ -318,6 +326,19 @@ class DBV400(SerialDevice):
             self.send_dbv_message(DBV400.IDLE_REQUEST)
         if message[10] == 0x01 and message[11] == 0x011:
             self.State = DBV400.IDLE_STATE
+        if message[10] == 0x01 and message[10] == 0x13:
+            self.State = DBV400.NOTE_STAY_STATE
+            self.reset_dbv()
+        if message[10] == 0x01 and message[11] == 0x12:
+            self.State = DBV400.ERROR_STATE
+            self.reset_dbv()
+        if message[10] == 0x00 and message[11] == 0x12:
+            self.State = DBV400.CLEAR_STATE
+            self.reset_dbv()
+        if message[10] == 0x02 and message[11] == 0x11:
+            self.State = DBV400.ESCROW_STATE
+        if message[10] == 0x03 and message[11] == 0x11:
+            self.State = DBV400.ACTIVE_STATE
 
         print("New State: " + str(self.State))
     def on_power_up_nack_received(self,message):
@@ -400,6 +421,24 @@ class DBV400(SerialDevice):
 
     def on_bill_reject_request_received(self):
         print("Bill reject command accepted")
+    
+    def on_note_stay_received(self, message):
+        noteStayAck = DBV400.NOTE_STAY_ACK
+        noteStayAck[5] = message[5]
+        self.send_dbv_message(noteStayAck)
+        self.State = DBV400.NOTE_STAY_STATE
+    
+    def on_operation_error(self, message):
+        opErrorAck = DBV400.ERROR_ACK
+        opErrorAck[5] = message[5]
+        self.send_dbv_message(opErrorAck)
+        self.State = DBV400.ERROR_STATE
+    
+    def on_operation_error_clear(self, message):
+        clearAck = DBV400.CLEAR_ACK
+        clearAck[5] = message[5]
+        self.send_dbv_message(clearAck)
+        self.State = DBV400.CLEAR_STATE
 
     #endregion
 
