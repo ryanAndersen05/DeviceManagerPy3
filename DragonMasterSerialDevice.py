@@ -269,12 +269,13 @@ class DBV400(SerialDevice):
             return
         length = read[1]
         print (read.hex())
-        print (length)
         if (length <= 8):
             if read[6] == 0x00 and read[7] == 0x01:
                 self.on_inhibit_success(read)
             elif read[6] == 0x01 and read[7] == 0x11:
                 self.on_idle_success(read)
+            elif read[6] == 0x03 and read[7] == 0x11:
+                self.on_vend_valid(read)
         elif (length <= 9):
             if read[6] == 0x11 and read[7] == 0x00 and read[8] == 0x06:
                 self.on_reset_request_received()
@@ -286,24 +287,28 @@ class DBV400(SerialDevice):
                 self.on_inhibit_request_received()
             elif read[6] == 0x13 and read[7] == 0x10:
                 self.on_idle_request_received()
+            elif read[6] == 0x14 and read[7] == 0x10:
+                self.on_stack_inhibit_success()
+            elif read[6] == 0x04 and read[7] == 0x11:
+                self.on_bill_rejected(read)
         elif (length >= 10):
             if read[7] == 0x00 and read[8] == 0x06 and read[9] == 0x04:
                 self.on_status_update_received(read)
             elif read[6] == 0x00 and read[7] == 0x00:
                 self.on_power_up_nack_received(read)
             elif read[6] == 0x02 and read[7] == 0x11:
-                self.on_bill_inserted(message)
+                self.on_bill_inserted(read)
 
     #endregion
 
     #region on read methods
     
     def on_status_update_received(self, message):
-        print ("Status")
         if message[10] == 0x00 and message[11] == 0x00:
             self.on_power_up_success()
         if message[10] == 0x00 and message[11] == 0x01:
             self.State = DBV400.INHIBIT_STATE
+            self.send_dbv_message(DBV400.IDLE_REQUEST)
         if message[10] == 0x01 and message[11] == 0x011:
             self.State = DBV400.IDLE_STATE
 
@@ -345,8 +350,6 @@ class DBV400(SerialDevice):
         self.State = DBV400.INHIBIT_STATE
         print("New state: INHIBIT")
         self.send_dbv_message(inhibitMessage)
-        sleep(2)
-        self.idle_dbv()
 
     def on_idle_request_received(self):
         print("idle request received")
@@ -357,23 +360,37 @@ class DBV400(SerialDevice):
         self.State = DBV400.IDLE_STATE
         print("New state: IDLE")
         self.send_dbv_message(idleMessage)
-        sleep(.5)
-        self.inhibit_dbv()
+
     
     def on_bill_inserted(self, message):
         escrowMessage = DBV400.ESCROW_ACK
         escrowMessage[5] = message[5]
         self.send_dbv_message(escrowMessage)
-        self.send_dbv_message(DBV400.HOLD_BILL)
-        sleep(5)
+        print("Bill inserted: " + str(message[11]))
+        sleep(.1)
+        self.send_dbv_message(DBV400.STACK_INHIBIT)
         #send bill inserted to unity
+    
+    def on_bill_rejected(self, message):
+        rejectAck = DBV400.REJECT_ACK
+        rejectAck[5] = message[5]
+        self.send_dbv_message(rejectAck)
+
+    def on_stack_inhibit_success(self):
+        print("Stack inhibit success")
+
+    def on_vend_valid(self, message):
+        print("Vend Valid")
+        vendValidAck = DBV400.VEND_VALID_ACK
+        vendValidAck[5] = message[5]
+        self.send_dbv_message(vendValidAck)
+
     #endregion
 
     #region Command Methods
 
     def send_dbv_message(self, message):
         if self.UidSet == True:
-            print("setting uid")
             message[4] = self.UID
         print("message: " + str(type(message)))
         print (message)
