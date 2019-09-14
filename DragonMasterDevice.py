@@ -360,12 +360,12 @@ class Printer(DragonMasterDevice):
 
             self.printerObject.textln('\n' * whiteSpaceUnderTicket)#Give a little bit of white space between tickets
 
-            self.deviceManager.add_event_to_queue(self.deviceManager.PRINT_SUCCESS + "|" + self.parentPath)
+            # self.deviceManager.add_event_to_queue(self.deviceManager.PRINT_SUCCESS + "|" + self.parentPath)
 
 
         except Exception as e:
             print ("There was an error printing an audit ticket:" + str(e))
-            self.deviceManager.add_event_to_queue(self.deviceManager.PRINT_ERROR + "|" + self.parentPath)
+            # self.deviceManager.add_event_to_queue(self.deviceManager.PRINT_ERROR + "|" + self.parentPath)
 
         return
 
