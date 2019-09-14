@@ -485,7 +485,6 @@ class CustomTG02(Printer):
         self.printerObject.device = deviceElement
         super().start_device(deviceElement)
 
-        self.print_voucher_ticket(0, "")
         return True
 
     def disconnect_device(self):
@@ -553,6 +552,7 @@ class ReliancePrinter(Printer):
         if self.printerObject == None:
             return False
         self.printerObject.device = deviceElement
+        super().start_device(deviceElement)
         return True
 
     """
@@ -564,8 +564,24 @@ class ReliancePrinter(Printer):
         
         return super().disconnect_device()
 
+    """
+    
+    """
     def fetch_parent_path(self, deviceElement):
-        return super().fetch_parent_path(deviceElement)
+        pathString = ""
+        pathString += str(deviceElement.bus) + "-"
+        
+        for p in deviceElement.port_numbers:
+            pathString += str(p) + "."
+
+        pathString = pathString[:len(pathString) - 1]
+        for dev in self.dragonMasterDeviceManager.deviceContext.list_devices():
+            if dev.sys_name == pathString:
+                print (dev.parent.device_path)
+                return dev.parent.device_path
+        
+        return None
+        
 
     def to_string(self):
         return "Reliance(" + ")"
