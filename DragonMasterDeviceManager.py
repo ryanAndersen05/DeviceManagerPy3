@@ -618,6 +618,39 @@ class TCPManager:
 
     pass
 
+#region string helper methods
+"""
+Returns a new string that is of the desired length. Fills in remaining space with
+spacingChar value. Make sure that spacingChar is of length 1 if you want accurately spaced
+string
+"""
+def set_string_length(string1, lengthOfString = 60, spacingChar = ' '):
+    remainingLength = lengthOfString - len(string1)
+    newStringToReturn = ''
+    if remainingLength > 0:
+        newStringToReturn = spacingChar * int(remainingLength / 2)
+    newStringToReturn = newStringToReturn + string1
+    remainingLength = lengthOfString - len(newStringToReturn)
+    if remainingLength > 0:
+        newStringToReturn += spacingChar * remainingLength
+
+    return newStringToReturn
+
+
+"""
+Returns a new string that is of size lengthOfString. Fills the remaining space between string1 and string2
+with the char spacingChar. Please make sure that the variable spacingChar is of length = 1 if you want
+accurately sized string.
+"""
+def set_string_length_multiple(string1, string2, lengthOfString = 60, spacingChar = ' '):
+    remainingLength = lengthOfString - len(string1) - len(string2)
+
+    if remainingLength > 0:
+        return string1 + (spacingChar * remainingLength) + string2
+    else:
+        return string1 + string2
+
+#endregion string helper methods
 
 
 #region debug methods
