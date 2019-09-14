@@ -219,7 +219,8 @@ class DBV400(SerialDevice):
     HOLD_BILL = bytearray([0x12, 0x0a, 0x00, 0x10, 0x01, 0x00, 0x16, 0x10, 0x3c, 0x00])
 
     REJECT_COMMAND = bytearray([0x12, 0x08, 0x00, 0x10, 0x2a, 0x00, 0x15, 0x10])
-    REJECT_ACK = bytearray([0x12, 0x09, 0x00, 0x10, 0x2a, 0x00, 0x05, 0x11, 0x06])
+    REJECT_ACK = bytearray([0x12, 0x09, 0x00, 0x10, 0x2a, 0x00, 0x04, 0x11, 0x06])
+    RETURN_ACK = bytearray([0x12, 0x09, 0x00, 0x10, 0x2a, 0x00, 0x05, 0x11, 0x06])
 
     NOTE_STAY_ACK = bytearray([0x12, 0x09, 0x00, 0x10, 0x2a, 0x87, 0x01, 0x13, 0x06])
 
@@ -291,6 +292,12 @@ class DBV400(SerialDevice):
                 self.on_stack_inhibit_success()
             elif read[6] == 0x04 and read[7] == 0x11:
                 self.on_bill_rejected(read)
+            elif read[6] == 0x05 and read[7] == 0x11:
+                self.on_bill_returned(read)
+            elif read[6] == 0x16 and read[7] == 0x10:
+                self.on_bill_held()
+            elif read[6] == 0x15 and read[7] == 0x10:
+                self.on_bill_reject_request_received()
         elif (length >= 10):
             if read[7] == 0x00 and read[8] == 0x06 and read[9] == 0x04:
                 self.on_status_update_received(read)
@@ -318,8 +325,6 @@ class DBV400(SerialDevice):
         powerUpAck = DBV400.POWER_ACK
         powerUpAck[5] = message[5]
         self.State = DBV400.POWER_UP_NACK_STATE
-        #self.serialObject.flushInput()
-        #self.serialObject.flushOutput()
         self.send_dbv_message(powerUpAck)
         sleep(.05)
         self.send_dbv_message(DBV400.STATUS_REQUEST)
@@ -342,7 +347,7 @@ class DBV400(SerialDevice):
         print("resetting")
 
     def on_inhibit_request_received(self):
-        print("inhibit received")
+        pass
     
     def on_inhibit_success(self,message):
         inhibitMessage = DBV400.INHIBIT_ACK
@@ -352,7 +357,7 @@ class DBV400(SerialDevice):
         self.send_dbv_message(inhibitMessage)
 
     def on_idle_request_received(self):
-        print("idle request received")
+        pass
     
     def on_idle_success(self,message):
         idleMessage = DBV400.IDLE_ACK
@@ -367,14 +372,22 @@ class DBV400(SerialDevice):
         escrowMessage[5] = message[5]
         self.send_dbv_message(escrowMessage)
         print("Bill inserted: " + str(message[11]))
-        sleep(.1)
-        self.send_dbv_message(DBV400.STACK_INHIBIT)
+        self.send_dbv_message(DBV400.HOLD_BILL)
+        sleep(10)
         #send bill inserted to unity
     
     def on_bill_rejected(self, message):
         rejectAck = DBV400.REJECT_ACK
         rejectAck[5] = message[5]
         self.send_dbv_message(rejectAck)
+    
+    def on_bill_returned(self, message):
+        returnAck = DBV400.RETURN_ACK
+        returnAck[5] = message[5]
+        self.send_dbv_message(returnAck)
+
+    def on_bill_held(self):
+        print("Bill held")
 
     def on_stack_inhibit_success(self):
         print("Stack inhibit success")
@@ -384,6 +397,9 @@ class DBV400(SerialDevice):
         vendValidAck = DBV400.VEND_VALID_ACK
         vendValidAck[5] = message[5]
         self.send_dbv_message(vendValidAck)
+
+    def on_bill_reject_request_received(self):
+        print("Bill reject command accepted")
 
     #endregion
 
