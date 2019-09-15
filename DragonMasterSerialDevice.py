@@ -330,8 +330,7 @@ class DBV400(SerialDevice):
             self.State = DBV400.NOTE_STAY_STATE
             self.reset_dbv()
         if message[10] == 0x01 and message[11] == 0x12:
-            self.State = DBV400.ERROR_STATE
-            self.reset_dbv()
+            self.on_error_state_received(message)
         if message[10] == 0x00 and message[11] == 0x12:
             self.State = DBV400.CLEAR_STATE
             self.reset_dbv()
@@ -394,7 +393,6 @@ class DBV400(SerialDevice):
         self.send_dbv_message(escrowMessage)
         print("Bill inserted: " + str(message[11]))
         self.send_dbv_message(DBV400.HOLD_BILL)
-        sleep(10)
         #send bill inserted to unity
     
     def on_bill_rejected(self, message):
@@ -439,6 +437,19 @@ class DBV400(SerialDevice):
         clearAck[5] = message[5]
         self.send_dbv_message(clearAck)
         self.State = DBV400.CLEAR_STATE
+    
+    def on_error_state_received(self, message):
+        if len(message) >= 13:
+            if message[13] == 0xc3:
+                self.State = DBV400.ERROR_STATE_ACCEPTOR_JAM
+                # wait for clear state
+            elif message[13] == 0xff:
+                self.State = DBV400.ERROR_STATE_STACKER_FAILURE
+                self.reset_dbv()
+                # reset immediately from this type of error
+            else:
+                self.State = DBV400.ERROR_STATE
+                # let the operator reset from this error
 
     #endregion
 
