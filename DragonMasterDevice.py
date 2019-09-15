@@ -1,13 +1,18 @@
 #std lib imports
 import threading
 import os
+import time
+from time import sleep
+
 #external lib imports
 import evdev
 import usb.core
 import usb.util
-import time
+
 
 from escpos.printer import Usb
+from escpos.constants import RT_STATUS_ONLINE, RT_MASK_ONLINE
+from escpos.constants import RT_STATUS_PAPER, RT_MASK_PAPER, RT_MASK_LOWPAPER, RT_MASK_NOPAPER
 #Internal project imports
 import DragonMasterDeviceManager
 import DragonMasterSerialDevice
@@ -192,6 +197,17 @@ class Printer(DragonMasterDevice):
         #     except:
         #         pass
         return
+
+    def start_device(self, deviceElement):
+        printerStateThread = threading.Thread(target=self.threaded_gather_printer_state)
+        printerStateThread.isDaemon = True
+        printerStateThread.start()
+
+        return super().start_device(deviceElement)
+
+    def disconnect_device(self):
+        self.printerObject = None
+        return super().disconnect_device()
 
     """
     This method formats and prints out a cash-out ticket
@@ -459,12 +475,46 @@ class Printer(DragonMasterDevice):
 
         return
 
+    def threaded_gather_printer_state(self):
+        
+        while(True and self.printerObject != None):
+            updatedPrinterState = self.get_updated_printer_state_and_paper_state()
+            if updatedPrinterState != self.currentState:
+                self.currentState = updatedPrinterState
+                print (self.currentState)
+            sleep(1)
+
+    
+
     """
     Returns the updated printer state and paper state as a tuple. These values should both be returned as byte values
     """
     def get_updated_printer_state_and_paper_state(self):
+        try:
+            self.printerObject.query_status(mode=RT_STATUS_ONLINE)[0]
+            printerStatus = 0
+            paperStatus = 0
+            self.printerObject._raw(RT_STATUS_ONLINE)
+            sleep(.01)
+            printerStatus = self.printerObject._read()[0]
+            self.printerObject._raw(RT_STATUS_PAPER)
+            sleep(.01)
+            status = self.printerObject._read()
+            if len(status) == 0:
+                paperStatus = 2
+            if (status[0] & RT_MASK_NOPAPER == RT_MASK_NOPAPER):
+                paperStatus = 0
+            if (status[0] & RT_MASK_LOWPAPER == RT_MASK_LOWPAPER):
+                paperStatus = 1
+            if (status[0] & RT_MASK_PAPER == RT_MASK_PAPER):
+                paperStatus = 2#Has paper
+            return (printerStatus, paperStatus)
 
-        return 
+
+        except Exception as e:
+            print ("Error experienced while trying to gather paper status")
+            print (e)
+            return None 
     pass
 
 """
@@ -551,12 +601,13 @@ class ReliancePrinter(Printer):
             return False
 
         self.printerObject.device = deviceElement
-        super().start_device(deviceElement)
-        if self.deviceParentPath == None:
-            return False
 
         self.associatedRelianceSerial = self.get_matching_reliance_serial(deviceElement)
         if self.associatedRelianceSerial == None:
+            return False
+
+        super().start_device(deviceElement)
+        if self.deviceParentPath == None:
             return False
 
         return True
@@ -580,6 +631,23 @@ class ReliancePrinter(Printer):
             if dev.sys_name == pathString:
                 return dev.parent.device_path
         return None
+
+    """
+    Returns a tuple of the state and the paper availability of our printer
+    """
+    def get_updated_printer_state_and_paper_state(self):
+        fullPrinterStatus = self.associatedRelianceSerial.get_printer_status()
+        paperStatus = int(fullPrinterStatus[2])
+        printerStatus = 0
+        
+
+        printerStatus += int(fullPrinterStatus[3])
+        printerStatus += int(fullPrinterStatus[4]) * 256
+        printerStatus += int(fullPrinterStatus[5]) * 65536
+
+        return (printerStatus, paperStatus)
+
+
         
 
     def to_string(self):

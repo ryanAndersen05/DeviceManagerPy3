@@ -782,6 +782,7 @@ class ReliancePrinterSerial(SerialDevice):
     def __init__(self, deviceManager, associatedReliancePrinter):
         super().__init__(deviceManager)
         self.associatedReliancePrinter = associatedReliancePrinter
+        
         return
 
 
@@ -818,7 +819,7 @@ class ReliancePrinterSerial(SerialDevice):
     """
     def get_printer_status(self):
         # self.serialDevice.flush()
-        byteArrayToReturn = self.write_serial_device_wait_for_read(ReliancePrinterSerial.PRINTER_STATUS_REQUEST)
+        byteArrayToReturn = self.write_serial_wait_for_read(ReliancePrinterSerial.PRINTER_STATUS_REQUEST)
         
         return byteArrayToReturn
 
@@ -827,7 +828,7 @@ class ReliancePrinterSerial(SerialDevice):
     """
     def get_paper_status(self):
         # self.serialDevice.flush()
-        byteArrayToReturn = self.write_serial_device_wait_for_read(ReliancePrinterSerial.PAPER_STATUS_REQUEST)
+        byteArrayToReturn = self.write_serial_wait_for_read(ReliancePrinterSerial.PAPER_STATUS_REQUEST)
         
         return byteArrayToReturn
 
