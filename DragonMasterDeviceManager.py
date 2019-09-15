@@ -1,6 +1,7 @@
 #external lib imports
 import socket
 import pyudev
+from sys import stdin
 
 #std lib imports
 import queue
@@ -95,6 +96,10 @@ class DragonMasterDeviceManager:
         deviceAddedThread = threading.Thread(target=self.device_connected_thread,)
         deviceAddedThread.isDaemon = True
         deviceAddedThread.start()
+
+        debugThread = threading.Thread(target=debug_command_thread, args=(self,))
+        debugThread.isDaemon = True
+        debugThread.start()
         
         sleep(.3)
         print ('starting search')
@@ -145,17 +150,14 @@ class DragonMasterDeviceManager:
         self.searchingForDevices = True
         try:
             DragonMasterDevice.Printer.initialize_printers(DragonMasterDevice.CustomTG02.VENDOR_ID, DragonMasterDevice.CustomTG02.PRODUCT_ID)
-
             allConnectedJoysticks = DragonMasterDevice.get_all_connected_joystick_devices()
             allConnectedDraxboards = DragonMasterSerialDevice.get_all_connected_draxboard_elements()
-            DragonMasterSerialDevice.get_all_reliance_printer_serial_elements()
             allConnectedCustomTG02Printers = DragonMasterDevice.get_all_connected_custom_tg02_printer_elements()
             allConnectedReliancePrinters = DragonMasterDevice.get_all_connected_reliance_printer_elements()
 
             allConnectedDBV400Elements = DragonMasterSerialDevice.get_all_connected_dbv400_comports()
             
             self.deviceContext = pyudev.Context() #we set our device context
-
             if self.CONNECTED_OMNIDONGLE == None:
                 omnidongleElement = DragonMasterSerialDevice.get_omnidongle_comports()
                 if omnidongleElement:
@@ -277,7 +279,7 @@ class DragonMasterDeviceManager:
                 previouslyConnectedDevice = self.playerStationDictionary[deviceToAdd.deviceParentPath].connectedDraxboard
                 self.playerStationDictionary[deviceToAdd.deviceParentPath].connectedDraxboard = deviceToAdd
 
-            print (deviceToAdd.deviceParentPath)
+            # print (deviceToAdd.deviceParentPath)
             print (self.playerStationDictionary[deviceToAdd.deviceParentPath].to_string())
 
             if previouslyConnectedDevice != None:
@@ -651,6 +653,13 @@ def set_string_length_multiple(string1, string2, lengthOfString = 60, spacingCha
 
 
 #region debug methods
+
+def debug_command_thread(deviceManager):
+
+    while(True):
+        commandToRead = stdin.readline()
+        print (commandToRead)
+
 """
 Debug method that prints all the currently connected player station devices
 """

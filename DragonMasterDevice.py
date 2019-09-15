@@ -10,6 +10,7 @@ import time
 from escpos.printer import Usb
 #Internal project imports
 import DragonMasterDeviceManager
+import DragonMasterSerialDevice
 
 """
 The Base class for all our Dragon Master Devices
@@ -539,20 +540,36 @@ class ReliancePrinter(Printer):
         super().__init__(dragonMasterDeviceManager)
         self.associatedRelianceSerial = None
 
+    """
+    The reliance start device function is in charge of both starting our reliance usb printer as well as finding the serial component of the printer
+    """
     def start_device(self, deviceElement):
-        try:
-            if not deviceElement.is_kernel_driver_active(0):
-                print (deviceElement.bus)
-                print (deviceElement.port_numbers)
-                deviceElement.attach_kernel_driver(0)
-        except Exception as e:
-            print (e)
-        
+
+
         self.printerObject = Usb(idVendor=ReliancePrinter.VENDOR_ID, idProduct=ReliancePrinter.PRODUCT_ID, in_ep=ReliancePrinter.IN_EP, out_ep=ReliancePrinter.OUT_EP)
         if self.printerObject == None:
             return False
+
+        try:
+            deviceElement.detach_kernel_driver(0)
+            self.detach_printer()
+
+        except Exception as e:
+            print (e)
+            return False
         self.printerObject.device = deviceElement
         super().start_device(deviceElement)
+        if self.deviceParentPath == None:
+            return False
+
+        self.associatedRelianceSerial = self.get_matching_reliance_serial(deviceElement)
+        if self.associatedRelianceSerial == None:
+            return False
+
+        
+        
+        
+        # self.print_voucher_ticket(0, "0")
         return True
 
     """
@@ -565,9 +582,35 @@ class ReliancePrinter(Printer):
         return super().disconnect_device()
 
     """
-    
+
     """
     def fetch_parent_path(self, deviceElement):
+        pathString = self.port_numbers_to_usb_address(deviceElement)
+
+        for dev in self.dragonMasterDeviceManager.deviceContext.list_devices():
+            if dev.sys_name == pathString:
+                return dev.parent.device_path
+        return None
+        
+
+    def to_string(self):
+        return "Reliance(" + ")"
+    #End Override Methods
+
+
+    #region helper methods
+
+    """
+    Since we can not detach the kernal driver normally with the Reliance printer we will send a blank command to
+    do that for us. In this case we simply align the text to the left. Keep in mind you can use any command in the escpos printer
+    to accomplish this.
+    """
+    def detach_printer(self):
+        self.printerObject.set()  
+    """
+    converts the port numbers and bus number of our printer element into a string usb location path
+    """
+    def port_numbers_to_usb_address(self, deviceElement):
         pathString = ""
         pathString += str(deviceElement.bus) + "-"
         
@@ -575,17 +618,47 @@ class ReliancePrinter(Printer):
             pathString += str(p) + "."
 
         pathString = pathString[:len(pathString) - 1]
-        for dev in self.dragonMasterDeviceManager.deviceContext.list_devices():
-            if dev.sys_name == pathString:
-                print (dev.parent.device_path)
-                return dev.parent.device_path
-        
-        return None
-        
+        return pathString
 
-    def to_string(self):
-        return "Reliance(" + ")"
-    #End Override Methods
+    """
+    There are two components to our reliance printer. The first being the normal USB printer in which we relay normal escpos commands to print out ticket.
+    The second is the reliance Serial port in which we gather the status of our printer and the amount of paper remaining as well as send off an special commands
+    such as cut, retract, etc.
+    """
+    def get_matching_reliance_serial(self, deviceElement):
+        pathString = self.port_numbers_to_usb_address(deviceElement)
+        
+        allRelianceSerialList = DragonMasterSerialDevice.get_all_reliance_printer_serial_elements()
+        for rSerial in allRelianceSerialList:
+            try:
+                if rSerial.location.split(':')[0] == pathString:
+                    associatedSerial = DragonMasterSerialDevice.ReliancePrinterSerial(self.dragonMasterDeviceManager, self)
+                    if associatedSerial.start_device(rSerial):
+                        return associatedSerial
+                    else:
+                        return None
+
+            except Exception as e:
+                print ("Trying to match reliance printer reliance serial usb path")
+                print (e)
+        return None
+    #endregion helper methods
+    #region override printer methods
+    def audit_ticket(self, auditInfoString):
+        self.associatedRelianceSerial.retract()
+        Printer.audit_ticket(self, auditInfoString, 29, 0)
+        self.associatedRelianceSerial.cut()
+
+    def print_voucher_ticket(self, totalCreditsWon, timeTicketRedeemed, playerStation='0', validationNumber='0', whiteSpaceUnderTicket=10, ticketType=0):
+        self.associatedRelianceSerial.retract()
+        Printer.print_voucher_ticket(self, totalCreditsWon, timeTicketRedeemed, playerStation, validationNumber, whiteSpaceUnderTicket, ticketType)
+        self.associatedRelianceSerial.cut()
+
+    def print_codex_ticket(self, codexTicketInfo, line_length =29):
+        self.associatedRelianceSerial.retract()
+        Printer.print_codex_ticket(self, codexTicketInfo, line_length, 0)
+        self.associatedRelianceSerial.cut()
+    #endregion override printer methods
     pass
 
 

@@ -775,6 +775,7 @@ class ReliancePrinterSerial(SerialDevice):
         self.associatedReliancePrinter = associatedReliancePrinter
         return
 
+
     def start_device(self, deviceElement):
         self.serialObject = self.open_serial_device(deviceElement.device, ReliancePrinterSerial.RELIANCE_BAUDE_RATE, readTimeout=3, writeTimeout=15)
         if self.serialObject == None:
@@ -803,6 +804,40 @@ class ReliancePrinterSerial(SerialDevice):
         self.associatedReliancePrinter.disconnect_device()
         super().disconnect_device()
 
+    #region reliace commands
+    """
+    Returns the state of the printer as a byte value. The value will be interpreted by Unity as to whether or not it is in a
+    errored state or not. If there is ever an issue retrieving this command it is very likely that the printer was disconnected
+    """
+    def get_printer_status(self):
+        # self.serialDevice.flush()
+        byteArrayToReturn = self.write_serial_device_wait_for_read(ReliancePrinterSerial.PRINTER_STATUS_REQUEST)
+        
+        return byteArrayToReturn
+
+    """
+    This will return the current status of the paper as a byte value. Either as a 0, 1, or 2. Paper status is the availability of the paper
+    """
+    def get_paper_status(self):
+        # self.serialDevice.flush()
+        byteArrayToReturn = self.write_serial_device_wait_for_read(ReliancePrinterSerial.PAPER_STATUS_REQUEST)
+        
+        return byteArrayToReturn
+
+    """
+    Call this command to cut the printed paper from the reliance printer
+    """
+    def cut(self):
+        self.write_to_serial(ReliancePrinterSerial.PAPER_PRESENT_TO_CUSTOMER)
+
+    """
+    Call this method to retract the paper that has been printed
+    """
+    def retract(self):
+        self.write_to_serial(ReliancePrinterSerial.PAPER_RETRACT)
+        return
+
+    #endregion relinace commands
     pass
 
 """
@@ -940,7 +975,6 @@ def get_all_reliance_printer_serial_elements():
     relianceElements = []
     for element in allPorts:
         if element.description.__contains__(ReliancePrinterSerial.RELIANCE_SERIAL_DESCRIPTION):
-            print (element.location)
             relianceElements.append(element)
 
     return relianceElements
