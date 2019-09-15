@@ -658,7 +658,38 @@ def debug_command_thread(deviceManager):
 
     while(True):
         commandToRead = stdin.readline()
-        print (commandToRead)
+        if commandToRead != None:
+            interpret_debug_command(commandToRead,deviceManager)
+
+def interpret_debug_command(commandToRead, deviceManager):
+    # debug command format: COMPORT COMMAND
+    # ex: ttyACM0 FuckYourself
+    key = "/dev/ttyACM"
+    command = commandToRead.split()
+    if (len(command) < 2):
+        return
+    comPort = key + command[0]
+    for device in deviceManager.allConnectedDevices:
+        if isinstance(device, DragonMasterDevice.DragonMasterSerialDevice.DBV400):
+            if device.comport == comPort:
+                interpret_DBV_command(device,command[1])
+                
+
+def interpret_DBV_command(dbv, command):
+    command = command.upper()
+    if command == "RESET":
+        dbv.reset_dbv()
+    elif command == "IDLE":
+        dbv.idle_dbv()
+    elif command == "INHIBIT":
+        dbv.inhibit_dbv()
+    elif command == "STATE":
+        dbv.get_dbv_state()
+    elif command == "STACK":
+        dbv.stack_bill()
+    elif command == "REJECT":
+        dbv.reject_bill()
+    
 
 """
 Debug method that prints all the currently connected player station devices
