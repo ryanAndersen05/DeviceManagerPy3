@@ -321,6 +321,8 @@ class DBV400(SerialDevice):
     def on_status_update_received(self, message):
         if message[10] == 0x00 and message[11] == 0x00:
             self.on_power_up_success()
+        if message[8] == 0xe4:
+            self.State = DBV400.POWER_UP_NACK_STATE
         if message[10] == 0x00 and message[11] == 0x01:
             self.State = DBV400.INHIBIT_STATE
             self.send_dbv_message(DBV400.IDLE_REQUEST)
@@ -342,11 +344,11 @@ class DBV400(SerialDevice):
         print("New State: " + str(self.State))
     def on_power_up_nack_received(self,message):
         print("power up nack received")
+        self.UidSet = False
         powerUpAck = DBV400.POWER_ACK
         powerUpAck[5] = message[5]
         self.State = DBV400.POWER_UP_NACK_STATE
         self.send_dbv_message(powerUpAck)
-        sleep(.05)
         self.send_dbv_message(DBV400.STATUS_REQUEST)
 
     def on_power_up_success(self):
@@ -364,7 +366,7 @@ class DBV400(SerialDevice):
         self.reset_dbv()
 
     def on_reset_request_received(self):
-        print("resetting")
+        pass
 
     def on_inhibit_request_received(self):
         pass
@@ -373,7 +375,6 @@ class DBV400(SerialDevice):
         inhibitMessage = DBV400.INHIBIT_ACK
         inhibitMessage[5] = message[5]
         self.State = DBV400.INHIBIT_STATE
-        print("New state: INHIBIT")
         self.send_dbv_message(inhibitMessage)
 
     def on_idle_request_received(self):
@@ -383,7 +384,6 @@ class DBV400(SerialDevice):
         idleMessage = DBV400.IDLE_ACK
         idleMessage[5] = message[5]
         self.State = DBV400.IDLE_STATE
-        print("New state: IDLE")
         self.send_dbv_message(idleMessage)
 
     
@@ -406,19 +406,19 @@ class DBV400(SerialDevice):
         self.send_dbv_message(returnAck)
 
     def on_bill_held(self):
-        print("Bill held")
+        pass
 
     def on_stack_inhibit_success(self):
-        print("Stack inhibit success")
+        pass
 
     def on_vend_valid(self, message):
-        print("Vend Valid")
+        pass
         vendValidAck = DBV400.VEND_VALID_ACK
         vendValidAck[5] = message[5]
         self.send_dbv_message(vendValidAck)
 
     def on_bill_reject_request_received(self):
-        print("Bill reject command accepted")
+        pass
     
     def on_note_stay_received(self, message):
         noteStayAck = DBV400.NOTE_STAY_ACK
@@ -491,6 +491,9 @@ class DBV400(SerialDevice):
             message[3] = 0x10
         self.send_dbv_message(message)
     
+    def stack_bill(self):
+        self.send_dbv_message(DBV400.STACK_INHIBIT)
+    
     #endregion
 
     #region Override Methods
@@ -499,9 +502,9 @@ class DBV400(SerialDevice):
         print (self.serialObject)
         if self.serialObject == None:
             return False
-
         super().start_device(deviceElement)
         # self.serialObject.flush()
+        self.UidSet = False
         self.send_dbv_message(DBV400.STATUS_REQUEST)
         return True
 
