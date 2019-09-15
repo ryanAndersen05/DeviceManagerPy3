@@ -687,6 +687,8 @@ def interpret_DBV_command(dbv, command):
         dbv.get_dbv_state()
     elif command == "STACK":
         dbv.stack_bill()
+    elif command == "REJECT":
+        dbv.reject_bill()
     
 
 """

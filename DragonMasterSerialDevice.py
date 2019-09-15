@@ -204,6 +204,7 @@ class DBV400(SerialDevice):
 
     STATUS_REQUEST = bytearray([0x12, 0x08, 0x00, 0x00, 0x00, 0x10, 0x10, 0x00])
     POWER_ACK = bytearray([0x12, 0x09, 0x00, 0x10, 0x00, 0x81, 0x00, 0x00, 0x06])
+    POWER_ACCEPTOR_ACK = bytearray([0x12, 0x09, 0x00, 0x10, 0x00, 0x81, 0x01, 0x00, 0x06])
     SET_UID = bytearray([0x12, 0x09, 0x00, 0x10, 0x00, 0x20, 0x01, 0x00, 0x01])
     RESET_REQUEST = bytearray([0x12, 0x08, 0x00, 0x10, 0x01, 0x00, 0x11, 0x00])
     INHIBIT_ACK = bytearray([0x12, 0x09, 0x00, 0x10, 0x01, 0x82, 0x00, 0x01, 0x06])
@@ -240,18 +241,19 @@ class DBV400(SerialDevice):
 
     NOT_INIT_STATE = 0 # DBV not initialized.
     POWER_UP_NACK_STATE = 1 # Power up ACK not received by DBV yet. Write POWER_UP_ACK to DBV (with event id set) to move past this.
-    POWER_UP_STATE = 2 # DBV UID set and powered on. Needs to be reset.
-    IDLE_STATE = 3  # DBV can accept bills in this state. Bezel light on.
-    INHIBIT_STATE = 4 # DBV CANNOT accept bills in this state. Bezel light off.
-    ESCROW_STATE = 5 # DBV is currently accepting a bill
-    UNSUPPORTED_STATE = 6  # UID not set. Write SET_UID to DBV UID and move past this state.
-    ERROR_STATE = 7 # DBV has encountered an error. Reset the DBV or wait for error to clear.
-    ERROR_STATE_STACKER_FAILURE = 8 # The stacker has error when attempting to accept credits. This can usually be fixed with a reset.
-    ERROR_STATE_BOX_REMOVED = 9 # The container where credits are stored in the DBV has been removed. This might mean that the operator is removing the credits inserted.
-    ERROR_STATE_ACCEPTOR_JAM = 10 # The stacker on top of the DBV has been removed for a few seconds. Re-insert it, and reset.
-    CLEAR_STATE = 11  # DBV error has cleared.
-    NOTE_STAY_STATE = 12 # A bill has been left in the acceptor slot of the DBV. When removed, the DBV will proceed as normal.
-    ACTIVE_STATE = 13 # DBV is actively holding or accepting bill.
+    POWER_UP_ACCEPTOR_NACK_STATE = 2 # Power up ACK not received, but with a bill currently in the acceptor.
+    POWER_UP_STATE = 3 # DBV UID set and powered on. Needs to be reset.
+    IDLE_STATE = 4  # DBV can accept bills in this state. Bezel light on.
+    INHIBIT_STATE = 5 # DBV CANNOT accept bills in this state. Bezel light off.
+    ESCROW_STATE = 6 # DBV is currently accepting a bill
+    UNSUPPORTED_STATE = 7  # UID not set. Write SET_UID to DBV UID and move past this state.
+    ERROR_STATE = 8 # DBV has encountered an error. Reset the DBV or wait for error to clear.
+    ERROR_STATE_STACKER_FAILURE = 9 # The stacker has error when attempting to accept credits. This can usually be fixed with a reset.
+    ERROR_STATE_BOX_REMOVED = 10 # The container where credits are stored in the DBV has been removed. This might mean that the operator is removing the credits inserted.
+    ERROR_STATE_ACCEPTOR_JAM = 11 # The stacker on top of the DBV has been removed for a few seconds. Re-insert it, and reset.
+    CLEAR_STATE = 12  # DBV error has cleared.
+    NOTE_STAY_STATE = 13 # A bill has been left in the acceptor slot of the DBV. When removed, the DBV will proceed as normal.
+    ACTIVE_STATE = 14 # DBV is actively holding or accepting bill.
 
     #endregion
     #region variables
@@ -311,6 +313,8 @@ class DBV400(SerialDevice):
                 self.on_status_update_received(read)
             elif read[6] == 0x00 and read[7] == 0x00:
                 self.on_power_up_nack_received(read)
+            elif read[6] == 0x01 and read[7] == 0x00:
+                self.on_power_up_acceptor_nack_received(read)
             elif read[6] == 0x02 and read[7] == 0x11:
                 self.on_bill_inserted(read)
 
@@ -319,7 +323,7 @@ class DBV400(SerialDevice):
     #region on read methods
     
     def on_status_update_received(self, message):
-        if message[10] == 0x00 and message[11] == 0x00:
+        if (message[10] == 0x00 or message[10] == 0x01) and message[11] == 0x00:
             self.on_power_up_success()
         if message[8] == 0xe4:
             self.State = DBV400.POWER_UP_NACK_STATE
@@ -344,10 +348,19 @@ class DBV400(SerialDevice):
         print("New State: " + str(self.State))
     def on_power_up_nack_received(self,message):
         print("power up nack received")
-        self.UidSet = False
         powerUpAck = DBV400.POWER_ACK
         powerUpAck[5] = message[5]
+        self.UidSet = False
         self.State = DBV400.POWER_UP_NACK_STATE
+        self.send_dbv_message(powerUpAck)
+        self.send_dbv_message(DBV400.STATUS_REQUEST)
+    
+    def on_power_up_acceptor_nack_received(self, message):
+        print("power up acceptor nack received")
+        self.UidSet = False
+        powerUpAck = DBV400.POWER_ACCEPTOR_ACK
+        powerUpAck[5] = message[5]
+        self.State = DBV400.POWER_UP_ACCEPTOR_NACK_STATE
         self.send_dbv_message(powerUpAck)
         self.send_dbv_message(DBV400.STATUS_REQUEST)
 
@@ -494,6 +507,9 @@ class DBV400(SerialDevice):
     def stack_bill(self):
         self.send_dbv_message(DBV400.STACK_INHIBIT)
     
+    def reject_bill(self):
+        self.send_dbv_message(DBV400.REJECT_COMMAND)
+
     #endregion
 
     #region Override Methods
