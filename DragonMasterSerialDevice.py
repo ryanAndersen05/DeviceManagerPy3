@@ -110,11 +110,20 @@ class SerialDevice(DragonMasterDevice.DragonMasterDevice):
         except Exception as e:
             print ("There was an error polling device " + self.to_string())
             print (e)
-            self.dragonMasterDeviceManager.remove_device(self)
+            self.on_poll_serial_errored()
             self.pollingDevice = False  # Thread will end if there is an error polling for a device
+
+            
 
         print (self.to_string() + " no longer polling for events")#Just want this for testing. want to remove later
         return
+
+
+    """
+
+    """
+    def on_poll_serial_errored(self):
+        self.dragonMasterDeviceManager.remove_device(self)
 
     #READ/WRITE Methods
     """
@@ -788,20 +797,18 @@ class ReliancePrinterSerial(SerialDevice):
 
         return True 
 
-    """
-    NOTE: Make it so that we properly disconnect our printer at the end of this method.
-    If we are no longer polling for events, we should disconnect
-    """
-    def poll_serial_thread(self):
-        super().poll_serial_thread()
-        
+    def to_string(self):
+        return self.associatedReliancePrinter.to_string()
+
+    def on_poll_serial_errored(self):
+        self.dragonMasterDeviceManager.remove_device(self.associatedReliancePrinter)
+
     """
     Disconnects both our serial 
     """
     def disconnect_device(self):
         if not self.pollingDevice:
             return
-        self.associatedReliancePrinter.disconnect_device()
         super().disconnect_device()
 
     #region reliace commands

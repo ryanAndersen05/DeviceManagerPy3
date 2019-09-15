@@ -550,13 +550,6 @@ class ReliancePrinter(Printer):
         if self.printerObject == None:
             return False
 
-        try:
-            deviceElement.detach_kernel_driver(0)
-            self.detach_printer()
-
-        except Exception as e:
-            print (e)
-            return False
         self.printerObject.device = deviceElement
         super().start_device(deviceElement)
         if self.deviceParentPath == None:
@@ -566,10 +559,6 @@ class ReliancePrinter(Printer):
         if self.associatedRelianceSerial == None:
             return False
 
-        
-        
-        
-        # self.print_voucher_ticket(0, "0")
         return True
 
     """
@@ -649,9 +638,9 @@ class ReliancePrinter(Printer):
         Printer.audit_ticket(self, auditInfoString, 29, 0)
         self.associatedRelianceSerial.cut()
 
-    def print_voucher_ticket(self, totalCreditsWon, timeTicketRedeemed, playerStation='0', validationNumber='0', whiteSpaceUnderTicket=10, ticketType=0):
+    def print_voucher_ticket(self, totalCreditsWon, timeTicketRedeemed, playerStation='0', validationNumber='0', whiteSpaceUnderTicket=1, ticketType=0):
         self.associatedRelianceSerial.retract()
-        Printer.print_voucher_ticket(self, totalCreditsWon, timeTicketRedeemed, playerStation, validationNumber, whiteSpaceUnderTicket, ticketType)
+        super().print_voucher_ticket(totalCreditsWon, timeTicketRedeemed, playerStation, validationNumber, whiteSpaceUnderTicket, ticketType)
         self.associatedRelianceSerial.cut()
 
     def print_codex_ticket(self, codexTicketInfo, line_length =29):
