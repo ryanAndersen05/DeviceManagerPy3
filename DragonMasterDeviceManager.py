@@ -617,6 +617,19 @@ class TCPManager:
 
     pass
 
+"""
+This method converts a whole number value into a byte array. This should come in easy for TCP commands
+"""
+def convert_value_to_byte_array(valueToConvert, numberOfBytes=4):
+    convertedByteArray = []
+    for i in range(numberOfBytes):
+        byteVal = (valueToConvert & (0xff << (i * 8)))
+        convertedByteArray.append(byteVal)
+
+    return convertedByteArray
+
+
+
 #region string helper methods
 """
 Returns a new string that is of the desired length. Fills in remaining space with
