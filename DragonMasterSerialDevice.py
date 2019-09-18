@@ -533,6 +533,18 @@ class DBV400(SerialDevice):
         self.send_dbv_message(DBV400.STATUS_REQUEST)
         return True
 
+    def fetch_parent_path(self, deviceElement):
+        devToReturn = None
+        timesWeWereFound = 0
+        for dev in self.dragonMasterDeviceManager.deviceContext.list_devices():
+            if dev.device_path.__contains__(deviceElement.location) and dev.device_path.__contains__(deviceElement.name):
+                timesWeWereFound += 1
+                devToReturn = dev.parent.parent.parent.device_path
+
+        
+        return devToReturn
+        
+
     def to_string(self):
         return "DBV-400"
     #endregion
