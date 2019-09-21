@@ -89,6 +89,7 @@ class DragonMasterDeviceManager:
         self.CONNECTED_OMNIDONGLE = None #Since there should only be one omnidongle in our machine, we will only search until we find the first connection
         self.allConnectedDevices = [] #(DragonMasterDevice)
         self.playerStationDictionary = {}#Key: Parent USB Device Path (string) | Value: Player Station (PlayerStation)
+        self.playerStationHashToParentDevicePath = {}#Key: Hash Value (uint) | Value: Parent USB Device Path (string)
         
 
         self.searchingForDevices = False
@@ -230,6 +231,7 @@ class DragonMasterDeviceManager:
         if isinstance(deviceThatWasAdded, DragonMasterSerialDevice.Omnidongle):
             deviceTypeID = DragonMasterDeviceManager.OMNI_EVENT
             pass
+        
         print ("Device Added ID: " + str(deviceTypeID))
 
     """
@@ -279,6 +281,7 @@ class DragonMasterDeviceManager:
             elif isinstance(deviceToAdd, DragonMasterSerialDevice.Draxboard):
                 previouslyConnectedDevice = self.playerStationDictionary[deviceToAdd.deviceParentPath].connectedDraxboard
                 self.playerStationDictionary[deviceToAdd.deviceParentPath].connectedDraxboard = deviceToAdd
+                self.playerStationHashToParentDevicePath[deviceToAdd.playerStationHash] = deviceToAdd.deviceParentPath
 
             # print (deviceToAdd.deviceParentPath)
             print (self.playerStationDictionary[deviceToAdd.deviceParentPath].to_string())
@@ -367,12 +370,30 @@ class DragonMasterDeviceManager:
 
 
 
-
+    """
+    This method will be called to interpret all the packets that we receive from our Unity application
+    """
     def interpret_event_from_unity(self, eventMessage):
         if eventMessage == None or len(eventMessage) <= 0:
             print ("The event message that was passed in was empty...")
             return
 
+
+        if eventMessage == DragonMasterDeviceManager.RETRIEVE_CONNECTED_DEVICES:
+
+            return
+        elif eventMessage == DragonMasterDeviceManager.STATUS_FROM_UNITY:
+
+            return
+        elif eventMessage == DragonMasterDeviceManager.OMNI_EVENT:
+
+            return
+        
+        #All event functions below this poinr need to have a hash
+        if len(eventMessage) < 5:
+            print ("The event message was too short...")
+            return 
+        #Drax Outputs
         if eventMessage == DragonMasterDeviceManager.DRAX_HARD_METER_EVENT:
 
             return
@@ -385,6 +406,8 @@ class DragonMasterDeviceManager:
         elif eventMessage == DragonMasterDeviceManager.DRAX_OUTPUT_BIT_DISABLE_EVENT:
 
             return
+
+        #Printer Outputs
         elif eventMessage == DragonMasterDeviceManager.PRINTER_CASHOUT_TICKET:
 
             return
@@ -394,6 +417,11 @@ class DragonMasterDeviceManager:
         elif eventMessage == DragonMasterDeviceManager.PRINTER_CODEX_TICKET:
 
             return
+        elif eventMessage == DragonMasterDeviceManager.PRINTER_TEST_TICKET:
+
+            return
+            
+        #Bill Acceptor Outputs
         elif eventMessage == DragonMasterDeviceManager.BA_IDLE_EVENT:
 
             return
@@ -410,9 +438,79 @@ class DragonMasterDeviceManager:
 
             return
 
+    def on_retrieve_connected_devices(self):
 
+        return
 
+    """
+    We call this method whenever we receive a message from unity telling us that we are completely connected
+    """
+    def on_status_from_unity(self):
 
+        return
+
+    """
+    Sends an event to the current connected Omnidongle device
+    """
+    def on_omnidongle_event_received(self, eventMessage):
+        if DragonMasterDeviceManager.CONNECTED_OMNIDONGLE != None:
+            DragonMasterDeviceManager.CONNECTED_OMNIDONGLE.send_data_to_omnidongle(eventMessage[1:])
+        return
+
+    #region draxboard tcp events
+    def on_drax_hard_meter_event(self, eventMessage):
+
+        return
+
+    def on_drax_output_event(self, eventMessage):
+
+        return
+
+    def on_drax_output_bit_enable_event(self, eventMessage):
+
+        return
+
+    def on_drax_output_bit_disable_event(self, eventMessage):
+
+        return
+    #endregion draxboard tcp events
+
+    #region bill acceptor tcp events
+    def on_ba_idle_event(self, eventMessage):
+
+        return
+
+    def on_ba_inhibit_event(self, eventMessage):
+
+        return
+
+    def on_ba_reset_event(self, eventMessage):
+
+        return
+
+    def on_ba_accept_bill_event(self, eventMessage):
+
+        return
+
+    def on_ba_reject_bill_event(self, eventMessage):
+
+        return
+    #endregion bill acceptor tcp events
+
+    #region printer tcp events
+    def on_print_cashout_ticket_event(self, eventMessage):
+
+        return
+
+    def on_print_codex_ticket_event(self, eventMessage):
+
+        return
+
+    def on_print_audit_ticket_event(self, eventMessage):
+
+        return
+
+    #endregion printer tcp events
 
     #endregion TCP Received Data Events
 
