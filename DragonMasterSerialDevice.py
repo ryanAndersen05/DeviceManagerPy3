@@ -591,6 +591,7 @@ class DBV400(SerialDevice):
     def reject_bill(self):
         self.send_dbv_message(DBV400.REJECT_COMMAND)
 
+    """ Send event message to Unity """
     def send_event_message(self, eventType, messageContent):
         message = [messageContent]
         playerStationHash = self.get_player_station_hash()
@@ -610,7 +611,7 @@ class DBV400(SerialDevice):
         sleep(.5)
         self.get_dbv_state()
         return True
-
+    
     def fetch_parent_path(self, deviceElement):
         devToReturn = None
         timesWeWereFound = 0
