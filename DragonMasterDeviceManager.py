@@ -450,10 +450,11 @@ class DragonMasterDeviceManager:
             return
 
     """
-
+    This will send all the currently connected devices to our unity application. Helpful if our game restarts while the machine is still running
     """
     def on_retrieve_connected_devices(self):
-
+        for dev in self.allConnectedDevices:
+            self.send_device_connected_event(dev)
         return
 
     """
