@@ -380,13 +380,13 @@ class DragonMasterDeviceManager:
 
 
         if eventMessage == DragonMasterDeviceManager.RETRIEVE_CONNECTED_DEVICES:
-
+            self.on_retrieve_connected_devices()
             return
         elif eventMessage == DragonMasterDeviceManager.STATUS_FROM_UNITY:
-
+            self.on_status_from_unity()
             return
         elif eventMessage == DragonMasterDeviceManager.OMNI_EVENT:
-
+            self.on_omnidongle_event_received(eventMessage)
             return
         
         #All event functions below this poinr need to have a hash
@@ -395,49 +395,52 @@ class DragonMasterDeviceManager:
             return 
         #Drax Outputs
         if eventMessage == DragonMasterDeviceManager.DRAX_HARD_METER_EVENT:
-
+            self.on_drax_hard_meter_event(eventMessage)
             return
         elif eventMessage == DragonMasterDeviceManager.DRAX_OUTPUT_EVENT:
-
+            self.on_drax_output_event(eventMessage)
             return
         elif eventMessage == DragonMasterDeviceManager.DRAX_OUTPUT_BIT_ENABLE_EVENT:
-
+            self.on_drax_output_bit_enable_event(eventMessage)
             return
         elif eventMessage == DragonMasterDeviceManager.DRAX_OUTPUT_BIT_DISABLE_EVENT:
-
+            self.on_drax_output_bit_disable_event(eventMessage)
             return
 
         #Printer Outputs
         elif eventMessage == DragonMasterDeviceManager.PRINTER_CASHOUT_TICKET:
-
+            self.on_print_cashout_ticket_event(eventMessage)
             return
         elif eventMessage == DragonMasterDeviceManager.PRINTER_AUDIT_TICKET:
-
+            self.on_print_audit_ticket_event(eventMessage)
             return
         elif eventMessage == DragonMasterDeviceManager.PRINTER_CODEX_TICKET:
-
+            self.on_print_codex_ticket_event(eventMessage)
             return
         elif eventMessage == DragonMasterDeviceManager.PRINTER_TEST_TICKET:
-
+            self.on_print_test_ticket_event(eventMessage)
             return
             
         #Bill Acceptor Outputs
         elif eventMessage == DragonMasterDeviceManager.BA_IDLE_EVENT:
-
+            self.on_ba_idle_event(eventMessage)
             return
         elif eventMessage == DragonMasterDeviceManager.BA_INHIBIT_EVENT:
-
+            self.on_ba_inhibit_event(eventMessage)
             return
         elif eventMessage == DragonMasterDeviceManager.BA_RESET_EVENT:
-
+            self.on_ba_reset_event(eventMessage)
             return
         elif eventMessage == DragonMasterDeviceManager.BA_ACCEPT_BILL_EVENT:
-
+            self.on_ba_accept_bill_event(eventMessage)
             return
         elif eventMessage == DragonMasterDeviceManager.BA_REJECT_BILL_EVENT:
-
+            self.on_ba_reject_bill_event(eventMessage)
             return
 
+    """
+
+    """
     def on_retrieve_connected_devices(self):
 
         return
@@ -507,6 +510,10 @@ class DragonMasterDeviceManager:
         return
 
     def on_print_audit_ticket_event(self, eventMessage):
+
+        return
+
+    def on_print_test_ticket_event(self, eventMessage):
 
         return
 
