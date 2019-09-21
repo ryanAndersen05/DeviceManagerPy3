@@ -707,8 +707,8 @@ class Draxboard(SerialDevice):
         if inputPacket == None or len(inputPacket) < Draxboard.INPUT_EVENT_SIZE or inputPacket[0] != Draxboard.INPUT_EVENT_ID:
             print ("Invalid Input Event Packet. Please Be sure you are correctly interpreting our input packets")
             return
-        inputPacketToSend = [DragonMasterDeviceManager.DragonMasterDeviceManager.DRAX_INPUT_EVENT, inputPacket[Draxboard.INPUT_INDEX], inputPacket[Draxboard.DOOR_STATE_INDEX]]
-        self.dragonMasterDeviceManager.add_event_to_send(inputPacketToSend)
+        inputData = [inputPacket[Draxboard.INPUT_INDEX], inputPacket[Draxboard.DOOR_STATE_INDEX]]
+        self.dragonMasterDeviceManager.add_event_to_send(DragonMasterDeviceManager.DragonMasterDeviceManager.DRAX_INPUT_EVENT, inputData, self.playerStationHash)
         return
 
     """
