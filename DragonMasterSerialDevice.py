@@ -211,7 +211,7 @@ class DBV400(SerialDevice):
     #endregion
     #region Commands
 
-    STATUS_REQUEST = bytearray([0x12, 0x08, 0x00, 0x00, 0x00, 0x10, 0x10, 0x00])
+    STATUS_REQUEST = bytearray([0x12, 0x08, 0x00, 0x10, 0x00, 0x10, 0x10, 0x00])
     POWER_ACK = bytearray([0x12, 0x09, 0x00, 0x10, 0x00, 0x81, 0x00, 0x00, 0x06])
     POWER_ACCEPTOR_ACK = bytearray([0x12, 0x09, 0x00, 0x10, 0x00, 0x81, 0x01, 0x00, 0x06])
     SET_UID = bytearray([0x12, 0x09, 0x00, 0x10, 0x00, 0x20, 0x01, 0x00, 0x01])
@@ -266,9 +266,9 @@ class DBV400(SerialDevice):
 
     #endregion
     #region variables
-    UidSet = False
-    State = NOT_INIT_STATE
-    AutoReject = False
+    UidSet = False # UID of this device has been set. If this is true, 
+    State = NOT_INIT_STATE # Current state of the DBV
+    AutoReject = False # If set to true, immediately reject any bills inserted into the DBV.
     #endregion
 
     def __init__(self, deviceManager):
@@ -276,13 +276,31 @@ class DBV400(SerialDevice):
         return
 
     #region on data received
-
+    """ Handles all byte strings sent from the DBV to the host"""
     def on_data_received_event(self):
         read = self.read_from_serial()
         if read == None or len(read) < 2:
             return
+
+        print("Core Message: " + read.hex())
+        length = len(read)
+        messages = []
+        index = 0
+
+        while length > 0:
+            currentLength = read[index + 1]
+            messages.append(read[index: index + currentLength])
+            index = index + currentLength
+            length -= currentLength
+
+        print (messages)
+
+        for message in messages:
+            self.process_data_received_message(message)
+
+    def process_data_received_message(self, read):
         length = read[1]
-        print (read.hex())
+        print ("Message:" + read.hex())
         if (length <= 8):
             if read[6] == 0x00 and read[7] == 0x01:
                 self.on_inhibit_success(read)
@@ -299,7 +317,7 @@ class DBV400(SerialDevice):
         elif (length <= 9):
             if read[6] == 0x11 and read[7] == 0x00 and read[8] == 0x06:
                 self.on_reset_request_received()
-            elif read[8] == 0xE2:
+            elif read[8] == 0xe2:
                 self.on_unsupported_received(read)
             elif read[5] == 0x20 and read[6] == 0x01 and read[7] == 0x00:
                 self.on_uid_success()
@@ -326,16 +344,14 @@ class DBV400(SerialDevice):
                 self.on_power_up_acceptor_nack_received(read)
             elif read[6] == 0x02 and read[7] == 0x11:
                 self.on_bill_inserted(read)
-
     #endregion
 
     #region on read methods
     
+    """ Process status request message sent from DBV to host """
     def on_status_update_received(self, message):
         if (message[10] == 0x00 or message[10] == 0x01) and message[11] == 0x00:
             self.on_power_up_success()
-        if message[8] == 0xe4:
-            self.State = DBV400.POWER_UP_NACK_STATE
         if message[10] == 0x00 and message[11] == 0x01:
             self.State = DBV400.INHIBIT_STATE
             self.send_dbv_message(DBV400.IDLE_REQUEST)
@@ -355,6 +371,8 @@ class DBV400(SerialDevice):
             self.State = DBV400.ACTIVE_STATE
 
         print("New State: " + str(self.State))
+    
+    """ We have received a message that the DBV has started (or restarted) and needs to be acknowledged """
     def on_power_up_nack_received(self,message):
         print("power up nack received")
         powerUpAck = DBV400.POWER_ACK
@@ -362,8 +380,10 @@ class DBV400(SerialDevice):
         self.UidSet = False
         self.State = DBV400.POWER_UP_NACK_STATE
         self.send_dbv_message(powerUpAck)
-        self.send_dbv_message(DBV400.STATUS_REQUEST)
+        sleep(.3)
+        self.get_dbv_state()
     
+    """ Same as above, but the DBV has started with a bill that is waiting to be stacked """
     def on_power_up_acceptor_nack_received(self, message):
         print("power up acceptor nack received")
         self.UidSet = False
@@ -371,95 +391,120 @@ class DBV400(SerialDevice):
         powerUpAck[5] = message[5]
         self.State = DBV400.POWER_UP_ACCEPTOR_NACK_STATE
         self.send_dbv_message(powerUpAck)
-        self.send_dbv_message(DBV400.STATUS_REQUEST)
+        self.get_dbv_state()
 
+    """ DBV has successfully received a power up acknowledgement and is ready to proceed with the power up process """
     def on_power_up_success(self):
         print("power up success")
+        self.State = DBV400.POWER_UP_STATE
         self.power_up_dbv()
-        
+    
+    """ The last message sent to the DBV contained the incorrect UID """
     def on_unsupported_received(self,message):
+        print("unsupported received")
         self.State = DBV400.UNSUPPORTED_STATE
         self.UID = message[4]
         self.UidSet = True
-        self.send_dbv_message(DBV400.STATUS_REQUEST)
+        self.get_dbv_state()
 
+
+    """ The DBV was successfully set during power up. We can now reset the DBV """
     def on_uid_success(self):
+        print("UID set success")
         self.UidSet = True
         self.reset_dbv()
 
+    """ Reset message was successfully received by the DBV """
     def on_reset_request_received(self):
         pass
 
+    """ Inhibit message was successfuly received by the DBV """ 
     def on_inhibit_request_received(self):
         pass
     
+    """ DBV was successfully set to inhibit state. Send ACK to DBV to confirm state """
     def on_inhibit_success(self,message):
         inhibitMessage = DBV400.INHIBIT_ACK
         inhibitMessage[5] = message[5]
         self.State = DBV400.INHIBIT_STATE
         self.send_dbv_message(inhibitMessage)
 
+    """ Idle request successfully received by the DBV """
     def on_idle_request_received(self):
         pass
     
+    """ DBV was successfully set to idle state. Send ACK to DBV to confirm state """
     def on_idle_success(self,message):
         idleMessage = DBV400.IDLE_ACK
         idleMessage[5] = message[5]
         self.State = DBV400.IDLE_STATE
         self.send_dbv_message(idleMessage)
 
-    
+    """ A DBV has been inserted into DBV. We need to send an escrow message to confirm this """
+    """ Our current workflow is to tell the DBV to hold the bill for 60 seconds while deciding whether to stack or reject """
     def on_bill_inserted(self, message):
         escrowMessage = DBV400.ESCROW_ACK
         escrowMessage[5] = message[5]
         self.send_dbv_message(escrowMessage)
         print("Bill inserted: " + str(message[11]))
-        self.send_dbv_message(DBV400.HOLD_BILL)
-        #send bill inserted to unity
+        if self.AutoReject:
+            self.send_dbv_message(DBV400.REJECT_COMMAND)
+        else :
+            self.send_dbv_message(DBV400.HOLD_BILL)
     
+    """ A bil inserted to the DBV was rejected due to an error (invalid bill, invalid state, etc.) """
     def on_bill_rejected(self, message):
         rejectAck = DBV400.REJECT_ACK
         rejectAck[5] = message[5]
         self.send_dbv_message(rejectAck)
     
+    """ A bill was returned by the DBV due to a reject command or powering up with a bill inserted """
     def on_bill_returned(self, message):
         returnAck = DBV400.RETURN_ACK
         returnAck[5] = message[5]
         self.send_dbv_message(returnAck)
 
+    """ A bill was successfully held in the bill acceptor from a command """
     def on_bill_held(self):
         pass
 
+    """ A stack command was successfully processed by the DBV. The bill inserted will now be stacked """
     def on_stack_inhibit_success(self):
         pass
-
+    
+    """ The bill stacked in the bill acceptor was succesfully processed and stacked """
     def on_vend_valid(self, message):
         pass
         vendValidAck = DBV400.VEND_VALID_ACK
         vendValidAck[5] = message[5]
         self.send_dbv_message(vendValidAck)
 
+    """ A reject bill command was successfully processed """
     def on_bill_reject_request_received(self):
         pass
     
+    """ A returned/rejected bill was left at the mouth of the DBV and needs to be removed """
     def on_note_stay_received(self, message):
         noteStayAck = DBV400.NOTE_STAY_ACK
         noteStayAck[5] = message[5]
         self.send_dbv_message(noteStayAck)
         self.State = DBV400.NOTE_STAY_STATE
     
+    """ The DBV has reported an error. Ack this message and wait for the error clear message """
     def on_operation_error(self, message):
         opErrorAck = DBV400.ERROR_ACK
         opErrorAck[5] = message[5]
         self.send_dbv_message(opErrorAck)
         self.State = DBV400.ERROR_STATE
     
+    """ A DBV error was cleared and the system is ready to be reset to resume normal operation """
     def on_operation_error_clear(self, message):
         clearAck = DBV400.CLEAR_ACK
         clearAck[5] = message[5]
         self.send_dbv_message(clearAck)
         self.State = DBV400.CLEAR_STATE
     
+    """ Process this error message to determine the specific error state """
     def on_error_state_received(self, message):
         if len(message) >= 13:
             if message[13] == 0xc3:
@@ -477,45 +522,52 @@ class DBV400(SerialDevice):
 
     #region Command Methods
 
+    """ Send the DBV a message, formatting the message with the UID if neccessary """
     def send_dbv_message(self, message):
         if self.UidSet == True:
             message[4] = self.UID
-        print("message: " + str(type(message)))
-        print (message)
+        else:
+            message[4] = 0x00
         self.write_to_serial(message)
 
+    """ Set the UID of this class. After the UID of the DBV is set, every subsequent packet sent must include it in its 4th index """
     def set_uid(self):
         uidMessage = DBV400.SET_UID
         uidMessage[8] = self.UID
-        self.send_dbv_message(uidMessage)
+        self.write_to_serial(uidMessage)
 
+    """ Set the DBV to idle if in inhibit """
     def idle_dbv(self):
         if self.State != DBV400.INHIBIT_STATE:
             return
         self.send_dbv_message(DBV400.IDLE_REQUEST)
     
+    """ Inhibit the DBV to stop accepting bills """
     def inhibit_dbv(self):
         if self.State != DBV400.IDLE_STATE:
             return
         self.send_dbv_message(DBV400.INHIBIT_REQUEST)
     
+    """ Power up method. Set the UID of the DBV and reset """
     def power_up_dbv(self):
         self.set_uid()
     
+    """ Reset the DBV """
     def reset_dbv(self):
         if (self.State == DBV400.ERROR_STATE_BOX_REMOVED or self.State == DBV400.ERROR_STATE_ACCEPTOR_JAM):
             return
         self.send_dbv_message(DBV400.RESET_REQUEST)
     
+    """ Query the current DBV state """
     def get_dbv_state(self):
         message = DBV400.STATUS_REQUEST
-        if self.UidSet:
-            message[3] = 0x10
         self.send_dbv_message(message)
     
+    """ Stack the current bill in the acceptor """
     def stack_bill(self):
         self.send_dbv_message(DBV400.STACK_INHIBIT)
     
+    """ Reject the current bill in the acceptor """
     def reject_bill(self):
         self.send_dbv_message(DBV400.REJECT_COMMAND)
 
@@ -524,13 +576,14 @@ class DBV400(SerialDevice):
     #region Override Methods
     def start_device(self, deviceElement):
         self.serialObject = self.open_serial_device(deviceElement.device, DBV400.DBV_BAUDRATE, 5, 5)
-        print (self.serialObject)
+        print ("Starting device: " + str(self.serialObject))
         if self.serialObject == None:
             return False
         super().start_device(deviceElement)
-        # self.serialObject.flush()
+        self.serialObject.flush()
         self.UidSet = False
-        self.send_dbv_message(DBV400.STATUS_REQUEST)
+        sleep(.5)
+        self.get_dbv_state()
         return True
 
     def fetch_parent_path(self, deviceElement):
@@ -540,8 +593,6 @@ class DBV400(SerialDevice):
             if dev.device_path.__contains__(deviceElement.location) and dev.device_path.__contains__(deviceElement.name):
                 timesWeWereFound += 1
                 devToReturn = dev.parent.parent.parent.device_path
-
-        
         return devToReturn
         
 
