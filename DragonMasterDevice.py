@@ -52,6 +52,16 @@ class DragonMasterDevice:
     def to_string(self):
         return "Device ToString Not Defined"
 
+    """
+    Returns a player station hash uint value for the device that we can use to send event packets to unity.
+    """
+    def get_player_station_hash(self):
+        if self.dragonMasterDeviceManager == None:
+            return None
+
+        return self.dragonMasterDeviceManager.get_player_station_hash_for_device(self)
+        
+
 
 
 """
