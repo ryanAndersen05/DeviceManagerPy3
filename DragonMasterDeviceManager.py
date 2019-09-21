@@ -788,9 +788,14 @@ class TCPManager:
     pass
 
 """
+Converts a byte array to a value using little endian
+
+NOTE: Little Endian -
+input:[0x01, 0x23, 0x45, 0x67]
+output:0x01234567
 
 """
-def convert_byte_array_to_value(byteArray, valueByteCount):
+def convert_byte_array_to_value(byteArray):
     if len(byteArray) < 4:
         print("The byte array that was passed in did not meet our 4 byte requirement")
         return
@@ -803,6 +808,9 @@ def convert_byte_array_to_value(byteArray, valueByteCount):
 
 """
 This method converts a whole number value into a byte array. This should come in easy for TCP commands
+
+input: valueToConvert = 0x301a, numberOfBytes = 4
+output: [0x00, 0x00, 0x30, 0x1a]
 """
 def convert_value_to_byte_array(valueToConvert, numberOfBytes=4):
     convertedByteArray = []
