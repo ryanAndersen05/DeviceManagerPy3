@@ -476,6 +476,11 @@ class DragonMasterDeviceManager:
     #region draxboard tcp events
 
     def on_drax_hard_meter_event(self, playerStationHash, eventData):
+        parentUSBPath = self.get_parent_usb_path_from_player_station_hash(playerStationHash)
+        if parentUSBPath == None:
+            return
+        if parentUSBPath not in self.playerStationDictionary:
+            return
         
         return
 
@@ -570,9 +575,42 @@ class DragonMasterDeviceManager:
         return
         
     #endregion TCP Communication
-
-
     pass
+
+    #region get device methods
+    def get_draxboard_from_player_station_hash(self, playerStationHash):
+        parentUSBPath = self.get_parent_usb_path_from_player_station_hash(playerStationHash)
+        if  parentUSBPath == None:
+            return None
+        if parentUSBPath not in self.playerStationDictionary:
+            return None
+        return self.playerStationDictionary[parentUSBPath].connectedDraxboard
+
+    def get_bill_acceptor_from_player_station_hash(self, playerStationHash):
+        parentUSBPath = self.get_parent_usb_path_from_player_station_hash(playerStationHash)
+        if  parentUSBPath == None:
+            return None
+        if parentUSBPath not in self.playerStationDictionary:
+            return None
+        return self.playerStationDictionary[parentUSBPath].connectedBillAcceptor
+
+    def get_printer_from_player_station_hash(self, playerStationHash):
+        parentUSBPath = self.get_parent_usb_path_from_player_station_hash(playerStationHash)
+        if  parentUSBPath == None:
+            return None
+        if parentUSBPath not in self.playerStationDictionary:
+            return None
+        return self.playerStationDictionary[parentUSBPath].connectedPrinter
+
+    def get_joystick_from_player_station_hash(self, playerStationHash):
+        parentUSBPath = self.get_parent_usb_path_from_player_station_hash(playerStationHash)
+        if  parentUSBPath == None:
+            return None
+        if parentUSBPath not in self.playerStationDictionary:
+            return None
+        return self.playerStationDictionary[parentUSBPath].connectedJoystick
+        
+    #endregion get device methods
 
     #region Contains Methods
     """
