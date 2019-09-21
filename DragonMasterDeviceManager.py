@@ -231,8 +231,9 @@ class DragonMasterDeviceManager:
         if isinstance(deviceThatWasAdded, DragonMasterSerialDevice.Omnidongle):
             deviceTypeID = DragonMasterDeviceManager.OMNI_EVENT
             pass
-        
-        print ("Device Added ID: " + str(deviceTypeID))
+        self.add_event_to_send(DragonMasterDeviceManager.DEVICE_CONNECTED, [deviceTypeID], self.get_player_station_hash_for_device(deviceThatWasAdded))
+        return
+        # print ("Device Added ID: " + str(deviceTypeID))
 
     """
     If a device was removed we should call this method, so that we appropriately notify our Unity Applcation
@@ -254,7 +255,9 @@ class DragonMasterDeviceManager:
         if isinstance(deviceThatWasRemoved, DragonMasterSerialDevice.Omnidongle):
             deviceTypeID = DragonMasterDeviceManager.OMNI_EVENT
             pass
-        print ("Device Removed ID: " + str(deviceTypeID))
+        self.add_event_to_send(DragonMasterDeviceManager.DEVICE_DISCONNECTED, [deviceTypeID], self.get_player_station_hash_for_device(deviceThatWasRemoved))
+        # print ("Device Removed ID: " + str(deviceTypeID))
+        return
 
 
     """
