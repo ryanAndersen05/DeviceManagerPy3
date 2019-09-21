@@ -145,8 +145,6 @@ class Joystick(DragonMasterDevice):
                         adjustedValue = event.value
                         updatedAxes = (self.currentAxes[0], adjustedValue)
                         self.currentAxes = updatedAxes
-                if self.currentAxes != self.lastSentAxes:
-                    self.lastSentAxes = self.currentAxes
                     # print (self.currentAxes)
         except Exception as e:
             print ("There was an error with our joystick connection")

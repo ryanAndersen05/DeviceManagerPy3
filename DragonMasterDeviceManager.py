@@ -205,6 +205,7 @@ class DragonMasterDeviceManager:
             self.allConnectedDevices.append(deviceToAdd)
             self.add_new_device_to_player_station_dictionary(deviceToAdd)
             self.send_device_connected_event(deviceToAdd)
+            
             print (deviceToAdd.to_string() + " was successfully added to our device manager")
         else:
             deviceToAdd.disconnect_device()#We will run a disconnect device to ensure that we fully disconnect all processes that may be running in our device
@@ -233,6 +234,7 @@ class DragonMasterDeviceManager:
         if isinstance(deviceThatWasAdded, DragonMasterSerialDevice.Omnidongle):
             deviceTypeID = DragonMasterDeviceManager.OMNI_EVENT
             pass
+        
         self.add_event_to_send(DragonMasterDeviceManager.DEVICE_CONNECTED, [deviceTypeID], self.get_player_station_hash_for_device(deviceThatWasAdded))
         return
         # print ("Device Added ID: " + str(deviceTypeID))
@@ -690,6 +692,13 @@ class DragonMasterDeviceManager:
 #endregion Contains Methods
 
 #region helper classes
+
+    def check_for_joystick_events(self):
+        for key in self.playerStationDictionary:
+            if self.playerStationDictionary[key].connectedJoystick != None:
+                self.playerStationDictionary[key].connectedJoystick.send_updated_joystick_to_unity_application()
+
+
 """
 This class acts as a container of all the devices that are connected to this device
 """
@@ -737,8 +746,8 @@ class TCPManager:
         self.tcpEventQueue = queue.Queue()#Queue of events that we want to send to Unity
 
         #REMEBER TO UNCOMMENT
-        # self.start_new_socket_receive_thread()
-        # self.start_new_socket_send_thread()
+        self.start_new_socket_receive_thread()
+        self.start_new_socket_send_thread()
         self.deviceManager = deviceManager
         
 
@@ -800,6 +809,7 @@ class TCPManager:
                     #     print (convertedByteArrayToSend)
                     conn.send(convertedByteArrayToSend)
                     conn.close()
+                    self.deviceManager.check_for_joystick_events()
                 socketSend.close()
             except Exception as e:
                 print ("Error for socket send")
@@ -898,8 +908,8 @@ output: [0x00, 0x00, 0x30, 0x1a]
 """
 def convert_value_to_byte_array(valueToConvert, numberOfBytes=4):
     convertedByteArray = []
-    for i in range(numberOfBytes - 1, 0, -1):
-        byteVal = ((valueToConvert >> (i * 8))& 0xff)
+    for i in range(numberOfBytes - 1, -1, -1):
+        byteVal = ((valueToConvert >> (i * 8)) & 0xff)
         convertedByteArray.append(byteVal)
 
     return convertedByteArray
