@@ -758,8 +758,8 @@ class Draxboard(SerialDevice):
         if inputPacket == None or len(inputPacket) < Draxboard.INPUT_EVENT_SIZE or inputPacket[0] != Draxboard.INPUT_EVENT_ID:
             print ("Invalid Input Event Packet. Please Be sure you are correctly interpreting our input packets")
             return
-        inputPacketToSend = [DragonMasterDeviceManager.DragonMasterDeviceManager.DRAX_INPUT_EVENT, inputPacket[Draxboard.INPUT_INDEX], inputPacket[Draxboard.DOOR_STATE_INDEX]]
-        self.dragonMasterDeviceManager.add_event_to_send(inputPacketToSend)
+        inputData = [inputPacket[Draxboard.INPUT_INDEX], inputPacket[Draxboard.DOOR_STATE_INDEX]]
+        self.dragonMasterDeviceManager.add_event_to_send(DragonMasterDeviceManager.DragonMasterDeviceManager.DRAX_INPUT_EVENT, inputData, self.playerStationHash)
         return
 
     """
@@ -831,8 +831,8 @@ class Draxboard(SerialDevice):
     Sends a packet to our TCP Manager that contains the output state of the draxboard
     """
     def send_current_drax_output_state(self, byte1, byte2):
-        packetToSend = [DragonMasterDeviceManager.DragonMasterDeviceManager.DRAX_OUTPUT_EVENT, byte1, byte2]
-        self.dragonMasterDeviceManager.add_event_to_send(packetToSend)
+        packetToSend = [byte1, byte2]
+        self.dragonMasterDeviceManager.add_event_to_send(DragonMasterDeviceManager.DragonMasterDeviceManager.DRAX_OUTPUT_EVENT, packetToSend, self.playerStationHash)
         return
 
         
@@ -1012,11 +1012,10 @@ class Omnidongle(SerialDevice):
         
         responsePacket = self.write_serial_wait_for_read(self, packetToSend, minBytesToRead=7, maxMillisecondsToWait=2000, delayBeforeReadMilliseconds=25)
         if (responsePacket != None):
-            responsePacket.insert(0, DragonMasterDeviceManager.DragonMasterDeviceManager.OMNI_EVENT)
+            self.dragonMasterDeviceManager.add_event_to_send(DragonMasterDeviceManager.DragonMasterDeviceManager.OMNI_EVENT, responsePacket)#We send the response packet that our omnidongle returns after calculating the packet
         else:
             print ("Our response packet was returned as None")
             return
-        self.dragonMasterDeviceManager.add_event_to_send(responsePacket)#We send the response packet that our omnidongle returns after calculating the packet
         return
 
     def to_string(self):

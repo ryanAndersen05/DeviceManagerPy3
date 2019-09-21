@@ -149,8 +149,8 @@ class Joystick(DragonMasterDevice):
     """
     def send_updated_joystick_to_unity_application(self):
         if self.currentAxes != self.lastSentAxes:
-            byteArrayPacketToSend = bytearray([DragonMasterDeviceManager.DragonMasterDeviceManager.JOYSTICK_INPUT_EVENT, self.playerStationID, self.currentAxes[0], self.currentAxes[1]])
-            self.dragonMasterDeviceManager.add_event_to_send(byteArrayPacketToSend)
+            eventData = [self.currentAxes[0], self.currentAxes[1]]
+            self.dragonMasterDeviceManager.add_event_to_send(DragonMasterDeviceManager.DragonMasterDeviceManager.JOYSTICK_INPUT_EVENT, eventData, self.dragonMasterDeviceManager.get_player_station_hash_for_device(self))
             self.lastSentAxes = self.currentAxes
     pass
 

@@ -23,6 +23,7 @@ class DragonMasterDeviceManager:
     DEVICE_CONNECTED = 0x01
     DEVICE_DISCONNECTED = 0x02
     OMNI_EVENT = 0x03 #For messages that we send/receive to our omnidongle
+    RETRIEVE_CONNECTED_DEVICES = 0x04
 
     ##DRAX COMMANDS
     DRAX_ID = 0x10
@@ -88,6 +89,7 @@ class DragonMasterDeviceManager:
         self.CONNECTED_OMNIDONGLE = None #Since there should only be one omnidongle in our machine, we will only search until we find the first connection
         self.allConnectedDevices = [] #(DragonMasterDevice)
         self.playerStationDictionary = {}#Key: Parent USB Device Path (string) | Value: Player Station (PlayerStation)
+        self.playerStationHashToParentDevicePath = {}#Key: Hash Value (uint) | Value: Parent USB Device Path (string)
         
 
         self.searchingForDevices = False
@@ -229,7 +231,9 @@ class DragonMasterDeviceManager:
         if isinstance(deviceThatWasAdded, DragonMasterSerialDevice.Omnidongle):
             deviceTypeID = DragonMasterDeviceManager.OMNI_EVENT
             pass
-        print ("Device Added ID: " + str(deviceTypeID))
+        self.add_event_to_send(DragonMasterDeviceManager.DEVICE_CONNECTED, [deviceTypeID], self.get_player_station_hash_for_device(deviceThatWasAdded))
+        return
+        # print ("Device Added ID: " + str(deviceTypeID))
 
     """
     If a device was removed we should call this method, so that we appropriately notify our Unity Applcation
@@ -251,7 +255,9 @@ class DragonMasterDeviceManager:
         if isinstance(deviceThatWasRemoved, DragonMasterSerialDevice.Omnidongle):
             deviceTypeID = DragonMasterDeviceManager.OMNI_EVENT
             pass
-        print ("Device Removed ID: " + str(deviceTypeID))
+        self.add_event_to_send(DragonMasterDeviceManager.DEVICE_DISCONNECTED, [deviceTypeID], self.get_player_station_hash_for_device(deviceThatWasRemoved))
+        # print ("Device Removed ID: " + str(deviceTypeID))
+        return
 
 
     """
@@ -278,6 +284,7 @@ class DragonMasterDeviceManager:
             elif isinstance(deviceToAdd, DragonMasterSerialDevice.Draxboard):
                 previouslyConnectedDevice = self.playerStationDictionary[deviceToAdd.deviceParentPath].connectedDraxboard
                 self.playerStationDictionary[deviceToAdd.deviceParentPath].connectedDraxboard = deviceToAdd
+                self.playerStationHashToParentDevicePath[deviceToAdd.playerStationHash] = deviceToAdd.deviceParentPath
 
             # print (deviceToAdd.deviceParentPath)
             print (self.playerStationDictionary[deviceToAdd.deviceParentPath].to_string())
@@ -358,15 +365,193 @@ class DragonMasterDeviceManager:
 
         return playerStation.connectedDraxboard.playerStationHash
 
+    """
+
+    """
+    def get_parent_usb_path_from_player_station_hash(self, pStationHash):
+        if pStationHash in self.playerStationHashToParentDevicePath:
+            return self.playerStationHashToParentDevicePath[pStationHash]
+        return None
+
     #endregion Device Management
+
+
+    #region TCP Received Data Events
+
+
+
+
+    """
+    This method will be called to interpret all the packets that we receive from our Unity application
+    """
+    def interpret_event_from_unity(self, eventMessage):
+        if eventMessage == None or len(eventMessage) <= 0:
+            print ("The event message that was passed in was empty...")
+            return
+
+
+        if eventMessage == DragonMasterDeviceManager.RETRIEVE_CONNECTED_DEVICES:
+            self.on_retrieve_connected_devices()
+            return
+        elif eventMessage == DragonMasterDeviceManager.STATUS_FROM_UNITY:
+            self.on_status_from_unity()
+            return
+        elif eventMessage == DragonMasterDeviceManager.OMNI_EVENT:
+            self.on_omnidongle_event_received(eventMessage)
+            return
+        
+        #All event functions below this poinr need to have a hash
+        if len(eventMessage) < 5:
+            print ("The event message was too short...")
+            return 
+        playerStationHash = convert_byte_array_to_value(eventMessage[1:4])
+        #Drax Outputs
+        if eventMessage == DragonMasterDeviceManager.DRAX_HARD_METER_EVENT:
+            self.on_drax_hard_meter_event(playerStationHash, eventMessage[5:])
+            return
+        elif eventMessage == DragonMasterDeviceManager.DRAX_OUTPUT_EVENT:
+            self.on_drax_output_event(playerStationHash, eventMessage[5:])
+            return
+        elif eventMessage == DragonMasterDeviceManager.DRAX_OUTPUT_BIT_ENABLE_EVENT:
+            self.on_drax_output_bit_enable_event(playerStationHash, eventMessage[5:])
+            return
+        elif eventMessage == DragonMasterDeviceManager.DRAX_OUTPUT_BIT_DISABLE_EVENT:
+            self.on_drax_output_bit_disable_event(playerStationHash, eventMessage[5:])
+            return
+
+        #Printer Outputs
+        elif eventMessage == DragonMasterDeviceManager.PRINTER_CASHOUT_TICKET:
+            self.on_print_cashout_ticket_event(playerStationHash, eventMessage[5:])
+            return
+        elif eventMessage == DragonMasterDeviceManager.PRINTER_AUDIT_TICKET:
+            self.on_print_audit_ticket_event(playerStationHash, eventMessage[5:])
+            return
+        elif eventMessage == DragonMasterDeviceManager.PRINTER_CODEX_TICKET:
+            self.on_print_codex_ticket_event(playerStationHash, eventMessage[5:])
+            return
+        elif eventMessage == DragonMasterDeviceManager.PRINTER_TEST_TICKET:
+            self.on_print_test_ticket_event(playerStationHash, eventMessage[5:])
+            return
+            
+        #Bill Acceptor Outputs
+        elif eventMessage == DragonMasterDeviceManager.BA_IDLE_EVENT:
+            self.on_ba_idle_event(playerStationHash, eventMessage[5:])
+            return
+        elif eventMessage == DragonMasterDeviceManager.BA_INHIBIT_EVENT:
+            self.on_ba_inhibit_event(playerStationHash, eventMessage[5:])
+            return
+        elif eventMessage == DragonMasterDeviceManager.BA_RESET_EVENT:
+            self.on_ba_reset_event(playerStationHash, eventMessage[5:])
+            return
+        elif eventMessage == DragonMasterDeviceManager.BA_ACCEPT_BILL_EVENT:
+            self.on_ba_accept_bill_event(playerStationHash, eventMessage[5:])
+            return
+        elif eventMessage == DragonMasterDeviceManager.BA_REJECT_BILL_EVENT:
+            self.on_ba_reject_bill_event(playerStationHash, eventMessage[5:])
+            return
+
+    """
+    This will send all the currently connected devices to our unity application. Helpful if our game restarts while the machine is still running
+    """
+    def on_retrieve_connected_devices(self):
+        for dev in self.allConnectedDevices:
+            self.send_device_connected_event(dev)
+        return
+
+    """
+    We call this method whenever we receive a message from unity telling us that we are completely connected
+    """
+    def on_status_from_unity(self):
+
+        return
+
+    """
+    Sends an event to the current connected Omnidongle device
+    """
+    def on_omnidongle_event_received(self, eventMessage):
+        if DragonMasterDeviceManager.CONNECTED_OMNIDONGLE != None:
+            DragonMasterDeviceManager.CONNECTED_OMNIDONGLE.send_data_to_omnidongle(eventMessage[1:])
+        return
+
+    #region draxboard tcp events
+
+    def on_drax_hard_meter_event(self, playerStationHash, eventData):
+        
+        return
+
+    def on_drax_output_event(self, playerStationHash, eventData):
+
+        return
+
+    def on_drax_output_bit_enable_event(self, playerStationHash, eventData):
+
+        return
+
+    def on_drax_output_bit_disable_event(self, playerStationHash, eventData):
+
+        return
+    #endregion draxboard tcp events
+
+    #region bill acceptor tcp events
+    def on_ba_idle_event(self, playerSationHash, eventData):
+
+        return
+
+    def on_ba_inhibit_event(self, playerStationHash, eventData):
+
+        return
+
+    def on_ba_reset_event(self, playerStationHash, eventData):
+
+        return
+
+    def on_ba_accept_bill_event(self, playerStationHash, eventData):
+
+        return
+
+    def on_ba_reject_bill_event(self, playerStationHash, eventData):
+
+        return
+    #endregion bill acceptor tcp events
+
+    #region printer tcp events
+    def on_print_cashout_ticket_event(self, playerStationHash, eventData):
+
+        return
+
+    def on_print_codex_ticket_event(self, playerStationHash, eventData):
+
+        return
+
+    def on_print_audit_ticket_event(self, playerStationHash, eventData):
+
+        return
+
+    def on_print_test_ticket_event(self, eventData):
+
+        return
+
+    #endregion printer tcp events
+
+    #endregion TCP Received Data Events
 
     #region TCP Communication
     """
     Queue up an event to send to our Unity Application. This should always be of the type
     byteArray
+
+    inputs:
+    eventID - the event id of the packet. This is the byte that defines the action that will be taken upon being received by our unity application
+    eventData - any required data for the packet we are sending
+    playerStationHash - if value is left as none it will not be added to the packet. But devices that are associated with a specific player station
     """
-    def add_event_to_send(self, eventToSend):
-        self.tcpManager.add_event_to_send(eventToSend)
+    def add_event_to_send(self, eventID, eventData, playerStationHash = None):
+        messageToSend = []
+        messageToSend.append(eventID)
+        if playerStationHash != None:
+            messageToSend += convert_value_to_byte_array(playerStationHash, numberOfBytes=4)
+        messageToSend += eventData
+        self.tcpManager.add_event_to_send(messageToSend)
         return
 
     """
@@ -380,7 +565,7 @@ class DragonMasterDeviceManager:
             return
 
         for event in eventList:
-            print (event)
+            self.interpret_event_from_unity(event)
             pass
         return
         
@@ -492,14 +677,13 @@ class TCPManager:
 
 
     """
-    Be sure that the event that is passed through is of the type bytearray
+    This enqueues an event to send to our unity application
     """
-    def add_event_to_send(self, eventPacketToSend):
-        if (eventPacketToSend == None):
-            print ("The event added was null.")
+    def add_event_to_send(self, messageToQueueForSend):
+        if messageToQueueForSend == None:
+            print("message to send was none... what happened")
             return
-        self.tcpEventQueue.put(eventPacketToSend)
-        
+        self.tcpEventQueue.put(messageToQueueForSend)
         return
 
     """
@@ -545,8 +729,8 @@ class TCPManager:
                         bytesToSend = bytesToSend + eventToAdd
                         #print (bytesToSend)
                     convertedByteArrayToSend = bytearray(bytesToSend)
-                    if (len(bytesToSend) > 0):
-                        print (convertedByteArrayToSend)
+                    # if (len(bytesToSend) > 0):
+                    #     print (convertedByteArrayToSend)
                     conn.send(convertedByteArrayToSend)
                     conn.close()
                 socketSend.close()
@@ -602,28 +786,53 @@ class TCPManager:
     this will break up our events into a list of byte arrays that can be read as events. We will remove the 
     byte that shows the size of the packet. 
     """
-    def separate_events_received_into_list(self, eventReceived):
-        if (len(eventReceived) == 0):
+    def separate_events_received_into_list(self, fullEventData):
+        if (len(fullEventData) == 0):
             return
         eventMessages = []
-        while (len(eventReceived) > 0):
-            endOfMessage = 1 + eventReceived[0]
-            if (len(eventReceived) > endOfMessage):
-                endOfMessage = len(eventReceived)
-            eventMessages.append(eventReceived[1:endOfMessage])
-            eventReceived = eventReceived[endOfMessage - 1:]
+        while (len(fullEventData) > 0):
+            endOfMessage = 1 + fullEventData[0]
+            if (len(fullEventData) > endOfMessage):
+                endOfMessage = len(fullEventData)
+            eventMessages.append(fullEventData[1:endOfMessage])
+            fullEventData = fullEventData[endOfMessage - 1:]
+        
+        for eventMessage in eventMessages:
+            self.deviceManager.interpret_event_from_unity(eventMessage)
         return
         
 
     pass
 
 """
+Converts a byte array to a value using little endian
+
+NOTE: Little Endian -
+input:[0x01, 0x23, 0x45, 0x67]
+output:0x01234567
+
+"""
+def convert_byte_array_to_value(byteArray):
+    if len(byteArray) < 4:
+        print("The byte array that was passed in did not meet our 4 byte requirement")
+        return
+        
+    uintValue = 0
+    for i in range(len(byteArray)):
+        uintValue += (byteArray[i] << (i * 8))
+    return uintValue
+
+
+"""
 This method converts a whole number value into a byte array. This should come in easy for TCP commands
+
+input: valueToConvert = 0x301a, numberOfBytes = 4
+output: [0x00, 0x00, 0x30, 0x1a]
 """
 def convert_value_to_byte_array(valueToConvert, numberOfBytes=4):
     convertedByteArray = []
-    for i in range(numberOfBytes):
-        byteVal = (valueToConvert & (0xff << (i * 8)))
+    for i in range(numberOfBytes).reverse():
+        byteVal = ((valueToConvert >> (i * 8))& 0xff)
         convertedByteArray.append(byteVal)
 
     return convertedByteArray
