@@ -404,49 +404,50 @@ class DragonMasterDeviceManager:
         if len(eventMessage) < 5:
             print ("The event message was too short...")
             return 
+        playerStationHash = convert_byte_array_to_value(eventMessage[1:4])
         #Drax Outputs
         if eventMessage == DragonMasterDeviceManager.DRAX_HARD_METER_EVENT:
-            self.on_drax_hard_meter_event(eventMessage)
+            self.on_drax_hard_meter_event(playerStationHash, eventMessage[5:])
             return
         elif eventMessage == DragonMasterDeviceManager.DRAX_OUTPUT_EVENT:
-            self.on_drax_output_event(eventMessage)
+            self.on_drax_output_event(playerStationHash, eventMessage[5:])
             return
         elif eventMessage == DragonMasterDeviceManager.DRAX_OUTPUT_BIT_ENABLE_EVENT:
-            self.on_drax_output_bit_enable_event(eventMessage)
+            self.on_drax_output_bit_enable_event(playerStationHash, eventMessage[5:])
             return
         elif eventMessage == DragonMasterDeviceManager.DRAX_OUTPUT_BIT_DISABLE_EVENT:
-            self.on_drax_output_bit_disable_event(eventMessage)
+            self.on_drax_output_bit_disable_event(playerStationHash, eventMessage[5:])
             return
 
         #Printer Outputs
         elif eventMessage == DragonMasterDeviceManager.PRINTER_CASHOUT_TICKET:
-            self.on_print_cashout_ticket_event(eventMessage)
+            self.on_print_cashout_ticket_event(playerStationHash, eventMessage[5:])
             return
         elif eventMessage == DragonMasterDeviceManager.PRINTER_AUDIT_TICKET:
-            self.on_print_audit_ticket_event(eventMessage)
+            self.on_print_audit_ticket_event(playerStationHash, eventMessage[5:])
             return
         elif eventMessage == DragonMasterDeviceManager.PRINTER_CODEX_TICKET:
-            self.on_print_codex_ticket_event(eventMessage)
+            self.on_print_codex_ticket_event(playerStationHash, eventMessage[5:])
             return
         elif eventMessage == DragonMasterDeviceManager.PRINTER_TEST_TICKET:
-            self.on_print_test_ticket_event(eventMessage)
+            self.on_print_test_ticket_event(playerStationHash, eventMessage[5:])
             return
             
         #Bill Acceptor Outputs
         elif eventMessage == DragonMasterDeviceManager.BA_IDLE_EVENT:
-            self.on_ba_idle_event(eventMessage)
+            self.on_ba_idle_event(playerStationHash, eventMessage[5:])
             return
         elif eventMessage == DragonMasterDeviceManager.BA_INHIBIT_EVENT:
-            self.on_ba_inhibit_event(eventMessage)
+            self.on_ba_inhibit_event(playerStationHash, eventMessage[5:])
             return
         elif eventMessage == DragonMasterDeviceManager.BA_RESET_EVENT:
-            self.on_ba_reset_event(eventMessage)
+            self.on_ba_reset_event(playerStationHash, eventMessage[5:])
             return
         elif eventMessage == DragonMasterDeviceManager.BA_ACCEPT_BILL_EVENT:
-            self.on_ba_accept_bill_event(eventMessage)
+            self.on_ba_accept_bill_event(playerStationHash, eventMessage[5:])
             return
         elif eventMessage == DragonMasterDeviceManager.BA_REJECT_BILL_EVENT:
-            self.on_ba_reject_bill_event(eventMessage)
+            self.on_ba_reject_bill_event(playerStationHash, eventMessage[5:])
             return
 
     """
@@ -473,59 +474,60 @@ class DragonMasterDeviceManager:
         return
 
     #region draxboard tcp events
-    def on_drax_hard_meter_event(self, eventMessage):
+
+    def on_drax_hard_meter_event(self, playerStationHash, eventData):
+        
+        return
+
+    def on_drax_output_event(self, playerStationHash, eventData):
 
         return
 
-    def on_drax_output_event(self, eventMessage):
+    def on_drax_output_bit_enable_event(self, playerStationHash, eventData):
 
         return
 
-    def on_drax_output_bit_enable_event(self, eventMessage):
-
-        return
-
-    def on_drax_output_bit_disable_event(self, eventMessage):
+    def on_drax_output_bit_disable_event(self, playerStationHash, eventData):
 
         return
     #endregion draxboard tcp events
 
     #region bill acceptor tcp events
-    def on_ba_idle_event(self, eventMessage):
+    def on_ba_idle_event(self, playerSationHash, eventData):
 
         return
 
-    def on_ba_inhibit_event(self, eventMessage):
+    def on_ba_inhibit_event(self, playerStationHash, eventData):
 
         return
 
-    def on_ba_reset_event(self, eventMessage):
+    def on_ba_reset_event(self, playerStationHash, eventData):
 
         return
 
-    def on_ba_accept_bill_event(self, eventMessage):
+    def on_ba_accept_bill_event(self, playerStationHash, eventData):
 
         return
 
-    def on_ba_reject_bill_event(self, eventMessage):
+    def on_ba_reject_bill_event(self, playerStationHash, eventData):
 
         return
     #endregion bill acceptor tcp events
 
     #region printer tcp events
-    def on_print_cashout_ticket_event(self, eventMessage):
+    def on_print_cashout_ticket_event(self, playerStationHash, eventData):
 
         return
 
-    def on_print_codex_ticket_event(self, eventMessage):
+    def on_print_codex_ticket_event(self, playerStationHash, eventData):
 
         return
 
-    def on_print_audit_ticket_event(self, eventMessage):
+    def on_print_audit_ticket_event(self, playerStationHash, eventData):
 
         return
 
-    def on_print_test_ticket_event(self, eventMessage):
+    def on_print_test_ticket_event(self, eventData):
 
         return
 
@@ -727,8 +729,8 @@ class TCPManager:
                         bytesToSend = bytesToSend + eventToAdd
                         #print (bytesToSend)
                     convertedByteArrayToSend = bytearray(bytesToSend)
-                    if (len(bytesToSend) > 0):
-                        print (convertedByteArrayToSend)
+                    # if (len(bytesToSend) > 0):
+                    #     print (convertedByteArrayToSend)
                     conn.send(convertedByteArrayToSend)
                     conn.close()
                 socketSend.close()
