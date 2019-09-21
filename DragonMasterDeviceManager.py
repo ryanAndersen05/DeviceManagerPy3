@@ -362,6 +362,14 @@ class DragonMasterDeviceManager:
 
         return playerStation.connectedDraxboard.playerStationHash
 
+    """
+
+    """
+    def get_parent_usb_path_from_player_station_hash(self, pStationHash):
+        if pStationHash in self.playerStationHashToParentDevicePath:
+            return self.playerStationHashToParentDevicePath[pStationHash]
+        return None
+
     #endregion Device Management
 
 
@@ -525,9 +533,19 @@ class DragonMasterDeviceManager:
     """
     Queue up an event to send to our Unity Application. This should always be of the type
     byteArray
+
+    inputs:
+    eventID - the event id of the packet. This is the byte that defines the action that will be taken upon being received by our unity application
+    eventData - any required data for the packet we are sending
+    playerStationHash - if value is left as none it will not be added to the packet. But devices that are associated with a specific player station
     """
-    def add_event_to_send(self, eventToSend):
-        self.tcpManager.add_event_to_send(eventToSend)
+    def add_event_to_send(self, eventID, eventData, playerStationHash = None):
+        messageToSend = []
+        messageToSend.append(eventID)
+        if playerStationHash != None:
+            messageToSend += convert_value_to_byte_array(playerStationHash, numberOfBytes=4)
+        messageToSend += eventData
+        self.tcpManager.add_event_to_send(messageToSend)
         return
 
     """
@@ -541,7 +559,7 @@ class DragonMasterDeviceManager:
             return
 
         for event in eventList:
-            print (event)
+            self.interpret_event_from_unity(event)
             pass
         return
         
@@ -653,20 +671,13 @@ class TCPManager:
 
 
     """
-    Be sure that the event that is passed through is of the type bytearray
+    This enqueues an event to send to our unity application
     """
-    def add_event_to_send(self, packetEventID, eventDataToSend, devicePlayerStationIDHash = None):
-        if (eventDataToSend == None or packetEventID == None):
-            print ("The event added was null.")
+    def add_event_to_send(self, messageToQueueForSend):
+        if messageToQueueForSend == None:
+            print("message to send was none... what happened")
             return
-        deviceStatHashArray = []
-        if devicePlayerStationIDHash != None:
-            devicePlayerStationIDHash = convert_value_to_byte_array(devicePlayerStationIDHash)
-        eventPacketToSend = [packetEventID] + deviceStatHashArray + eventDataToSend
-
-        
-        self.tcpEventQueue.put(eventPacketToSend)
-        
+        self.tcpEventQueue.put(messageToQueueForSend)
         return
 
     """
