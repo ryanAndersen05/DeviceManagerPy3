@@ -593,6 +593,9 @@ class DragonMasterDeviceManager:
     pass
 
     #region get device methods
+    """
+    Returns a draxboard using the player station hash
+    """
     def get_draxboard_from_player_station_hash(self, playerStationHash):
         parentUSBPath = self.get_parent_usb_path_from_player_station_hash(playerStationHash)
         if  parentUSBPath == None:
@@ -601,6 +604,9 @@ class DragonMasterDeviceManager:
             return None
         return self.playerStationDictionary[parentUSBPath].connectedDraxboard
 
+    """
+    Returns a bill acceptor object using the player station hash
+    """
     def get_bill_acceptor_from_player_station_hash(self, playerStationHash):
         parentUSBPath = self.get_parent_usb_path_from_player_station_hash(playerStationHash)
         if  parentUSBPath == None:
@@ -609,6 +615,9 @@ class DragonMasterDeviceManager:
             return None
         return self.playerStationDictionary[parentUSBPath].connectedBillAcceptor
 
+    """
+    Returns a printer device object using the player station hash
+    """
     def get_printer_from_player_station_hash(self, playerStationHash):
         parentUSBPath = self.get_parent_usb_path_from_player_station_hash(playerStationHash)
         if  parentUSBPath == None:
@@ -617,6 +626,9 @@ class DragonMasterDeviceManager:
             return None
         return self.playerStationDictionary[parentUSBPath].connectedPrinter
 
+    """
+    Returns a joystick device object using the palyer station hash
+    """
     def get_joystick_from_player_station_hash(self, playerStationHash):
         parentUSBPath = self.get_parent_usb_path_from_player_station_hash(playerStationHash)
         if  parentUSBPath == None:
