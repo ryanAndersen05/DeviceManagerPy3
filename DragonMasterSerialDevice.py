@@ -269,6 +269,7 @@ class DBV400(SerialDevice):
     UidSet = False # UID of this device has been set. If this is true, 
     State = NOT_INIT_STATE # Current state of the DBV
     AutoReject = False # If set to true, immediately reject any bills inserted into the DBV.
+    AmountStored = 0 # Current amount stored the 
     #endregion
 
     def __init__(self, deviceManager):
@@ -370,6 +371,7 @@ class DBV400(SerialDevice):
         if message[10] == 0x03 and message[11] == 0x11:
             self.State = DBV400.ACTIVE_STATE
 
+        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT,self.State)
         print("New State: " + str(self.State))
     
     """ We have received a message that the DBV has started (or restarted) and needs to be acknowledged """
@@ -380,6 +382,7 @@ class DBV400(SerialDevice):
         self.UidSet = False
         self.State = DBV400.POWER_UP_NACK_STATE
         self.send_dbv_message(powerUpAck)
+        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT,self.State)
         sleep(.3)
         self.get_dbv_state()
     
@@ -391,12 +394,14 @@ class DBV400(SerialDevice):
         powerUpAck[5] = message[5]
         self.State = DBV400.POWER_UP_ACCEPTOR_NACK_STATE
         self.send_dbv_message(powerUpAck)
+        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT,self.State)
         self.get_dbv_state()
 
     """ DBV has successfully received a power up acknowledgement and is ready to proceed with the power up process """
     def on_power_up_success(self):
         print("power up success")
         self.State = DBV400.POWER_UP_STATE
+        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT,self.State)
         self.power_up_dbv()
     
     """ The last message sent to the DBV contained the incorrect UID """
@@ -405,6 +410,7 @@ class DBV400(SerialDevice):
         self.State = DBV400.UNSUPPORTED_STATE
         self.UID = message[4]
         self.UidSet = True
+        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT,self.State)
         self.get_dbv_state()
 
 
@@ -428,6 +434,7 @@ class DBV400(SerialDevice):
         inhibitMessage[5] = message[5]
         self.State = DBV400.INHIBIT_STATE
         self.send_dbv_message(inhibitMessage)
+        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT,self.State)
 
     """ Idle request successfully received by the DBV """
     def on_idle_request_received(self):
@@ -439,6 +446,7 @@ class DBV400(SerialDevice):
         idleMessage[5] = message[5]
         self.State = DBV400.IDLE_STATE
         self.send_dbv_message(idleMessage)
+        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT,self.State)
 
     """ A DBV has been inserted into DBV. We need to send an escrow message to confirm this """
     """ Our current workflow is to tell the DBV to hold the bill for 60 seconds while deciding whether to stack or reject """
@@ -447,22 +455,28 @@ class DBV400(SerialDevice):
         escrowMessage[5] = message[5]
         self.send_dbv_message(escrowMessage)
         print("Bill inserted: " + str(message[11]))
+        self.AmountStored = message[11]
         if self.AutoReject:
             self.send_dbv_message(DBV400.REJECT_COMMAND)
         else :
             self.send_dbv_message(DBV400.HOLD_BILL)
+        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_INSERTED_EVENT,self.AmountStored)
     
     """ A bil inserted to the DBV was rejected due to an error (invalid bill, invalid state, etc.) """
     def on_bill_rejected(self, message):
         rejectAck = DBV400.REJECT_ACK
         rejectAck[5] = message[5]
         self.send_dbv_message(rejectAck)
+        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_REJECTED_EVENT,self.AmountStored)
+        self.AmountStored = 0
     
     """ A bill was returned by the DBV due to a reject command or powering up with a bill inserted """
     def on_bill_returned(self, message):
         returnAck = DBV400.RETURN_ACK
         returnAck[5] = message[5]
         self.send_dbv_message(returnAck)
+        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_RETURNED_EVENT,self.AmountStored)
+        self.AmountStored = 0
 
     """ A bill was successfully held in the bill acceptor from a command """
     def on_bill_held(self):
@@ -478,6 +492,8 @@ class DBV400(SerialDevice):
         vendValidAck = DBV400.VEND_VALID_ACK
         vendValidAck[5] = message[5]
         self.send_dbv_message(vendValidAck)
+        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_ACCEPTED_EVENT,self.AmountStored)
+        self.AmountStored = 0
 
     """ A reject bill command was successfully processed """
     def on_bill_reject_request_received(self):
@@ -489,6 +505,7 @@ class DBV400(SerialDevice):
         noteStayAck[5] = message[5]
         self.send_dbv_message(noteStayAck)
         self.State = DBV400.NOTE_STAY_STATE
+        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT,self.State)
     
     """ The DBV has reported an error. Ack this message and wait for the error clear message """
     def on_operation_error(self, message):
@@ -496,6 +513,7 @@ class DBV400(SerialDevice):
         opErrorAck[5] = message[5]
         self.send_dbv_message(opErrorAck)
         self.State = DBV400.ERROR_STATE
+        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT,self.State)
     
     """ A DBV error was cleared and the system is ready to be reset to resume normal operation """
     def on_operation_error_clear(self, message):
@@ -503,6 +521,7 @@ class DBV400(SerialDevice):
         clearAck[5] = message[5]
         self.send_dbv_message(clearAck)
         self.State = DBV400.CLEAR_STATE
+        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT,self.State)
     
     """ Process this error message to determine the specific error state """
     def on_error_state_received(self, message):
@@ -517,6 +536,7 @@ class DBV400(SerialDevice):
             else:
                 self.State = DBV400.ERROR_STATE
                 # let the operator reset from this error
+            self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT,self.State)
 
     #endregion
 
@@ -570,6 +590,11 @@ class DBV400(SerialDevice):
     """ Reject the current bill in the acceptor """
     def reject_bill(self):
         self.send_dbv_message(DBV400.REJECT_COMMAND)
+
+    def send_event_message(self, eventType, messageContent):
+        message = [messageContent]
+        playerStationHash = self.get_player_station_hash()
+        self.dragonMasterDeviceManager.add_event_to_send(eventType,message,playerStationHash)
 
     #endregion
 
