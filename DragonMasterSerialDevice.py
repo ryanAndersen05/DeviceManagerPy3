@@ -780,8 +780,8 @@ class Draxboard(SerialDevice):
     Sends a packet to our TCP Manager that contains the output state of the draxboard
     """
     def send_current_drax_output_state(self, byte1, byte2):
-        packetToSend = [DragonMasterDeviceManager.DragonMasterDeviceManager.DRAX_OUTPUT_EVENT, byte1, byte2]
-        self.dragonMasterDeviceManager.add_event_to_send(packetToSend)
+        packetToSend = [byte1, byte2]
+        self.dragonMasterDeviceManager.add_event_to_send(DragonMasterDeviceManager.DragonMasterDeviceManager.DRAX_OUTPUT_EVENT, packetToSend, self.playerStationHash)
         return
 
         
