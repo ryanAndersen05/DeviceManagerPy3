@@ -758,7 +758,7 @@ class Draxboard(SerialDevice):
     """
     Method that is used to increment the hard meters that are attached to our draxboard devices
     """
-    def increment_meter_ticks(self, ticksToSend, meterIDToIncrement):
+    def increment_meter_ticks(self, meterIDToIncrement, ticksToSend):
         try:
             if ticksToSend == 0:
                 return

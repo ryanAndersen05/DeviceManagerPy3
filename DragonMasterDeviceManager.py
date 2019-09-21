@@ -476,12 +476,12 @@ class DragonMasterDeviceManager:
     #region draxboard tcp events
 
     def on_drax_hard_meter_event(self, playerStationHash, eventData):
-        parentUSBPath = self.get_parent_usb_path_from_player_station_hash(playerStationHash)
-        if parentUSBPath == None:
+        draxboard = self.get_draxboard_from_player_station_hash(playerStationHash)
+        if draxboard == None:
             return
-        if parentUSBPath not in self.playerStationDictionary:
+        if len(eventData) < 2:
             return
-        
+        draxboard.increment_meter_ticks(eventData[0], eventData[1])        
         return
 
     def on_drax_output_event(self, playerStationHash, eventData):
