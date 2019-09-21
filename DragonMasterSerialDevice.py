@@ -556,11 +556,13 @@ class DBV400(SerialDevice):
 Class that maanages our Draxboard communication and state
 """
 class Draxboard(SerialDevice):
-    
+    #region command byte arrays
     REQUEST_STATUS = bytearray([0x01, 0x00, 0x01, 0x02])
     SET_OUTPUT_STATE = bytearray([0x04, 0x02, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00])
     DRAXBOARD_OUTPUT_ENABLE = bytearray([0x02, 0x05, 0x09, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x12])
     METER_INCREMENT = bytearray([0x09, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00])
+    READ_PENDING_METER = bytearray([0x0a, 0x00, 0x02, 0x01, 0x0d])
+    #endregion command byte arrays
 
     #region const varialbes
     ##METER INDEX 
@@ -700,6 +702,26 @@ class Draxboard(SerialDevice):
 
             
     #endregion Override Methods
+
+    def increment_meter_ticks(self, ticksToSend, meterIDToIncrement):
+        if ticksToSend == 0:
+            return
+        
+        incrementMeterCommand = self.METER_INCREMENT
+        incrementMeterCommand[3] = meterIDToIncrement
+
+        incrementMeterCommand[4] = (ticksToSend >> (8 * 0)) & 0xff
+        incrementMeterCommand[5] = (ticksToSend >> (8 * 1)) & 0xff
+
+        checkSum = self.calculate_checksum(incrementMeterCommand)
+        incrementMeterCommand[6] = checkSum
+
+        read = self.write_serial_check_for_input_events(incrementMeterCommand, Draxboard.METER_INCREMENT_ID, Draxboard.METER_INCREMENT_SIZE)
+
+        
+
+        return
+
     """
     Sets up and adds an input packet to our TCP queue, so that it can be sent at the next availability
     """
