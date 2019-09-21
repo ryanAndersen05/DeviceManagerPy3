@@ -754,23 +754,39 @@ class Draxboard(SerialDevice):
             
     #endregion Override Methods
 
+
+    """
+    Method that is used to increment the hard meters that are attached to our draxboard devices
+    """
     def increment_meter_ticks(self, ticksToSend, meterIDToIncrement):
-        if ticksToSend == 0:
-            return
-        
-        incrementMeterCommand = self.METER_INCREMENT
-        incrementMeterCommand[3] = meterIDToIncrement
+        try:
+            if ticksToSend == 0:
+                return
+            
+            incrementMeterCommand = self.METER_INCREMENT
+            incrementMeterCommand[3] = meterIDToIncrement
 
-        incrementMeterCommand[4] = (ticksToSend >> (8 * 0)) & 0xff
-        incrementMeterCommand[5] = (ticksToSend >> (8 * 1)) & 0xff
+            incrementMeterCommand[4] = (ticksToSend >> (8 * 0)) & 0xff
+            incrementMeterCommand[5] = (ticksToSend >> (8 * 1)) & 0xff
 
-        checkSum = self.calculate_checksum(incrementMeterCommand)
-        incrementMeterCommand[6] = checkSum
+            checkSum = self.calculate_checksum(incrementMeterCommand)
+            incrementMeterCommand[6] = checkSum
 
-        read = self.write_serial_check_for_input_events(incrementMeterCommand, Draxboard.METER_INCREMENT_ID, Draxboard.METER_INCREMENT_SIZE)
+            read = self.write_serial_check_for_input_events(incrementMeterCommand, Draxboard.METER_INCREMENT_ID, Draxboard.METER_INCREMENT_SIZE)
 
-        
+            readPendingMeterCommand = self.READ_PENDING_METER
 
+            readPendingMeterCommand[3] = meterIDToIncrement
+            readPendingMeterCommand[4] = self.calculate_checksum(readPendingMeterCommand)
+            firstResult = self.write_serial_check_for_input_events(readPendingMeterCommand, Draxboard.PENDING_METER_ID, Draxboard.PENDING_METER_SIZE)
+            sleep(.25)
+            secondResult = self.write_serial_check_for_input_events(readPendingMeterCommand, Draxboard.PENDING_METER_ID, Draxboard.PENDING_METER_SIZE)
+            meterResultFirst = (firstResult[4+1] << 8) + firstResult[4]
+            meterResultSecond = (secondResult[4+1] << 8) + firstResult[4]
+
+        except Exception as e:
+            print ("There was an error while sending our hard meter tick event")
+            print (e)
         return
 
     """
