@@ -23,6 +23,7 @@ class DragonMasterDeviceManager:
     DEVICE_CONNECTED = 0x01
     DEVICE_DISCONNECTED = 0x02
     OMNI_EVENT = 0x03 #For messages that we send/receive to our omnidongle
+    RETRIEVE_CONNECTED_DEVICES = 0x04
 
     ##DRAX COMMANDS
     DRAX_ID = 0x10
@@ -360,6 +361,61 @@ class DragonMasterDeviceManager:
 
     #endregion Device Management
 
+
+    #region TCP Received Data Events
+
+
+
+
+
+    def interpret_event_from_unity(self, eventMessage):
+        if eventMessage == None or len(eventMessage) <= 0:
+            print ("The event message that was passed in was empty...")
+            return
+
+        if eventMessage == DragonMasterDeviceManager.DRAX_HARD_METER_EVENT:
+
+            return
+        elif eventMessage == DragonMasterDeviceManager.DRAX_OUTPUT_EVENT:
+
+            return
+        elif eventMessage == DragonMasterDeviceManager.DRAX_OUTPUT_BIT_ENABLE_EVENT:
+
+            return
+        elif eventMessage == DragonMasterDeviceManager.DRAX_OUTPUT_BIT_DISABLE_EVENT:
+
+            return
+        elif eventMessage == DragonMasterDeviceManager.PRINTER_CASHOUT_TICKET:
+
+            return
+        elif eventMessage == DragonMasterDeviceManager.PRINTER_AUDIT_TICKET:
+
+            return
+        elif eventMessage == DragonMasterDeviceManager.PRINTER_CODEX_TICKET:
+
+            return
+        elif eventMessage == DragonMasterDeviceManager.BA_IDLE_EVENT:
+
+            return
+        elif eventMessage == DragonMasterDeviceManager.BA_INHIBIT_EVENT:
+
+            return
+        elif eventMessage == DragonMasterDeviceManager.BA_RESET_EVENT:
+
+            return
+        elif eventMessage == DragonMasterDeviceManager.BA_ACCEPT_BILL_EVENT:
+
+            return
+        elif eventMessage == DragonMasterDeviceManager.BA_REJECT_BILL_EVENT:
+
+            return
+
+
+
+
+
+    #endregion TCP Received Data Events
+
     #region TCP Communication
     """
     Queue up an event to send to our Unity Application. This should always be of the type
@@ -494,10 +550,16 @@ class TCPManager:
     """
     Be sure that the event that is passed through is of the type bytearray
     """
-    def add_event_to_send(self, eventPacketToSend):
-        if (eventPacketToSend == None):
+    def add_event_to_send(self, packetEventID, eventDataToSend, devicePlayerStationIDHash = None):
+        if (eventDataToSend == None or packetEventID == None):
             print ("The event added was null.")
             return
+        deviceStatHashArray = []
+        if devicePlayerStationIDHash != None:
+            devicePlayerStationIDHash = convert_value_to_byte_array(devicePlayerStationIDHash)
+        eventPacketToSend = [packetEventID] + deviceStatHashArray + eventDataToSend
+
+        
         self.tcpEventQueue.put(eventPacketToSend)
         
         return
@@ -602,28 +664,45 @@ class TCPManager:
     this will break up our events into a list of byte arrays that can be read as events. We will remove the 
     byte that shows the size of the packet. 
     """
-    def separate_events_received_into_list(self, eventReceived):
-        if (len(eventReceived) == 0):
+    def separate_events_received_into_list(self, fullEventData):
+        if (len(fullEventData) == 0):
             return
         eventMessages = []
-        while (len(eventReceived) > 0):
-            endOfMessage = 1 + eventReceived[0]
-            if (len(eventReceived) > endOfMessage):
-                endOfMessage = len(eventReceived)
-            eventMessages.append(eventReceived[1:endOfMessage])
-            eventReceived = eventReceived[endOfMessage - 1:]
+        while (len(fullEventData) > 0):
+            endOfMessage = 1 + fullEventData[0]
+            if (len(fullEventData) > endOfMessage):
+                endOfMessage = len(fullEventData)
+            eventMessages.append(fullEventData[1:endOfMessage])
+            fullEventData = fullEventData[endOfMessage - 1:]
+        
+        for eventMessage in eventMessages:
+            self.deviceManager.interpret_event_from_unity(eventMessage)
         return
         
 
     pass
 
 """
+
+"""
+def convert_byte_array_to_value(byteArray, valueByteCount):
+    if len(byteArray) < 4:
+        print("The byte array that was passed in did not meet our 4 byte requirement")
+        return
+        
+    uintValue = 0
+    for i in range(len(byteArray)):
+        uintValue += (byteArray[i] << (i * 8))
+    return uintValue
+
+
+"""
 This method converts a whole number value into a byte array. This should come in easy for TCP commands
 """
 def convert_value_to_byte_array(valueToConvert, numberOfBytes=4):
     convertedByteArray = []
-    for i in range(numberOfBytes):
-        byteVal = (valueToConvert & (0xff << (i * 8)))
+    for i in range(numberOfBytes).reverse():
+        byteVal = ((valueToConvert >> (i * 8))& 0xff)
         convertedByteArray.append(byteVal)
 
     return convertedByteArray
