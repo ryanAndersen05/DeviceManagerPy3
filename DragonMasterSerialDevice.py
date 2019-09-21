@@ -837,9 +837,9 @@ class Draxboard(SerialDevice):
         if toggleMessageType == 0:
             pass
             # self.draxOutputState = outputToggleu32
-        elif toggleMessageType == 1:
+        elif toggleMessageType == 1:#Output bit enable
             outputToggleu32 = self.draxOutputState | outputToggleu32
-        elif toggleMessageType == 2:
+        elif toggleMessageType == 2:#Output bit disable
             outputToggleu32 = self.draxOutputState & (~outputToggleu32)
         else:
             return None

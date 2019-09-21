@@ -485,15 +485,30 @@ class DragonMasterDeviceManager:
         return
 
     def on_drax_output_event(self, playerStationHash, eventData):
-
+        draxboard = self.get_draxboard_from_player_station_hash(playerStationHash)
+        if draxboard == None:
+            return
+        if len(eventData) < 2:
+            return
+        draxboard.toggle_output_state_of_drax(eventData[0] << 8 + eventData[1], 0)
         return
 
     def on_drax_output_bit_enable_event(self, playerStationHash, eventData):
-
+        draxboard = self.get_draxboard_from_player_station_hash(playerStationHash)
+        if draxboard == None:
+            return
+        if len(eventData) < 2:
+            return
+        draxboard.toggle_output_state_of_drax(eventData[0] << 8 + eventData[1], 1)
         return
 
     def on_drax_output_bit_disable_event(self, playerStationHash, eventData):
-
+        draxboard = self.get_draxboard_from_player_station_hash(playerStationHash)
+        if draxboard == None:
+            return
+        if len(eventData):
+            return
+        draxboard.toggle_output_state_of_drax(eventData[0] << 8 + eventData[1], 2)
         return
     #endregion draxboard tcp events
 
@@ -869,7 +884,7 @@ output: [0x00, 0x00, 0x30, 0x1a]
 """
 def convert_value_to_byte_array(valueToConvert, numberOfBytes=4):
     convertedByteArray = []
-    for i in range(numberOfBytes).reverse():
+    for i in range(numberOfBytes - 1, 0, -1):
         byteVal = ((valueToConvert >> (i * 8))& 0xff)
         convertedByteArray.append(byteVal)
 
