@@ -210,7 +210,7 @@ class Printer(DragonMasterDevice):
         return
 
     def start_device(self, deviceElement):
-        printerStateThread = threading.Thread(target=self.threaded_gather_printer_state)
+        printerStateThread = threading.Thread(target=self.check_for_printer_state_thread)
         printerStateThread.isDaemon = True
         printerStateThread.start()
 
@@ -493,15 +493,6 @@ class Printer(DragonMasterDevice):
     def print_codex_ticket(self, codexTicketData, whiteSpaceUnderTicket=6):
 
         return
-
-    def threaded_gather_printer_state(self):
-        
-        while(True and self.printerObject != None):
-            updatedPrinterState = self.get_updated_printer_state_and_paper_state()
-            if updatedPrinterState != self.currentState:
-                self.currentState = updatedPrinterState
-                print (self.currentState)
-            sleep(1)
 
     
 
