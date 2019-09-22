@@ -210,8 +210,10 @@ class Printer(DragonMasterDevice):
         while self.printerObject != None:
             try:
                 self.currentState = self.get_updated_printer_state_and_paper_state()
+                
                 if self.currentState != self.lastSentPrinterState:
                     self.dragonMasterDeviceManager.add_event_to_send(DragonMasterDeviceManager.DragonMasterDeviceManager.PRINTER_STATE_EVENT, [self.currentState[0], self.currentState[1]], self.get_player_station_hash())
+                    self.lastSentPrinterState = self.currentState
             except Exception as e:
                 print ("There was a problem getting the state of the printer")
                 print (e)

@@ -422,6 +422,7 @@ class DBV400(SerialDevice):
 
     """ Reset message was successfully received by the DBV """
     def on_reset_request_received(self):
+        self.AmountStored = 0
         pass
 
     """ Inhibit message was successfuly received by the DBV """ 

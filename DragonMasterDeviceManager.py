@@ -311,6 +311,7 @@ class DragonMasterDeviceManager:
             deviceToRemove.disconnect_device()
             self.remove_device_from_player_station_dictionary(deviceToRemove)
             self.allConnectedDevices.remove(deviceToRemove)
+            self.send_device_disconnected_event(deviceToRemove)
             print (deviceToRemove.to_string() + " was successfully removed")
         else:
             if not isinstance(deviceToRemove, DragonMasterSerialDevice.ReliancePrinterSerial):#reliance serial is the one excpetion where we don't remove it normally
