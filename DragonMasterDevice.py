@@ -215,6 +215,8 @@ class Printer(DragonMasterDevice):
             except Exception as e:
                 print ("There was a problem getting the state of the printer")
                 print (e)
+                self.dragonMasterDeviceManager.remove_device(self)
+            
             sleep (.5)
 
     """
