@@ -52,6 +52,7 @@ class DragonMasterDeviceManager:
     #Send Events
     PRINT_COMPLETE_EVENT = 0X45
     PRINT_ERROR_EVENT = 0x46
+    PRINTER_STATE_EVENT = 0x47
 
     #Printer Types
     CUSTOM_TG02 = 0X01
@@ -69,11 +70,11 @@ class DragonMasterDeviceManager:
     BA_BILL_STATE_UPDATE_EVENT = 0x85
 
     #Receive Events
-    BA_ACCEPT_BILL_EVENT = 0X84
-    BA_REJECT_BILL_EVENT = 0X85
-    BA_IDLE_EVENT = 0X86
-    BA_INHIBIT_EVENT = 0X87
-    BA_RESET_EVENT = 0X88
+    BA_ACCEPT_BILL_EVENT = 0X86
+    BA_REJECT_BILL_EVENT = 0X87
+    BA_IDLE_EVENT = 0X88
+    BA_INHIBIT_EVENT = 0X89
+    BA_RESET_EVENT = 0X8a
 
     #endregion TCP Device Commands
 

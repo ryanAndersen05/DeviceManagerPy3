@@ -186,10 +186,13 @@ class Printer(DragonMasterDevice):
     LOCATION_NAME = "PlaceHolder"
     MACHINE_NUMBER = "00001"
 
+
+
     def __init__(self, dragonMasterDeviceManager):
         super().__init__(dragonMasterDeviceManager)
         self.printerObject = None
         self.currentState = (0,0)#Tuple represents the state of the printer. (Printer Status, Paper Availability)
+        self.lastSentPrinterState = (0, 0)
 
 
     # """
@@ -216,6 +219,14 @@ class Printer(DragonMasterDevice):
     def disconnect_device(self):
         self.printerObject = None
         return super().disconnect_device()
+
+    def check_for_printer_state_thread(self):
+        while self.printerObject != None:
+            try:
+                self.currentState = self.get_updated_printer_state_and_paper_state()
+                if self.currentState != self.lastSentPrinterState:
+                    self.dragonMasterDeviceManager.add_event_to_send(DragonMasterDeviceManager.DragonMasterDeviceManager.PRINTER_STATE_EVENT, [self.currentState[0], self.currentState[1]], self.get_player_station_hash())
+            sleep (.5)
 
     """
     This method formats and prints out a cash-out ticket
