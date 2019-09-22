@@ -195,20 +195,6 @@ class Printer(DragonMasterDevice):
         self.lastSentPrinterState = (0, 0)
 
 
-    # """
-    # NOTE: This may not be entirely necessary. Will look into it more later
-    # """
-    def initialize_printers(vendorID, productID):
-        # for dev in usb.core.find(find_all=True, idVendor=vendorID, idProduct=productID):
-        #     #We apparently had to do this to find the printers.  Ryan doesn't know what this is.
-        #     try:
-        #         if not dev.is_kernel_driver_active(0):
-                    
-        #             dev.attach_kernel_driver(0)
-        #     except:
-        #         pass
-        return
-
     def start_device(self, deviceElement):
         printerStateThread = threading.Thread(target=self.check_for_printer_state_thread)
         printerStateThread.isDaemon = True

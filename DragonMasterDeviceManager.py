@@ -154,7 +154,6 @@ class DragonMasterDeviceManager:
             return
         self.searchingForDevices = True
         try:
-            DragonMasterDevice.Printer.initialize_printers(DragonMasterDevice.CustomTG02.VENDOR_ID, DragonMasterDevice.CustomTG02.PRODUCT_ID)
             allConnectedJoysticks = DragonMasterDevice.get_all_connected_joystick_devices()
             allConnectedDraxboards = DragonMasterSerialDevice.get_all_connected_draxboard_elements()
             allConnectedCustomTG02Printers = DragonMasterDevice.get_all_connected_custom_tg02_printer_elements()
