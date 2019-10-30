@@ -576,6 +576,9 @@ class DragonMasterDeviceManager:
         if playerStationHash != None:
             messageToSend += convert_value_to_byte_array(playerStationHash, numberOfBytes=4)
         messageToSend += eventData
+        
+        
+        
         self.tcpManager.add_event_to_send(messageToSend)
         return
 
@@ -803,14 +806,19 @@ class TCPManager:
                     while not self.tcpEventQueue.empty():
                         eventToAdd = self.tcpEventQueue.get()
                         eventToAdd.insert(0, len(eventToAdd))
+                        eventToAdd.append(self.calculate_checksum_of_packet(eventToAdd))
+
                         bytesToSend = bytesToSend + eventToAdd
-                        #print (bytesToSend)
-                    convertedByteArrayToSend = bytearray(bytesToSend)
-                    # if (len(bytesToSend) > 0):
-                    #     print (convertedByteArrayToSend)
+                        
+                        if (DragonMasterDeviceManager.DEBUG_PRINT_EVENTS_SENT_TO_UNITY):
+                            print (eventToAdd)
+                        
+                    convertedByteArrayToSend = bytearray(bytesToSend)#Converting our array into a byte array to send through our TCP socket
+                    
                     conn.send(convertedByteArrayToSend)
                     conn.close()
-                    self.deviceManager.check_for_joystick_events()
+
+                    self.deviceManager.check_for_joystick_events()#Potentially we might want to look into some other form of sending joystick events...
                 socketSend.close()
             except Exception as e:
                 print ("Error for socket send")
@@ -878,9 +886,16 @@ class TCPManager:
         for eventMessage in eventMessages:
             self.deviceManager.interpret_event_from_unity(eventMessage)
         return
-        
-
     pass
+
+    """
+    This method will calculate the checksum value that should be appended to the packet that we are delivering to our Unity Application
+    """
+    def calculate_checksum_of_packet(self, packetBeforeChecksumByte):
+        checkSumValue = 0
+        for val in packetBeforeChecksumByte:
+            checkSumValue ^= val
+        return checkSumValue
 
 """
 Converts a byte array to a value using little endian
