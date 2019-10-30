@@ -978,12 +978,12 @@ def debug_command_thread(deviceManager):
 
 def interpret_debug_command(commandToRead, deviceManager):
     # debug command format: COMPORT COMMAND
-    # ex: ttyACM0 FuckYourself
-    key = "/dev/ttyACM"
+    # ex: 0 RESET #This would correlate to Serial Port 0
+    serialKey = "/dev/ttyACM"
     command = commandToRead.split()
     if (len(command) < 2):
         return
-    comPort = key + command[0]
+    comPort = serialKey + command[0]
     for device in deviceManager.allConnectedDevices:
         if isinstance(device, DragonMasterDevice.DragonMasterSerialDevice.DBV400):
             if device.comport == comPort:
