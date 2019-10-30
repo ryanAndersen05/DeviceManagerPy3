@@ -8,6 +8,7 @@ from time import sleep
 import evdev
 import usb.core
 import usb.util
+import queue
 
 
 from escpos.printer import Usb
@@ -26,6 +27,7 @@ class DragonMasterDevice:
         self.playerStationID = 0
         self.dragonMasterDeviceManager = dragonMasterDeviceManager
         self.deviceParentPath = None
+        self.deviceEventQueue = queue.Queue()
 
     """
     This method should be called every time we connect to a new device for the fist time. If our device does not connect correctly
@@ -141,11 +143,11 @@ class Joystick(DragonMasterDevice):
                         adjustedValue = event.value
                         updatedAxes = (adjustedValue, self.currentAxes[1])
                         self.currentAxes = updatedAxes
+
                     if 'ABS_Y' in str(absevent):
                         adjustedValue = event.value
                         updatedAxes = (self.currentAxes[0], adjustedValue)
                         self.currentAxes = updatedAxes
-                    # print (self.currentAxes)
         except Exception as e:
             print ("There was an error with our joystick connection")
             print (e)
@@ -219,7 +221,7 @@ class Printer(DragonMasterDevice):
                 print (e)
                 self.dragonMasterDeviceManager.remove_device(self)
             
-            sleep (.5)
+            sleep (.2)
 
     """
     This method formats and prints out a cash-out ticket
@@ -573,10 +575,10 @@ class CustomTG02(Printer):
     pass
 
 """
-Extension of our printer class. Handles special properties for our phoenix printer
+Extension of our printer class. Handles special properties for our NextGen Coupon printer
 """
-class PhoenixPyramid(Printer):
-
+class NextGen(Printer):
+    
     pass
 
 """

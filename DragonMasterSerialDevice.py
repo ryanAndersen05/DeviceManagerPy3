@@ -615,10 +615,8 @@ class DBV400(SerialDevice):
     
     def fetch_parent_path(self, deviceElement):
         devToReturn = None
-        timesWeWereFound = 0
         for dev in self.dragonMasterDeviceManager.deviceContext.list_devices():
             if dev.device_path.__contains__(deviceElement.location) and dev.device_path.__contains__(deviceElement.name):
-                timesWeWereFound += 1
                 devToReturn = dev.parent.parent.parent.device_path
         return devToReturn
         
@@ -692,6 +690,7 @@ class Draxboard(SerialDevice):
         if requestStatus == None:
             print ("Request Status Was None")
             return False
+        
         if len(requestStatus) < Draxboard.REQUEST_STATUS_SIZE or requestStatus[0] != Draxboard.REQUEST_STATUS_ID:
             print ("Reqeust Status length was too short or invalid: " + str(requestStatus))
             return False
@@ -717,10 +716,8 @@ class Draxboard(SerialDevice):
 
     def fetch_parent_path(self, deviceElement):
         devToReturn = None
-        timesWeWereFound = 0
         for dev in self.dragonMasterDeviceManager.deviceContext.list_devices():
             if dev.device_path.__contains__(deviceElement.location) and dev.device_path.__contains__(deviceElement.name):
-                timesWeWereFound += 1
                 devToReturn = dev.parent.parent.parent.device_path
 
         
@@ -836,6 +833,7 @@ class Draxboard(SerialDevice):
         validRead = None
 
         while read != None and len(read) > 0:
+            print (read)
             if read[0] == responseID:
                 if len(read) <= responseSize:
                     return read
