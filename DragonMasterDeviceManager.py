@@ -595,6 +595,13 @@ class DragonMasterDeviceManager:
 
         return
 
+    """
+    This method should be called whenever a reprint is requested from our Unity application
+    """
+    def on_print_reprint_ticket_event(self, playerStationHash, eventData):
+
+        return
+
     #endregion printer tcp events
 
     #endregion TCP Received Data Events
