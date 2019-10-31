@@ -46,14 +46,15 @@ class DragonMasterDeviceManager:
     JOYSTICK_ID = 0X20
     JOYSTICK_INPUT_EVENT = 0X21
 
-
     ##PRINTER COMMANDS
     PRINTER_ID = 0X40
+
     #Receive Events
     PRINTER_CASHOUT_TICKET = 0X41
     PRINTER_AUDIT_TICKET = 0X042
     PRINTER_CODEX_TICKET = 0X43
     PRINTER_TEST_TICKET = 0X44
+
     #Send Events
     PRINT_COMPLETE_EVENT = 0X45
     PRINT_ERROR_EVENT = 0x46
@@ -355,6 +356,7 @@ class DragonMasterDeviceManager:
             return
         return
 
+
     """
     Returns an int value that represents the player station that the device is connected.
 
@@ -386,9 +388,6 @@ class DragonMasterDeviceManager:
 
 
     #region TCP Received Data Events
-
-
-
 
     """
     This method will be called to interpret all the packets that we receive from our Unity application
@@ -493,6 +492,9 @@ class DragonMasterDeviceManager:
         draxboard.increment_meter_ticks(eventData[0], eventData[1])        
         return
 
+    """
+    This method should be called upon receiving an event from unity to toggle the output of the Draxboard
+    """
     def on_drax_output_event(self, playerStationHash, eventData):
         draxboard = self.get_draxboard_from_player_station_hash(playerStationHash)
         if draxboard == None:
@@ -502,6 +504,9 @@ class DragonMasterDeviceManager:
         draxboard.toggle_output_state_of_drax(eventData[0] << 8 + eventData[1], 0)
         return
 
+    """
+    If we want to enable one single bit we can call this method to set that bit to true in the Drax
+    """
     def on_drax_output_bit_enable_event(self, playerStationHash, eventData):
         draxboard = self.get_draxboard_from_player_station_hash(playerStationHash)
         if draxboard == None:
@@ -511,6 +516,9 @@ class DragonMasterDeviceManager:
         draxboard.toggle_output_state_of_drax(eventData[0] << 8 + eventData[1], 1)
         return
 
+    """
+    
+    """
     def on_drax_output_bit_disable_event(self, playerStationHash, eventData):
         draxboard = self.get_draxboard_from_player_station_hash(playerStationHash)
         if draxboard == None:
@@ -522,40 +530,67 @@ class DragonMasterDeviceManager:
     #endregion draxboard tcp events
 
     #region bill acceptor tcp events
+    """
+    This method should be called when a bill acceptor idle event is triggered from Unity
+    """
     def on_ba_idle_event(self, playerSationHash, eventData):
 
         return
 
+    """
+    This method should be called when a bill acceptor inhibit event is called from Unity
+    """
     def on_ba_inhibit_event(self, playerStationHash, eventData):
 
         return
 
+    """
+    This method should be called when a bill acceptor reset event is called from Unity
+    """
     def on_ba_reset_event(self, playerStationHash, eventData):
 
         return
 
+    """
+    If there is a bill in pending this message should be sent to our bill acceptor to appropriately accept it
+    """
     def on_ba_accept_bill_event(self, playerStationHash, eventData):
 
         return
 
+    """
+    If there is a bill pending in our bill acceptor this should be called to properly reject the bill
+    """
     def on_ba_reject_bill_event(self, playerStationHash, eventData):
 
         return
     #endregion bill acceptor tcp events
 
     #region printer tcp events
+    """
+    Method that should be called to print out a cashout ticket
+    """
     def on_print_cashout_ticket_event(self, playerStationHash, eventData):
 
         return
 
+    """
+    Method that should be called to print out a codex ticket
+    """
     def on_print_codex_ticket_event(self, playerStationHash, eventData):
 
         return
 
+    """
+    Method that should be called to print out an audit ticket
+    """
     def on_print_audit_ticket_event(self, playerStationHash, eventData):
 
         return
 
+    """
+    Method that should be called when attempting to print out a test ticket from our 
+    """
     def on_print_test_ticket_event(self, eventData):
 
         return
@@ -907,7 +942,6 @@ Converts a byte array to a value using little endian
 NOTE: Little Endian -
 input:[0x01, 0x23, 0x45, 0x67]
 output:0x01234567
-
 """
 def convert_byte_array_to_value(byteArray):
     if len(byteArray) < 4:
@@ -980,6 +1014,11 @@ def debug_command_thread(deviceManager):
         if commandToRead != None:
             interpret_debug_command(commandToRead,deviceManager)
 
+
+"""
+Pass in the debug command that was entered into the terminal to here and it will perform the appropriate action if there is a valid function associated
+with it
+"""
 def interpret_debug_command(commandToRead, deviceManager):
     # debug command format: COMPORT COMMAND
     # ex: 0 RESET #This would correlate to Serial Port 0
@@ -1007,12 +1046,21 @@ def interpret_debug_command(commandToRead, deviceManager):
         if isinstance(device, DragonMasterDevice.DragonMasterSerialDevice.DBV400):
             if device.comport == comPort:
                 interpret_DBV_command(device,commandSplit[1])
+                return
+    
 
 """
 Prints out the current state of every device that is currently connected to our machine
 """
-def debug_status_message():
+def debug_status_message(deviceManager):
+    if DragonMasterDeviceManager.CONNECTED_OMNIDONGLE != None:
+        print ("Connected Omnidongle: " + DragonMasterDeviceManager.CONNECTED_OMNIDONGLE.to_string())
+    else:
+        print ("No Omnidongle Is Connected")
+    print ('-' * 60)
 
+    for key in deviceManager.playerStationDictionary:
+        print (deviceManager.playerStationDictionary[key].to_string())
     return
 
 """
