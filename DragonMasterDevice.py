@@ -176,6 +176,22 @@ class Joystick(DragonMasterDevice):
 class BaoLinJoystick(Joystick):
     JOYSTICK_DEVICE_NAME = "HID d209:0513"
 
+
+    """
+    Returns the device parent path of our joystick device
+    """
+    def fetch_parent_path(self, deviceElement):
+        usbKey  = ''
+        physSplit = deviceElement.phys.split('-')
+        if len(physSplit) > 1:
+            usbKey = physSplit[len(physSplit) - 1]
+            usbKey = usbKey.split('/')[0]
+
+        for dev in self.dragonMasterDeviceManager.deviceContext.list_devices():
+            if "js" in dev.sys_name and usbKey in dev.device_path:
+                return dev.parent.parent.parent.parent.parent.parent.device_path
+        return 
+
 pass
 
 
