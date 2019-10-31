@@ -24,9 +24,12 @@ The Base class for all our Dragon Master Devices
 class DragonMasterDevice:
 
     def __init__(self, dragonMasterDeviceManager):
-        self.playerStationID = 0
+
+        #The Device Manager object that is managing this device
         self.dragonMasterDeviceManager = dragonMasterDeviceManager
+        #Parent device path. This is used to group all devices to a specific player station
         self.deviceParentPath = None
+        #Queue of events from our Unity application. We do not want to miss any events, but we also do not want to hold up other devices from receiving their events
         self.deviceEventQueue = queue.Queue()
 
     """
@@ -39,7 +42,12 @@ class DragonMasterDevice:
         self.deviceParentPath = self.fetch_parent_path(deviceElement)
         return False
 
+    """
+    This method will be called upon removing a device from the device manager. Any clean up for a device class should happen here,
+    such as disabling any hanging threads that no longer need to be active
+    """
     def disconnect_device(self):
+        self.deviceEventQueue.clear()#Clear all remainging events from our queue if there are any
         return
 
     """
@@ -98,6 +106,7 @@ class Joystick(DragonMasterDevice):
     our threaded loop that is polling for new axes values
     """
     def disconnect_device(self):
+        super().disconnect_device()
         self.joystickDevice = None
         return 
 
@@ -164,6 +173,11 @@ class Joystick(DragonMasterDevice):
             self.lastSentAxes = self.currentAxes
     pass
 
+class BaoLinJoystick(Joystick):
+    JOYSTICK_DEVICE_NAME = "HID d209:0513"
+
+pass
+
 
 
 """
@@ -206,7 +220,8 @@ class Printer(DragonMasterDevice):
 
     def disconnect_device(self):
         self.printerObject = None
-        return super().disconnect_device()
+        super().disconnect_device()
+        return
 
     def check_for_printer_state_thread(self):
         while self.printerObject != None:
@@ -544,7 +559,8 @@ class CustomTG02(Printer):
         return True
 
     def disconnect_device(self):
-        return super().disconnect_device()
+        super().disconnect_device()
+        return
 
     def fetch_parent_path(self, deviceElement):
         pathString = ""
@@ -624,7 +640,8 @@ class ReliancePrinter(Printer):
         if self.associatedRelianceSerial  != None:
             self.associatedRelianceSerial.disconnect_device()
         
-        return super().disconnect_device()
+        super().disconnect_device()
+        return
 
     """
 
@@ -730,12 +747,16 @@ This method will retrieve all valid joysticks that are connected to our machine
 """
 def get_all_connected_joystick_devices():
     allJoystickDevices = [evdev.InputDevice(fn) for fn in evdev.list_devices()] #Creates a list of all connected input devices
-    listOfValidJoysticks = []
+    listOfUltramarkJoysticks = []
+    listOfBaoLinJoysticks = []
+
     for dev in allJoystickDevices:
         if (dev.name == Joystick.JOYSTICK_DEVICE_NAME and "input0" in dev.phys):
-            listOfValidJoysticks.append(dev)
+            listOfUltramarkJoysticks.append(dev)
+        if (dev.name == BaoLinJoystick.JOYSTICK_DEVICE_NAME and "input0" in dev.phys):
+            listOfBaoLinJoysticks.append(dev)
 
-    return listOfValidJoysticks
+    return listOfUltramarkJoysticks, listOfBaoLinJoysticks
 
 """
 Returns a list of all the connected custom TG02 printers. We do this by searching for a matching vid and pid

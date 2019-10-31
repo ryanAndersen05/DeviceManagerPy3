@@ -159,7 +159,7 @@ class DragonMasterDeviceManager:
             return
         self.searchingForDevices = True
         try:
-            allConnectedJoysticks = DragonMasterDevice.get_all_connected_joystick_devices()
+            allConnectedJoysticks, allBaoLinJoysticks = DragonMasterDevice.get_all_connected_joystick_devices()
             allConnectedDraxboards = DragonMasterSerialDevice.get_all_connected_draxboard_elements()
             allConnectedCustomTG02Printers = DragonMasterDevice.get_all_connected_custom_tg02_printer_elements()
             allConnectedReliancePrinters = DragonMasterDevice.get_all_connected_reliance_printer_elements()
