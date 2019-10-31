@@ -12,11 +12,16 @@ from time import sleep
 import DragonMasterSerialDevice
 import DragonMasterDevice
 
+
+
 """
 Our device manager class that will find and hold all of our connected devices and manage their current state
 It will manages messages between our Unity Application and assign commands to the correct devices.
 """
 class DragonMasterDeviceManager:
+    VERSION = "2.0.0"
+    KILL_DEVICE_MANAGER_APPLICATION = False
+
     #region TCP Device Commands
     #This command will be sent as a single byte event simply to inform python that we are still connected to the our Unity application
     STATUS_FROM_UNITY = 0x00
@@ -99,15 +104,14 @@ class DragonMasterDeviceManager:
 
         #Start a thread to search for newly connected devices
         deviceAddedThread = threading.Thread(target=self.device_connected_thread,)
-        deviceAddedThread.isDaemon = True
+        deviceAddedThread.daemon = True
         deviceAddedThread.start()
 
         debugThread = threading.Thread(target=debug_command_thread, args=(self,))
-        debugThread.isDaemon = True
+        debugThread.daemon = True
         debugThread.start()
         
         sleep(.3)
-        print ('starting search')
         self.search_for_devices()
         
         # while (True):
@@ -771,7 +775,7 @@ class TCPManager:
     """
     def start_new_socket_send_thread(self):
         sendThread = threading.Thread(target=self.socket_send)
-        sendThread.daemon = False
+        sendThread.daemon = True
         sendThread.start()
         return
 
@@ -780,7 +784,7 @@ class TCPManager:
     """
     def start_new_socket_receive_thread(self):
         receiveThread = threading.Thread(target=self.socket_receive)
-        receiveThread.daemon = False
+        receiveThread.daemon = True
         receiveThread.start()
         return
 
@@ -980,14 +984,43 @@ def interpret_debug_command(commandToRead, deviceManager):
     # debug command format: COMPORT COMMAND
     # ex: 0 RESET #This would correlate to Serial Port 0
     serialKey = "/dev/ttyACM"
-    command = commandToRead.split()
-    if (len(command) < 2):
+    commandSplit = commandToRead.split()
+    command = commandSplit[0]
+    command = command.lower()
+
+    if command == "help":
+        debug_help_message()
         return
-    comPort = serialKey + command[0]
+    elif command == "status":
+        debug_status_message()
+        return
+    elif command == "version":
+        print("Version: v" + DragonMasterDeviceManager.VERSION)
+        return
+    elif command == "quit":
+        DragonMasterDeviceManager.KILL_DEVICE_MANAGER_APPLICATION = True
+        return
+    if (len(commandSplit) < 2):
+        return
+    comPort = serialKey + commandSplit[0]
     for device in deviceManager.allConnectedDevices:
         if isinstance(device, DragonMasterDevice.DragonMasterSerialDevice.DBV400):
             if device.comport == comPort:
-                interpret_DBV_command(device,command[1])
+                interpret_DBV_command(device,commandSplit[1])
+
+"""
+Prints out the current state of every device that is currently connected to our machine
+"""
+def debug_status_message():
+
+    return
+
+"""
+Prints out a help message to the user to have easy access to what commands to what
+"""
+def debug_help_message():
+
+    return
                 
 
 def interpret_DBV_command(dbv, command):

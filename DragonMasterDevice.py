@@ -199,7 +199,7 @@ class Printer(DragonMasterDevice):
 
     def start_device(self, deviceElement):
         printerStateThread = threading.Thread(target=self.check_for_printer_state_thread)
-        printerStateThread.isDaemon = True
+        printerStateThread.daemon = True
         printerStateThread.start()
 
         return super().start_device(deviceElement)
