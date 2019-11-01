@@ -1057,6 +1057,7 @@ def interpret_debug_command(commandToRead, deviceManager):
             if device.comport == comPort:
                 interpret_DBV_command(device,commandSplit[1])
                 return
+    return
     
 
 """
@@ -1073,7 +1074,7 @@ def debug_status_message(deviceManager):
     if len(deviceManager.allConnectedDevices) == 0:
         print ("No devices connected...")
         return
-        
+
     for key in deviceManager.playerStationDictionary:
         print (deviceManager.playerStationDictionary[key].to_string())
     
@@ -1081,7 +1082,7 @@ def debug_status_message(deviceManager):
 
 def debug_test_event(deviceManager):
     for dev in deviceManager.allConnectedDevices:
-        dev.add_event_to_queue(dev.test_event)
+        dev.add_event_to_queue(dev.test_event, args=(dev,))
 
 
 """
