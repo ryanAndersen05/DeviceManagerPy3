@@ -98,7 +98,7 @@ class DragonMasterDevice:
             fn = functionItems[0]
             try:
                 args = functionItems[1:]
-                print (fn(*args))
+                fn(*args)
             except Exception as e:
                 print (e)
                 print ("There was an error executing a function in our event queue: " + self.to_string())
