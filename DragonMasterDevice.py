@@ -77,8 +77,7 @@ class DragonMasterDevice:
     """
     def add_event_to_queue(self, functionToPerform, *args):
         functionItems = [functionToPerform]
-        for param in args:
-            functionItems.append(param)
+        functionItems += args
         
         self.deviceEventQueue.put(functionItems)
 
@@ -98,11 +97,8 @@ class DragonMasterDevice:
             functionItems = self.deviceEventQueue.get()
             fn = functionItems[0]
             try:
-                if len(functionItems) == 0:
-                    fn()
-                else:
-                    args = functionItems[1:]
-                    fn(*args)
+                args = functionItems[1:]
+                print (fn(*args))
             except Exception as e:
                 print (e)
                 print ("There was an error executing a function in our event queue: " + self.to_string())

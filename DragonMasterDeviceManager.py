@@ -1090,7 +1090,7 @@ Function to test our threaded device events
 def debug_test_event(deviceManager):
     for dev in deviceManager.allConnectedDevices:
         for i in range(3):
-            dev.add_event_to_queue(dev.to_string())
+            dev.add_event_to_queue(dev.to_string)
 
 
 """
