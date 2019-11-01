@@ -198,6 +198,7 @@ class DragonMasterDeviceManager:
         self.searchingForDevices = False
         return
 
+
     """
     Adds a new device to our device manager. This will fail to add a device if the device fails to
     start up appropriately
@@ -1031,6 +1032,9 @@ def interpret_debug_command(commandToRead, deviceManager):
     # ex: 0 RESET #This would correlate to Serial Port 0
     serialKey = "/dev/ttyACM"
     commandSplit = commandToRead.split()
+    if commandSplit == None or len(commandSplit) == 0:
+        print ("Command Entered was too short")
+        return
     command = commandSplit[0]
     command = command.lower()
 
@@ -1080,9 +1084,13 @@ def debug_status_message(deviceManager):
     
     return
 
+"""
+Function to test our threaded device events
+"""
 def debug_test_event(deviceManager):
     for dev in deviceManager.allConnectedDevices:
-        dev.add_event_to_queue(dev.test_event, args=(dev,))
+        for i in range(3):
+            dev.add_event_to_queue(dev.to_string())
 
 
 """

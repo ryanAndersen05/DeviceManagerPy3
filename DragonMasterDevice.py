@@ -76,8 +76,11 @@ class DragonMasterDevice:
     Queue up events to for our device to carry out
     """
     def add_event_to_queue(self, functionToPerform, *args):
+        functionItems = [functionToPerform]
+        for param in args:
+            functionItems.append(param)
         
-        self.deviceEventQueue.put([functionToPerform, args])
+        self.deviceEventQueue.put(functionItems)
 
         if (not self.isPerformingQueuedEvents):
             self.isPerformingQueuedEvents = True
@@ -91,23 +94,22 @@ class DragonMasterDevice:
     functions that performs threaded events for this particular device
     """
     def threaded_perform_events(self):
-        print ("Thread Started")
         while (not self.deviceEventQueue.empty()):
             functionItems = self.deviceEventQueue.get()
-            for a in functionItems[1]:
-                print (a)
-            # functionItems[0](functionItems[1])
-        print ("Thread Ended")
+            fn = functionItems[0]
+            try:
+                if len(functionItems) == 0:
+                    fn()
+                else:
+                    args = functionItems[1:]
+                    fn(*args)
+            except Exception as e:
+                print (e)
+                print ("There was an error executing a function in our event queue: " + self.to_string())
+        self.isPerformingQueuedEvents = False
         return
 
-    """
-
-    """
-    def test_event(self):
-        print ("I performed a task")
-        return
-        
-
+    
 
 
 """
