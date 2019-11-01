@@ -31,6 +31,7 @@ class DragonMasterDevice:
         self.deviceParentPath = None
         #Queue of events from our Unity application. We do not want to miss any events, but we also do not want to hold up other devices from receiving their events
         self.deviceEventQueue = queue.Queue()
+        self.isPerformingQueuedEvents = False
 
     """
     This method should be called every time we connect to a new device for the fist time. If our device does not connect correctly
@@ -70,6 +71,38 @@ class DragonMasterDevice:
             return None
 
         return self.dragonMasterDeviceManager.get_player_station_hash_for_device(self)
+
+    """
+    Queue up events to for our device to carry out
+    """
+    def add_event_to_queue(self, functionToPerform, *args):
+        self.deviceEventQueue.put([functionToPerform, *args])
+
+        if (self.isPerformingQueuedEvents):
+            pass
+        else:
+            self.isPerformingQueuedEvents = True
+
+            eventThread = threading.Thread(self.threaded_perform_events)
+            eventThread.daemon = True
+            eventThread.start()
+        return
+
+    """
+    functions that performs threaded events for this particular device
+    """
+    def threaded_perform_events(self):
+        while (not self.deviceEventQueue.empty):
+            functionItems = self.deviceEventQueue.pop()
+            print (functionItems)
+        return
+
+    """
+
+    """
+    def test_function(self):
+        print ("I performed a task")
+        return
         
 
 

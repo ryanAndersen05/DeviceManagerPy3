@@ -1037,8 +1037,11 @@ def interpret_debug_command(commandToRead, deviceManager):
     if command == "help":
         debug_help_message()
         return
+    elif command == "test":
+        debug_test_event(deviceManager)
+        return
     elif command == "status":
-        debug_status_message()
+        debug_status_message(deviceManager)
         return
     elif command == "version":
         print("Version: v" + DragonMasterDeviceManager.VERSION)
@@ -1060,20 +1063,36 @@ def interpret_debug_command(commandToRead, deviceManager):
 Prints out the current state of every device that is currently connected to our machine
 """
 def debug_status_message(deviceManager):
-    if DragonMasterDeviceManager.CONNECTED_OMNIDONGLE != None:
-        print ("Connected Omnidongle: " + DragonMasterDeviceManager.CONNECTED_OMNIDONGLE.to_string())
+    print ()
+    if deviceManager.CONNECTED_OMNIDONGLE != None:
+        print ("Connected Omnidongle: " + deviceManager.CONNECTED_OMNIDONGLE.to_string())
     else:
         print ("No Omnidongle Is Connected")
     print ('-' * 60)
 
+    if len(deviceManager.allConnectedDevices) == 0:
+        print ("No devices connected...")
+        return
+        
     for key in deviceManager.playerStationDictionary:
         print (deviceManager.playerStationDictionary[key].to_string())
+    
     return
+
+def debug_test_event(deviceManager):
+    for dev in deviceManager.allConnectedDevices:
+        dev.add_event_to_queue(dev.test_event)
+
 
 """
 Prints out a help message to the user to have easy access to what commands to what
 """
 def debug_help_message():
+    print (set_string_length("help", 60, '-'))
+    print ("'status' - Displays all connected devices and their current state")
+    print ("")
+
+    print ('-' * 60)
 
     return
                 
