@@ -1038,8 +1038,13 @@ def interpret_debug_command(commandToRead, deviceManager):
     command = commandSplit[0]
     command = command.lower()
 
+    #GENERAL COMMANDS
     if command == "help":
         debug_help_message()
+        return
+    elif command == "quit":
+        #Setting this value to true will kill the main thread of the python application
+        DragonMasterDeviceManager.KILL_DEVICE_MANAGER_APPLICATION = True
         return
     elif command == "test":
         debug_test_event(deviceManager)
@@ -1050,9 +1055,23 @@ def interpret_debug_command(commandToRead, deviceManager):
     elif command == "version":
         print("Version: v" + DragonMasterDeviceManager.VERSION)
         return
-    elif command == "quit":
-        DragonMasterDeviceManager.KILL_DEVICE_MANAGER_APPLICATION = True
+    #PRINT COMMANDS
+    elif command == "print":
+
         return
+    elif command == "rprint":
+
+        return
+    elif command == 'tprint':
+        
+        return
+    elif command == 'cprint':
+
+        return
+    elif command == 'aprint':
+
+        return
+    
     if (len(commandSplit) < 2):
         return
     comPort = serialKey + commandSplit[0]
@@ -1098,9 +1117,31 @@ Prints out a help message to the user to have easy access to what commands to wh
 """
 def debug_help_message():
     print (set_string_length("help", 60, '-'))
+    print ("Device Command Format - 'command playerstation#'")
+    print ("You can find the player station associated with each device with the command 'status'")
+    print ()
+    print ('**General Commands**')
+    print ("'quit' - This will exit the python appliation by killing the main thread")
     print ("'status' - Displays all connected devices and their current state")
-    print ("")
-
+    print ("'version' - Prints the current version of our python application.")
+    print ("'msgout' - This will enable/disable displaying messages that are received from our Unity Application")
+    print ("'msgin' - This will enable/disable the messages that we queue to send to our Unity Application")
+    print ("**Draxboard Commands")
+    print ()
+    print ()
+    print ("**Printer Commands**")
+    print ("'print' - Prints a sample voucher ticket")
+    print ("'rprint' - Prints a sample reprint ticket")
+    print ("'tprint' - Prints a test ticket as it would be displayed from our Unity Application")
+    print ("'cprint' - Prints a sample Codex Ticket")
+    print ("'aprint' - Prints a sample Audit Ticket")
+    print ()
+    print ("**Bill Acceptor Commands**")
+    print ("'reset' - sends a command to reset a bill acceptor")
+    print ("'idle' - sends an idle command to a bill acceptor")
+    print ("'inhibit' - sends an inhibit request to a bill acceptor")
+    print ("'stack' - sends a command to stack a bill if it is currently held in escrow")
+    print ("'reject' - sends a command to reject a bill that is currently in escrow")
     print ('-' * 60)
 
     return
