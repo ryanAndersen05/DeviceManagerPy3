@@ -648,10 +648,15 @@ class Draxboard(SerialDevice):
     OUT_METER_MACHINE = 0x03
 
     ##Return Packet Data
-    REQUEST_STATUS_ID = 0x01
-    REQUEST_STATUS_SIZE = 18
+    #Interupting Events (Not polled)
     INPUT_EVENT_ID = 0xfa
     INPUT_EVENT_SIZE = 9
+    STATUS_EVENT_ID = 0xfb
+    STATUS_EVENT_SIZE = 8
+
+    #Command Events
+    REQUEST_STATUS_ID = 0x01
+    REQUEST_STATUS_SIZE = 18
     OUTPUT_EVENT_ID = 0x04
     OUTPUT_EVENT_SIZE = 8
     METER_INCREMENT_ID = 0x09
@@ -685,6 +690,7 @@ class Draxboard(SerialDevice):
         self.serialObject = self.open_serial_device(deviceElement.device, Draxboard.DRAX_BAUDRATE, 5, 5)
         if self.serialObject == None:
             return False
+        self.serialObject.flush()
 
         requestStatus = self.write_serial_check_for_input_events(self.REQUEST_STATUS, Draxboard.REQUEST_STATUS_ID, Draxboard.REQUEST_STATUS_SIZE)
         if requestStatus == None:
@@ -700,10 +706,9 @@ class Draxboard(SerialDevice):
         self.versionNumberLow = requestStatus[16]
 
         self.playerStationNumber = requestStatus[10]
-        if self.write_serial_wait_for_read(self.DRAXBOARD_OUTPUT_ENABLE) == None:
+        if self.write_serial_wait_for_read(self.DRAXBOARD_OUTPUT_ENABLE, delayBeforeReadMilliseconds=10) == None:
             print ("Output Enable was not successful")
             return False
-
         read = self.toggle_output_state_of_drax(0x180f)
         if read == None:
             print ("Default output assignement was not successful")
@@ -748,10 +753,12 @@ class Draxboard(SerialDevice):
     """
     def to_string(self):
         if (self.comport != None):
-            return "Draxboard (" + self.comport + ")"
+            return "Draxboard v" + str(self.versionNumberHigh) + "." + str(self.versionNumberLow).zfill(2) + " (" + self.comport + ")"
         else:
             return "Draxboard (Missing)"
 
+            
+    #endregion Override Methods
     """
     This method returns a hash value that is a derivation of the physical path our draxboard device.
 
@@ -774,9 +781,6 @@ class Draxboard(SerialDevice):
             print ("There was an error trying to create the draxboard hash")
             print (e)
             return 0
-
-            
-    #endregion Override Methods
 
 
     """
@@ -857,6 +861,8 @@ class Draxboard(SerialDevice):
         Type 0 - output that is passed through is what the state will be
         Type 1 - output bit enable (Use this to toggle only one bit on)
         Type 2 - output bit disable (Use this to toggle one bit off)
+
+        NOTE: Any other value aside from 0-2 will result in this method not running
     """
     def toggle_output_state_of_drax(self, outputToggleu32, toggleMessageType=0):
         if toggleMessageType == 0:
@@ -867,6 +873,7 @@ class Draxboard(SerialDevice):
         elif toggleMessageType == 2:#Output bit disable
             outputToggleu32 = self.draxOutputState & (~outputToggleu32)
         else:
+            print ("Message type was not valid in toggle_output_state_of_drax")
             return None
 
         byte1 = outputToggleu32 >> 24 & 0xff
@@ -889,7 +896,8 @@ class Draxboard(SerialDevice):
             self.send_current_drax_output_state(read[4], read[3])
 
         return read
-        
+    
+
     """
     Sends a packet to our TCP Manager that contains the output state of the draxboard
     """
