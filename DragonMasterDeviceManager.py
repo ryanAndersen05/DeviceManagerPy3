@@ -15,12 +15,15 @@ import DragonMasterDevice
 
 
 """
+@author Ryan Andersen EQ Games (404-643-1783)
+
+
 Our device manager class that will find and hold all of our connected devices and manage their current state
 It will manages messages between our Unity Application and assign commands to the correct devices.
 """
 class DragonMasterDeviceManager:
     VERSION = "2.0.0"
-    KILL_DEVICE_MANAGER_APPLICATION = False
+    KILL_DEVICE_MANAGER_APPLICATION = False #Setting this value to true will kill the main thread of our Device Manager application effectively closing all other threads
 
     #region TCP Device Commands
     #This command will be sent as a single byte event simply to inform python that we are still connected to the our Unity application
@@ -50,16 +53,16 @@ class DragonMasterDeviceManager:
     PRINTER_ID = 0X40
 
     #Receive Events
-    PRINTER_CASHOUT_TICKET = 0X41
-    PRINTER_AUDIT_TICKET = 0X042
-    PRINTER_CODEX_TICKET = 0X43
-    PRINTER_TEST_TICKET = 0X44
-    PRINTER_REPRINT_TICKET = 0x45
+    PRINTER_CASHOUT_TICKET = 0X41 #Command to print a cashout ticket
+    PRINTER_AUDIT_TICKET = 0X042 #Command to print an audit ticket
+    PRINTER_CODEX_TICKET = 0X43 #Command to print a codex ticket
+    PRINTER_TEST_TICKET = 0X44 #Command to print a test ticket
+    PRINTER_REPRINT_TICKET = 0x45 #Command to print a reprint ticket
 
     #Send Events
-    PRINT_COMPLETE_EVENT = 0X45
-    PRINT_ERROR_EVENT = 0x46
-    PRINTER_STATE_EVENT = 0x47
+    PRINT_COMPLETE_EVENT = 0X45 #Upone completing any print job, you should receive a PRINT_COMPLETE_EVENT message to verify that we successfully printed a ticket
+    PRINT_ERROR_EVENT = 0x46 #If there was an error at some point in the print job, we will send this message instead
+    PRINTER_STATE_EVENT = 0x47 #Returns the state of the printer
 
     #Printer Types
     CUSTOM_TG02 = 0X01
@@ -70,25 +73,26 @@ class DragonMasterDeviceManager:
     BILL_ACCEPTOR_ID = 0X80
 
     #Send Events
-    BA_BILL_INSERTED_EVENT = 0X81
-    BA_BILL_ACCEPTED_EVENT = 0X82
-    BA_BILL_REJECTED_EVENT = 0X83
-    BA_BILL_RETURNED_EVENT = 0x84
+    BA_BILL_INSERTED_EVENT = 0X81 #Bill was inserted event
+    BA_BILL_ACCEPTED_EVENT = 0X82 #Bill was accepted event
+    BA_BILL_REJECTED_EVENT = 0X83 #Bill was rejected event
+    BA_BILL_RETURNED_EVENT = 0x84 #Bill was returned event
     BA_BILL_STATE_UPDATE_EVENT = 0x85
 
     #Receive Events
-    BA_ACCEPT_BILL_EVENT = 0X86
-    BA_REJECT_BILL_EVENT = 0X87
-    BA_IDLE_EVENT = 0X88
-    BA_INHIBIT_EVENT = 0X89
-    BA_RESET_EVENT = 0X8a
+    BA_ACCEPT_BILL_EVENT = 0X86 #Command to accept the bill that is currently in escrow
+    BA_REJECT_BILL_EVENT = 0X87 #Command to reject the bill that is currently in escrow
+    BA_IDLE_EVENT = 0X88 #Command to set the BA to idle
+    BA_INHIBIT_EVENT = 0X89 #Command to set the BA to inhibit
+    BA_RESET_EVENT = 0X8a #Command to reset the BA (Good if there is some error that isn't resolved automatically)
 
     #endregion TCP Device Commands
 
 
     #region debug variables
-    DEBUG_PRINT_EVENTS_SENT_TO_UNITY = False
-    DEBUG_PRINT_EVENTS_RECEIVED_FROM_UNITY = False
+    DEBUG_PRINT_EVENTS_SENT_TO_UNITY = False #Mark this true to show events that we enque to send to Unity
+    DEBUG_PRINT_EVENTS_RECEIVED_FROM_UNITY = False #Mark this true to show events that we have received from Unity
+    DEBUG_TRANSLATE_PACKETS = False #Mark this true if you would like the packet names to be shown in English rather that Raw byte commands
 
     
     #endregion debum variables

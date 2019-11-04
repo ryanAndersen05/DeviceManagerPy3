@@ -10,6 +10,10 @@ from sys import exit
 import DragonMasterDeviceManager
 
 
+"""
+@author Ryan Andersen EQ Games (404-643-1783)
+"""
+################################################################################################################################################
 
 os.system("sudo ufw allow " + str(DragonMasterDeviceManager.TCPManager.SEND_PORT))#allows access to the port if it is currently firewalled
 os.system("sudo ufw allow " + str(DragonMasterDeviceManager.TCPManager.RECEIVE_PORT))#allows access to the port if it is currently firewalled
@@ -19,7 +23,7 @@ print ("Launching Device Manager v" + DragonMasterDeviceManager.DragonMasterDevi
 deviceManager = DragonMasterDeviceManager.DragonMasterDeviceManager()
 
 
-
+#Main thread of our game is here. When we want to fully kill our application, we should exit the loop by setting the Kill_device_manager_application to True
 while (not DragonMasterDeviceManager.DragonMasterDeviceManager.KILL_DEVICE_MANAGER_APPLICATION): #We can force exit the application by setting this value to true
 
     sleep(.5)

@@ -14,6 +14,8 @@ import DragonMasterDevice
 import DragonMasterDeviceManager
 
 """
+@author Ryan Andersen EQ Games (404-643-1783)
+
 The base class for all devices that use Serial communication
 """
 class SerialDevice(DragonMasterDevice.DragonMasterDevice):
@@ -201,6 +203,8 @@ class SerialDevice(DragonMasterDevice.DragonMasterDevice):
     pass
 
 """
+@autho Aaron Thurston (EQ Games/Kaneva)
+
 A class that handles all our Bill Acceptor Actions
 """
 class DBV400(SerialDevice):
