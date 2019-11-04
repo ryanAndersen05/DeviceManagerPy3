@@ -37,10 +37,10 @@ class DragonMasterDeviceManager:
     DRAX_INPUT_EVENT = 0x11#For button events that we will send to our Unity App
 
     #Receive Events
-    DRAX_OUTPUT_EVENT = 0x12#The short that is passed in using this command is what we will set our drax output state to be
-    DRAX_OUTPUT_BIT_ENABLE_EVENT = 0x13#Enables the bits that are passed in. Can be multiple bits at once
-    DRAX_OUTPUT_BIT_DISABLE_EVENT = 0x14#Disables the bits that are passed in. Can be multiple bits at once
-    DRAX_HARD_METER_EVENT = 0X15#
+    DRAX_OUTPUT_EVENT = 0x12 #The short that is passed in using this command is what we will set our drax output state to be
+    DRAX_OUTPUT_BIT_ENABLE_EVENT = 0x13 #Enables the bits that are passed in. Can be multiple bits at once
+    DRAX_OUTPUT_BIT_DISABLE_EVENT = 0x14 #Disables the bits that are passed in. Can be multiple bits at once
+    DRAX_HARD_METER_EVENT = 0X15 #Event to Increment our hard meters taht are attached to our draxboards
 
     ##JOYSTICK COMMANDS
     JOYSTICK_ID = 0X20
@@ -1213,6 +1213,54 @@ def byte_command_to_string(byteCommand):
         return "OMNI_EVENT"
     elif byteCommand == DragonMasterDeviceManager.RETRIEVE_CONNECTED_DEVICES:
         return "RETRIEVE_ALL_DEVICES"
+    elif byteCommand == DragonMasterDeviceManager.DRAX_INPUT_EVENT:
+        return "DRAX_INPUT"
+    elif byteCommand == DragonMasterDeviceManager.DRAX_OUTPUT_EVENT:
+        return "DRAX_OUTPUT"
+    elif byteCommand == DragonMasterDeviceManager.DRAX_OUTPUT_BIT_ENABLE_EVENT:
+        return "DRAX_BIT_ENABLE"
+    elif byteCommand == DragonMasterDeviceManager.DRAX_OUTPUT_BIT_DISABLE_EVENT:
+        return "DRAX_BIT_DISABLE"
+    elif byteCommand == DragonMasterDeviceManager.DRAX_HARD_METER_EVENT:
+        return "DRAX_HARD_METER"
+    elif byteCommand == DragonMasterDeviceManager.JOYSTICK_INPUT_EVENT:
+        return "JOYSTICK_AXIS"
+    elif byteCommand == DragonMasterDeviceManager.PRINTER_CASHOUT_TICKET:
+        return "PRINT_CASHOUT"
+    elif byteCommand == DragonMasterDeviceManager.PRINTER_AUDIT_TICKET:
+        return "PRINT_AUDIT"
+    elif byteCommand == DragonMasterDeviceManager.PRINTER_CODEX_TICKET:
+        return "PRINT_CODEX"
+    elif byteCommand == DragonMasterDeviceManager.PRINTER_TEST_TICKET:
+        return "PRINT_TEST"
+    elif byteCommand == DragonMasterDeviceManager.PRINTER_REPRINT_TICKET:
+        return "PRINT_REPRINT"
+    elif byteCommand == DragonMasterDeviceManager.PRINT_COMPLETE_EVENT:
+        return "PRINT_COMPLETE"
+    elif byteCommand == DragonMasterDeviceManager.PRINT_ERROR_EVENT:
+        return "PRINT_ERROR_DURING_PRINT"
+    elif byteCommand == DragonMasterDeviceManager.PRINTER_STATE_EVENT:
+        return "PRINT_STATE"
+    elif byteCommand == DragonMasterDeviceManager.BA_BILL_INSERTED_EVENT:
+        return "BA_BILL_INSERT"
+    elif byteCommand == DragonMasterDeviceManager.BA_BILL_ACCEPTED_EVENT:
+        return "BA_BILL_ACCEPTED"
+    elif byteCommand == DragonMasterDeviceManager.BA_BILL_REJECTED_EVENT:
+        return "BA_BILL_REJECTED"
+    elif byteCommand == DragonMasterDeviceManager.BA_BILL_RETURNED_EVENT:
+        return "BA_BILL_RETURNED"
+    elif byteCommand == DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT:
+        return "BA_BILL_STATE"
+    elif byteCommand == DragonMasterDeviceManager.BA_ACCEPT_BILL_EVENT:
+        return "BA_ACCEPT_BILL"
+    elif byteCommand == DragonMasterDeviceManager.BA_REJECT_BILL_EVENT:
+        return "BA_REJECT_BILL"
+    elif byteCommand == DragonMasterDeviceManager.BA_IDLE_EVENT:
+        return "BA_IDLE"
+    elif byteCommand == DragonMasterDeviceManager.BA_INHIBIT_EVENT:
+        return "BA_INHIBIT"
+    elif byteCommand == DragonMasterDeviceManager.BA_RESET_EVENT:
+        return "BA_RESET"
 
     return "Byte Command Unknown..."
 
