@@ -24,27 +24,27 @@ class DragonMasterDeviceManager:
 
     #region TCP Device Commands
     #This command will be sent as a single byte event simply to inform python that we are still connected to the our Unity application
-    STATUS_FROM_UNITY = 0x00
-    DEVICE_CONNECTED = 0x01
-    DEVICE_DISCONNECTED = 0x02
+    STATUS_FROM_UNITY = 0x00 #Periodic update that we should receive from Unity to enusre the game is still running. We will close the application if we have not received a message in 60+ seconds
+    DEVICE_CONNECTED = 0x01 #When a new device has successfully been connected to our manager we will send this event to Unity
+    DEVICE_DISCONNECTED = 0x02 #When a new device is successfully removed from our manager we will send this message to Unity
     OMNI_EVENT = 0x03 #For messages that we send/receive to our omnidongle
-    RETRIEVE_CONNECTED_DEVICES = 0x04
+    RETRIEVE_CONNECTED_DEVICES = 0x04 #This will return a device connected event for every currently connected device. This is good on soft reboot when our IO manager does not know what devices are currently connected
 
     ##DRAX COMMANDS
     DRAX_ID = 0x10
 
     #Send Events
-    DRAX_INPUT_EVENT = 0x11
+    DRAX_INPUT_EVENT = 0x11#For button events that we will send to our Unity App
 
     #Receive Events
-    DRAX_OUTPUT_EVENT = 0x12
-    DRAX_OUTPUT_BIT_ENABLE_EVENT = 0x13
-    DRAX_OUTPUT_BIT_DISABLE_EVENT = 0x14
-    DRAX_HARD_METER_EVENT = 0X15
+    DRAX_OUTPUT_EVENT = 0x12#The short that is passed in using this command is what we will set our drax output state to be
+    DRAX_OUTPUT_BIT_ENABLE_EVENT = 0x13#Enables the bits that are passed in. Can be multiple bits at once
+    DRAX_OUTPUT_BIT_DISABLE_EVENT = 0x14#Disables the bits that are passed in. Can be multiple bits at once
+    DRAX_HARD_METER_EVENT = 0X15#
 
     ##JOYSTICK COMMANDS
     JOYSTICK_ID = 0X20
-    JOYSTICK_INPUT_EVENT = 0X21
+    JOYSTICK_INPUT_EVENT = 0X21#Input event from the joystick. Sends the x and y values that are currently set on the joystick
 
     ##PRINTER COMMANDS
     PRINTER_ID = 0X40
@@ -54,6 +54,7 @@ class DragonMasterDeviceManager:
     PRINTER_AUDIT_TICKET = 0X042
     PRINTER_CODEX_TICKET = 0X43
     PRINTER_TEST_TICKET = 0X44
+    PRINTER_REPRINT_TICKET = 0x45
 
     #Send Events
     PRINT_COMPLETE_EVENT = 0X45
@@ -1197,5 +1198,23 @@ Debug method that will reset our DBV based on the comport
 def debug_reset_dbv(dbvComport):
     
     return
+
+"""
+Returns a string representation of the commands that are being sent and received. This is relly only for debugging purposes
+"""
+def byte_command_to_string(byteCommand):
+    if byteCommand == DragonMasterDeviceManager.STATUS_FROM_UNITY:
+        return "STATUS"
+    elif byteCommand == DragonMasterDeviceManager.DEVICE_CONNECTED:
+        return "DEVICE_CONNECTED"
+    elif byteCommand == DragonMasterDeviceManager.DEVICE_DISCONNECTED:
+        return "DEVICE_DISCONNECTED"
+    elif byteCommand == DragonMasterDeviceManager.OMNI_EVENT:
+        return "OMNI_EVENT"
+    elif byteCommand == DragonMasterDeviceManager.RETRIEVE_CONNECTED_DEVICES:
+        return "RETRIEVE_ALL_DEVICES"
+
+    return "Byte Command Unknown..."
+
 
 #endregion debug methods
