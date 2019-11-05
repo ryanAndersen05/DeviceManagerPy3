@@ -701,7 +701,7 @@ class DragonMasterDeviceManager:
     #endregion get device methods
 
     #region Contains Methods
-    
+
     """
     Returns whether or not the joystick that is passed into the method was already added to our
     device manager list
@@ -750,7 +750,9 @@ class DragonMasterDeviceManager:
 #endregion Contains Methods
 
 #region helper classes
-
+    """
+    Method that checks to see if there are any joystick events that we should be sending off
+    """
     def check_for_joystick_events(self):
         for key in self.playerStationDictionary:
             if self.playerStationDictionary[key].connectedJoystick != None:
@@ -1045,7 +1047,7 @@ def interpret_debug_command(commandToRead, deviceManager):
     command = commandSplit[0]
     command = command.lower()
 
-    #GENERAL COMMANDS
+    #GENERAL DEBUG
     if command == "help":
         debug_help_message()
         return
@@ -1062,7 +1064,50 @@ def interpret_debug_command(commandToRead, deviceManager):
     elif command == "version":
         print("Version: v" + DragonMasterDeviceManager.VERSION)
         return
-    #PRINT COMMANDS
+    #DRAX DEBUG
+    elif command == "bitenable":
+        if len(commandSplit) >= 3:
+            debug_bitenable_drax(deviceManager, commandSplit[1], commandSplit[2])
+            return
+        elif len(commandSplit) >= 2:
+            debug_bitenable_drax(deviceManager, commandSplit[1])
+            return
+        else:
+            debug_bitenable_drax(deviceManager)
+            return
+    elif command == "bitdisable":
+        if len(commandSplit) >= 3:
+            debug_bitdisable_drax(deviceManager, commandSplit[1], commandSplit[2])
+            return
+        elif len(commandSplit) >= 2:
+            debug_bitdisable_drax(deviceManager, commandSplit[1])
+            return
+        else:
+            debug_bitdisable_drax(deviceManager)
+            return
+    elif command == "draxout":
+        if len(commandSplit) >= 3:
+            debug_draxout(deviceManager, commandSplit[1], commandSplit[2])
+            return
+        elif len(commandSplit) >= 2:
+            debug_draxout(deviceManager, commandSplit[1])
+            return
+        else:
+            debug_draxout(deviceManager)
+            return
+    elif command == "meter":
+        if len(commandSplit) >= 4:
+            debug_draxout(deviceManager, commandSplit[1], commandSplit[2], commandSplit[3])
+        elif len(commandSplit) >= 3:
+            debug_draxout(deviceManager, commandSplit[1], commandSplit[2])
+            return
+        elif len(commandSplit) >= 2:
+            debug_draxout(deviceManager, commandSplit[1])
+            return
+        else:
+            debug_draxout(deviceManager)
+            return
+    #PRINT DEBUG
     elif command == "print":
 
         return
@@ -1078,7 +1123,7 @@ def interpret_debug_command(commandToRead, deviceManager):
     elif command == 'aprint':
 
         return
-    
+    #BILL ACCEPTOR DEBUG
     if (len(commandSplit) < 2):
         return
     comPort = serialKey + commandSplit[0]
@@ -1124,9 +1169,11 @@ Prints out a help message to the user to have easy access to what commands to wh
 """
 def debug_help_message():
     print (set_string_length("help", 60, '-'))
-    print ("Device Command Format - 'command playerstation#'")
     print ("You can find the player station associated with each device with the command 'status'")
-    print ("")
+    print ("FORMAT FOR ALL DEVICE COMMANDS: 'command playerstation data...'")
+    print ("NOTE: If you only enter the command it will perform a default function to ALL devices that correspond to that function")
+    print ("NOTE: To send commands to all playerstation enter -1. Otherwise enter the player station number associated with the device you would like to test")
+    print ('-' * 60)
     print ('**General Commands**')
     print ("'quit' - This will exit the python appliation by killing the main thread")
     print ("'status' - Displays all connected devices and their current state")
@@ -1134,20 +1181,23 @@ def debug_help_message():
     print ("'msgout' - This will enable/disable displaying messages that are received from our Unity Application")
     print ("'msgin' - This will enable/disable the messages that we queue to send to our Unity Application")
     print ("'msgtrans' - Translates the packets that we are sending and receiving from Unity")
-    print ("")
+    print ('-' * 60)
     print ("**Draxboard Commands")
-    print ("'bitenable - enter 0-15 to enable a specific output on our Draxboard")
-    print ("'bitdisable - enter 0-15 to disable a specific output on our Draxboard")
-    print ("'draxout' - enter a ushort value and the draxboard output will be set to that state")
-    print ("'meter' - enter meter id and the number of ticks you would like to send. This will tick that meter up that many ticks")
-    print ("")
+    print ("'bitenable - enter 0-15 to enable a specific output on our Draxboard (data=[bitToToggle])")
+    print ("'bitdisable - enter 0-15 to disable a specific output on our Draxboard (data=[bitToToggle])")
+    print ("'draxout' - enter a ushort value and the draxboard output will be set to that state (data=[ushortOutputState])")
+    print ("'meter' - increments the hard meters attached to our draxboards (data=[meterID, #ofTicks])")
+    print ('-' * 60)
+    print ("**JOYSTICK COMMANDS**")
+    print ("'displayjoy' - This will print out all joystick values that are gathered. To turn off reenter the command (data=[])")
+    print ('-' * 60)
     print ("**Printer Commands**")
-    print ("'print' - Prints a sample voucher ticket")
-    print ("'rprint' - Prints a sample reprint ticket")
-    print ("'tprint' - Prints a test ticket as it would be displayed from our Unity Application")
-    print ("'cprint' - Prints a sample Codex Ticket")
-    print ("'aprint' - Prints a sample Audit Ticket")
-    print ("")
+    print ("'print' - Prints a sample voucher ticket (data=[])")
+    print ("'rprint' - Prints a sample reprint ticket (data=[])")
+    print ("'tprint' - Prints a test ticket as it would be displayed from our Unity Application (data=[])")
+    print ("'cprint' - Prints a sample Codex Ticket (data=[])")
+    print ("'aprint' - Prints a sample Audit Ticket (data=[])")
+    print ('-' * 60)
     print ("**Bill Acceptor Commands**")
     print ("'reset' - sends a command to reset a bill acceptor")
     print ("'idle' - sends an idle command to a bill acceptor")
@@ -1157,6 +1207,37 @@ def debug_help_message():
     print ('-' * 60)
 
     return
+
+#region debug drax functions
+"""
+Debug method used to enable a bit on the draxboard output
+"""
+def debug_bitenable_drax(deviceManager, playerstation = -1, bitToEnable = 0):
+    
+    return
+
+"""
+Debug method used to disable a bit on the draxboard output
+"""
+def debug_bitdisable_drax(deviceManager, playerstation = -1, bitToDisable = 0):
+
+    return
+
+
+"""
+Debug method used to set that Draxboard output state
+"""
+def debug_draxout(deviceManager, playerstation = -1, outputStat = 0):
+
+    return
+
+"""
+Debug method used to increment the hard meters that are attached to the draxboards
+"""
+def debug_meter_increment(deviceManager, playerstation = -1, meterID=0, incrementValue=1):
+
+    return
+#endregion debug drax functions
                 
 
 def interpret_DBV_command(dbv, command):
