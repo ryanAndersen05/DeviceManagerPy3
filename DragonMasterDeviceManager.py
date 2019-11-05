@@ -15,7 +15,7 @@ import DragonMasterDevice
 
 
 """
-@author Ryan Andersen EQ Games (404-643-1783)
+@author Ryan Andersen, EQ Games, Phone #: (404-643-1783)
 
 
 Our device manager class that will find and hold all of our connected devices and manage their current state

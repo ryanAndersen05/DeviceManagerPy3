@@ -14,15 +14,20 @@ import DragonMasterDevice
 import DragonMasterDeviceManager
 
 """
-@author Ryan Andersen EQ Games (404-643-1783)
+@author Ryan Andersen, EQ Games, Phone #: (404-643-1783)
 
 The base class for all devices that use Serial communication
 """
 class SerialDevice(DragonMasterDevice.DragonMasterDevice):
 
+    #region serial states
+
+    #These are not used outside of this class
     SERIAL_NOT_POLLING = 0
     SERIAL_WAIT_FOR_EVENT = 1
     SERIAL_IGNORE_EVENT = 2
+
+    #endregion serial states
 
 
     def __init__(self, deviceManager):
@@ -57,6 +62,11 @@ class SerialDevice(DragonMasterDevice.DragonMasterDevice):
 
         
     #Universal Serial Methods
+    """
+    Upon events being received, this method will be called. You can treat this as an On Serail Read event received
+    This is called upon one byte in the readbuffer. So you may need to add a sleep to ensure that you collect the entire
+    message from the serial device
+    """
     def on_data_received_event(self):
         return
 
@@ -122,7 +132,8 @@ class SerialDevice(DragonMasterDevice.DragonMasterDevice):
 
 
     """
-
+    Upon a poll error experienced, this method will be called. Add any clean up that is necessary into this method
+    as an override
     """
     def on_poll_serial_errored(self):
         self.dragonMasterDeviceManager.remove_device(self)
@@ -196,14 +207,12 @@ class SerialDevice(DragonMasterDevice.DragonMasterDevice):
         print ("Serial Read Timed Out")
         self.serialState = SerialDevice.SERIAL_WAIT_FOR_EVENT
         return None
-
-
     #End READ/WRITE Methods
     #End Universal Serial Methods
     pass
 
 """
-@autho Aaron Thurston (EQ Games/Kaneva)
+@author Aaron Thurston, EQ Games/Kaneva, Phone#: 4046-80-2119
 
 A class that handles all our Bill Acceptor Actions
 """
