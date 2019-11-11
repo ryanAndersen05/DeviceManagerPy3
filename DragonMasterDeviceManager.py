@@ -1082,30 +1082,30 @@ def interpret_debug_command(commandToRead, deviceManager):
     #DRAX DEBUG
     elif command == "bitenable":
         if len(commandSplit) >= 3:
-            debug_bitenable_drax(deviceManager, commandSplit[1], commandSplit[2])
+            debug_bitenable_drax(deviceManager, int(commandSplit[1]), int(commandSplit[2]))
             return
         elif len(commandSplit) >= 2:
-            debug_bitenable_drax(deviceManager, commandSplit[1])
+            debug_bitenable_drax(deviceManager, int(commandSplit[1]))
             return
         else:
             debug_bitenable_drax(deviceManager)
             return
     elif command == "bitdisable":
         if len(commandSplit) >= 3:
-            debug_bitdisable_drax(deviceManager, commandSplit[1], commandSplit[2])
+            debug_bitdisable_drax(deviceManager, int(commandSplit[1]), int(commandSplit[2]))
             return
         elif len(commandSplit) >= 2:
-            debug_bitdisable_drax(deviceManager, commandSplit[1])
+            debug_bitdisable_drax(deviceManager, int(commandSplit[1]))
             return
         else:
             debug_bitdisable_drax(deviceManager)
             return
     elif command == "draxout":
         if len(commandSplit) >= 3:
-            debug_draxout(deviceManager, commandSplit[1], commandSplit[2])
+            debug_draxout(deviceManager, int(commandSplit[1]), int(commandSplit[2]))
             return
         elif len(commandSplit) >= 2:
-            debug_draxout(deviceManager, commandSplit[1])
+            debug_draxout(deviceManager, int(commandSplit[1]))
             return
         else:
             debug_draxout(deviceManager)
@@ -1251,6 +1251,7 @@ def debug_bitenable_drax(deviceManager, playerstation = -1, bitToEnable = 0):
 Debug method used to disable a bit on the draxboard output
 """
 def debug_bitdisable_drax(deviceManager, playerstation = -1, bitToDisable = 0):
+    print ("I am here")
     if bitToDisable < 0 or bitToDisable >= 16:
         print ("Make sure that the bit you are disabling is a value from 0 to 15")
         return

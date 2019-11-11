@@ -51,7 +51,7 @@ class DragonMasterDevice:
     such as disabling any hanging threads that no longer need to be active
     """
     def disconnect_device(self):
-        self.deviceEventQueue.clear()#Clear all remainging events from our queue if there are any
+        self.deviceEventQueue = queue.Queue()#Clear all remainging events from our queue if there are any
         return
 
     """
