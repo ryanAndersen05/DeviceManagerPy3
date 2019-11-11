@@ -113,6 +113,7 @@ class DragonMasterDeviceManager:
         deviceAddedThread.daemon = True
         deviceAddedThread.start()
 
+        #Begins a thread that allows a user to enter debug commands into a terminal if there is one available. This will not work if run through the bash script
         debugThread = threading.Thread(target=debug_command_thread, args=(self,))
         debugThread.daemon = True
         debugThread.start()
@@ -164,7 +165,7 @@ class DragonMasterDeviceManager:
             return
         self.searchingForDevices = True
         try:
-            allConnectedJoysticks, allBaoLinJoysticks = DragonMasterDevice.get_all_connected_joystick_devices()
+            allConnectedJoysticks, allBaoLianJoysticks = DragonMasterDevice.get_all_connected_joystick_devices()
             allConnectedDraxboards = DragonMasterSerialDevice.get_all_connected_draxboard_elements()
             allConnectedCustomTG02Printers = DragonMasterDevice.get_all_connected_custom_tg02_printer_elements()
             allConnectedReliancePrinters = DragonMasterDevice.get_all_connected_reliance_printer_elements()
@@ -1063,6 +1064,15 @@ def interpret_debug_command(commandToRead, deviceManager):
         return
     elif command == "version":
         print("Version: v" + DragonMasterDeviceManager.VERSION)
+        return
+    elif command == "msgin":
+        DragonMasterDeviceManager.DEBUG_PRINT_EVENTS_RECEIVED_FROM_UNITY = not DragonMasterDeviceManager.DEBUG_PRINT_EVENTS_RECEIVED_FROM_UNITY
+        return
+    elif command == "msgout":
+        DragonMasterDeviceManager.DEBUG_PRINT_EVENTS_SENT_TO_UNITY = not DragonMasterDeviceManager.DEBUG_PRINT_EVENTS_SENT_TO_UNITY
+        return
+    elif command == "msgtrans":
+        DragonMasterDeviceManager.DEBUG_TRANSLATE_PACKETS = not DragonMasterDeviceManager.DEBUG_TRANSLATE_PACKETS
         return
     #DRAX DEBUG
     elif command == "bitenable":

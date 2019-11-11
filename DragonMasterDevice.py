@@ -33,6 +33,7 @@ class DragonMasterDevice:
         self.deviceParentPath = None
         #Queue of events from our Unity application. We do not want to miss any events, but we also do not want to hold up other devices from receiving their events
         self.deviceEventQueue = queue.Queue()
+        #Bool value that indicates whether or not we are performing a queued event
         self.isPerformingQueuedEvents = False
 
     """
@@ -209,7 +210,11 @@ class Joystick(DragonMasterDevice):
             self.lastSentAxes = self.currentAxes
     pass
 
-class BaoLinJoystick(Joystick):
+"""
+This class is an extension of our Joystick class. All functions remain the same, but the parent device path has changed as well
+as the product name of the joystick
+"""
+class BaoLianJoystick(Joystick):
     JOYSTICK_DEVICE_NAME = "HID d209:0513"
 
 
@@ -800,15 +805,15 @@ This method will retrieve all valid joysticks that are connected to our machine
 def get_all_connected_joystick_devices():
     allJoystickDevices = [evdev.InputDevice(fn) for fn in evdev.list_devices()] #Creates a list of all connected input devices
     listOfUltramarkJoysticks = []
-    listOfBaoLinJoysticks = []
+    listOfBoaLianJoysticks = []
 
     for dev in allJoystickDevices:
         if (dev.name == Joystick.JOYSTICK_DEVICE_NAME and "input0" in dev.phys):
             listOfUltramarkJoysticks.append(dev)
-        if (dev.name == BaoLinJoystick.JOYSTICK_DEVICE_NAME and "input0" in dev.phys):
-            listOfBaoLinJoysticks.append(dev)
+        if (dev.name == BaoLianJoystick.JOYSTICK_DEVICE_NAME and "input0" in dev.phys):
+            listOfBoaLianJoysticks.append(dev)
 
-    return listOfUltramarkJoysticks, listOfBaoLinJoysticks
+    return listOfUltramarkJoysticks, listOfBoaLianJoysticks
 
 """
 Returns a list of all the connected custom TG02 printers. We do this by searching for a matching vid and pid
