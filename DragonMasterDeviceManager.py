@@ -93,6 +93,7 @@ class DragonMasterDeviceManager:
     DEBUG_PRINT_EVENTS_SENT_TO_UNITY = False #Mark this true to show events that we enque to send to Unity
     DEBUG_PRINT_EVENTS_RECEIVED_FROM_UNITY = False #Mark this true to show events that we have received from Unity
     DEBUG_TRANSLATE_PACKETS = False #Mark this true if you would like the packet names to be shown in English rather that Raw byte commands
+    DEBUG_DISPLAY_JOY_AXIS = False #Mark this true to display all joystick axes values that are collected.
 
     
     #endregion debum variables
@@ -1074,6 +1075,10 @@ def interpret_debug_command(commandToRead, deviceManager):
     elif command == "msgtrans":
         DragonMasterDeviceManager.DEBUG_TRANSLATE_PACKETS = not DragonMasterDeviceManager.DEBUG_TRANSLATE_PACKETS
         return
+    #Joystick DEBUG
+    elif command == "displayjoy":
+        DragonMasterDeviceManager.DEBUG_DISPLAY_JOY_AXIS = not DragonMasterDeviceManager.DEBUG_DISPLAY_JOY_AXIS
+        return
     #DRAX DEBUG
     elif command == "bitenable":
         if len(commandSplit) >= 3:
@@ -1182,12 +1187,13 @@ def debug_help_message():
     print ("You can find the player station associated with each device with the command 'status'")
     print ("FORMAT FOR ALL DEVICE COMMANDS: 'command playerstation data...'")
     print ("NOTE: If you only enter the command it will perform a default function to ALL devices that correspond to that function")
-    print ("NOTE: To send commands to all playerstation enter -1. Otherwise enter the player station number associated with the device you would like to test")
+    print ("NOTE: To send commands to all playerstation enter -1. Otherwise enter the player station hash associated with the device you would like to test")
     print ('-' * 60)
     print ('**General Commands**')
     print ("'quit' - This will exit the python appliation by killing the main thread")
     print ("'status' - Displays all connected devices and their current state")
     print ("'version' - Prints the current version of our python application.")
+    print ("'flashdrax' - This will trigger the ticket light to turn on and off and display which station it is applied to (data=[stationHash])")
     print ("'msgout' - This will enable/disable displaying messages that are received from our Unity Application")
     print ("'msgin' - This will enable/disable the messages that we queue to send to our Unity Application")
     print ("'msgtrans' - Translates the packets that we are sending and receiving from Unity")
@@ -1223,22 +1229,67 @@ def debug_help_message():
 Debug method used to enable a bit on the draxboard output
 """
 def debug_bitenable_drax(deviceManager, playerstation = -1, bitToEnable = 0):
-    
+    if bitToEnable < 0 or bitToEnable >= 16:
+        print ("Make sure that the bit you are enabling is a value from 0 to 15")
+        return
+    if playerstation < 0:
+        for pStation in deviceManager.playerStationDictionary.values():
+            if pStation.connectedDraxboard == None:
+                pStation.connectedDraxboard.toggle_output_state_of_drax(1 << bitToEnable, 1)
+    else:
+        if playerstation not in deviceManager.playerStationHashToParentDevicePath:
+            print ("The player station hash was not found. Perhaps there is no draxboard connected for that station")
+            return
+        pStation = deviceManager.playerStationHashToParentDevicePath[playerstation]
+        if pStation.connectedDraxboard == None:
+            print ("There is no Draxboard connected to this Station Hash")
+            return
+        pStation.connectedDraxboard.toggle_output_state_of_drax(1 << bitToEnable, 1)
     return
 
 """
 Debug method used to disable a bit on the draxboard output
 """
 def debug_bitdisable_drax(deviceManager, playerstation = -1, bitToDisable = 0):
-
+    if bitToDisable < 0 or bitToDisable >= 16:
+        print ("Make sure that the bit you are disabling is a value from 0 to 15")
+        return
+    if playerstation < 0:
+        for pStation in deviceManager.playerStationDictionary.values():
+            if pStation.connectedDraxboard == None:
+                pStation.connectedDraxboard.toggle_output_state_of_drax(1 << bitToDisable, 2)
+    else:
+        if playerstation not in deviceManager.playerStationHashToParentDevicePath:
+            print ("The player station hash was not found. Perhaps there is no draxboard connected for that station")
+            return
+        pStation = deviceManager.playerStationHashToParentDevicePath[playerstation]
+        if pStation.connectedDraxboard == None:
+            print ("There is no Draxboard connected to this Station Hash")
+            return
+        pStation.connectedDraxboard.toggle_output_state_of_drax(1 << bitToDisable, 2)
     return
 
 
 """
 Debug method used to set that Draxboard output state
 """
-def debug_draxout(deviceManager, playerstation = -1, outputStat = 0):
-
+def debug_draxout(deviceManager, playerstation = -1, outputState = 0):
+    if outputState < 0 or outputState >= 65536:
+        print ("Make sure that the output state is a value from 0 to 65535")
+        return
+    if playerstation < 0:
+        for pStation in deviceManager.playerStationDictionary.values():
+            if pStation.connectedDraxboard == None:
+                pStation.connectedDraxboard.toggle_output_state_of_drax(outputState, 0)
+    else:
+        if playerstation not in deviceManager.playerStationHashToParentDevicePath:
+            print ("The player station hash was not found. Perhaps there is no draxboard connected for that station")
+            return
+        pStation = deviceManager.playerStationHashToParentDevicePath[playerstation]
+        if pStation.connectedDraxboard == None:
+            print ("There is no Draxboard connected to this Station Hash")
+            return
+        pStation.connectedDraxboard.toggle_output_state_of_drax(outputState, 0)
     return
 
 """
