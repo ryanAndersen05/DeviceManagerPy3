@@ -1234,7 +1234,7 @@ def debug_bitenable_drax(deviceManager, playerstation = -1, bitToEnable = 0):
         return
     if playerstation < 0:
         for pStation in deviceManager.playerStationDictionary.values():
-            if pStation.connectedDraxboard == None:
+            if pStation.connectedDraxboard != None:
                 pStation.connectedDraxboard.toggle_output_state_of_drax(1 << bitToEnable, 1)
     else:
         if playerstation not in deviceManager.playerStationHashToParentDevicePath:
@@ -1251,13 +1251,12 @@ def debug_bitenable_drax(deviceManager, playerstation = -1, bitToEnable = 0):
 Debug method used to disable a bit on the draxboard output
 """
 def debug_bitdisable_drax(deviceManager, playerstation = -1, bitToDisable = 0):
-    print ("I am here")
     if bitToDisable < 0 or bitToDisable >= 16:
         print ("Make sure that the bit you are disabling is a value from 0 to 15")
         return
     if playerstation < 0:
         for pStation in deviceManager.playerStationDictionary.values():
-            if pStation.connectedDraxboard == None:
+            if pStation.connectedDraxboard != None:
                 pStation.connectedDraxboard.toggle_output_state_of_drax(1 << bitToDisable, 2)
     else:
         if playerstation not in deviceManager.playerStationHashToParentDevicePath:
@@ -1280,7 +1279,7 @@ def debug_draxout(deviceManager, playerstation = -1, outputState = 0):
         return
     if playerstation < 0:
         for pStation in deviceManager.playerStationDictionary.values():
-            if pStation.connectedDraxboard == None:
+            if pStation.connectedDraxboard != None:
                 pStation.connectedDraxboard.toggle_output_state_of_drax(outputState, 0)
     else:
         if playerstation not in deviceManager.playerStationHashToParentDevicePath:

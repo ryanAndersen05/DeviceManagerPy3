@@ -850,7 +850,6 @@ class Draxboard(SerialDevice):
         validRead = None
 
         while read != None and len(read) > 0:
-            print (read)
             if read[0] == responseID:
                 if len(read) <= responseSize:
                     return read
@@ -888,12 +887,12 @@ class Draxboard(SerialDevice):
         else:
             print ("Message type was not valid in toggle_output_state_of_drax")
             return None
-
         byte1 = outputToggleu32 >> 24 & 0xff
         byte2 = outputToggleu32 >> 16 & 0xff
         byte3 = outputToggleu32 >> 8 & 0xff
         byte4 = outputToggleu32 >> 0 & 0xff
 
+        print (outputToggleu32)
         outputMessageArray = self.SET_OUTPUT_STATE.copy()
         checkSumByteIndex = 7
         outputMessageArray[3] = byte4
@@ -905,7 +904,10 @@ class Draxboard(SerialDevice):
 
         read = self.write_serial_check_for_input_events(outputMessageArray, Draxboard.OUTPUT_EVENT_ID, Draxboard.OUTPUT_EVENT_SIZE)
         if read != None and len(read) >= Draxboard.OUTPUT_EVENT_SIZE and read[0] == Draxboard.OUTPUT_EVENT_ID:
-            self.draxOutputState = read[4] + read[3] * 255
+            print (read)
+            self.draxOutputState = (int(read[4]) << 8) + read[3]
+            print (self.draxOutputState)
+            print (str(read[4]) + "  " + str(read[3]))
             self.send_current_drax_output_state(read[4], read[3])
 
         return read
