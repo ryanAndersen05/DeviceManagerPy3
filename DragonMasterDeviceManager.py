@@ -1064,7 +1064,9 @@ def interpret_debug_command(commandToRead, deviceManager):
         debug_status_message(deviceManager)
         return
     elif command == "version":
+        print ('-' * 60)
         print("Version: v" + DragonMasterDeviceManager.VERSION)
+        print ('-' * 60)
         return
     elif command == "msgin":
         DragonMasterDeviceManager.DEBUG_PRINT_EVENTS_RECEIVED_FROM_UNITY = not DragonMasterDeviceManager.DEBUG_PRINT_EVENTS_RECEIVED_FROM_UNITY

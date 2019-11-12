@@ -194,6 +194,8 @@ class Joystick(DragonMasterDevice):
                         adjustedValue = event.value
                         updatedAxes = (self.currentAxes[0], adjustedValue)
                         self.currentAxes = updatedAxes
+                    if DragonMasterDeviceManager.DragonMasterDeviceManager.DEBUG_DISPLAY_JOY_AXIS:
+                        print (self.to_string() + ": " + str(self.currentAxes))
         except Exception as e:
             print ("There was an error with our joystick connection")
             print (e)
