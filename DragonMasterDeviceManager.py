@@ -1150,14 +1150,38 @@ def interpret_debug_command(commandToRead, deviceManager):
 
         return
     #BILL ACCEPTOR DEBUG
-    if (len(commandSplit) < 2):
+    elif command == "reset":
+        if len(commandSplit) >= 2:
+            debug_reset_dbv(deviceManager, commandSplit[1])
+        else:
+            debug_reset_dbv(deviceManager)
         return
-    comPort = serialKey + commandSplit[0]
-    for device in deviceManager.allConnectedDevices:
-        if isinstance(device, DragonMasterDevice.DragonMasterSerialDevice.DBV400):
-            if device.comport == comPort:
-                interpret_DBV_command(device,commandSplit[1])
-                return
+    elif command == "idle":
+        if len(commandSplit) >= 2:
+            debug_idle_dbv(deviceManager, commandSplit[1])
+        else:
+            debug_idle_dbv(deviceManager)
+        return
+    elif command == "inhibit":
+        if len(commandSplit) >= 2:
+            debug_inhibit_dbv(deviceManager, commandSplit[1])
+        else:
+            debug_inhibit_dbv(deviceManager)
+        return
+    elif command == "stack":
+        if len(commandSplit) >= 2:
+            debug_accept_bill_dbv(deviceManager, commandSplit[1])
+        else:
+            debug_accept_bill_dbv(deviceManager)
+        return
+    elif command == "reject":
+        if len(commandSplit) >= 2:
+            debug_reject_bill_dbv(deviceManager, commandSplit[1])
+        else:
+            debug_reject_bill_dbv(deviceManager)
+        return
+    else:
+        print ("Command was not found... Please use 'help' to see all available commands")
     return
     
 
@@ -1382,26 +1406,42 @@ def debug_print_all_player_stations(deviceManager):
 
     return
 
+#region debug DBV commands
 """
 
 """
-def debug_set_dbv_to_idle(dbvComport):
+def debug_idle_dbv(deviceManager, playerStationHash = -1):
 
     return
 
 """
 Debug method that will set our dbv to the inhibit state based on the dbv comport that is passed in
 """
-def debug_set_dbv_to_inhibit(dbvComport):
+def debug_inhibit_dbv(deviceManager, playerStationHash = -1):
 
     return
 
 """
 Debug method that will reset our DBV based on the comport
 """
-def debug_reset_dbv(dbvComport):
+def debug_reset_dbv(deviceManager, playerStationHash = -1):
     
     return
+
+"""
+Debug method to accept a bill that is in escrow
+"""
+def debug_accept_bill_dbv(deviceManager, playerStationHash = -1):
+
+    return
+
+"""
+Debug method to reject a bill that is in escrow
+"""
+def debug_reject_bill_dbv(deviceManager, playerStationHash = -1):
+
+    return
+#endregion debug DBV commands
 
 """
 Returns a string representation of the commands that are being sent and received. This is relly only for debugging purposes

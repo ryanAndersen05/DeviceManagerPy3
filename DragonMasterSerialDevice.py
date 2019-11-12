@@ -844,6 +844,8 @@ class Draxboard(SerialDevice):
     """
     Due to the fact that we can receive inputs from the player while attempting to write an event to the draxboard, it is
     possible that the response may contain an input events that we want to filter out and send to our tcp queue in our device manager
+
+    TODO: Add a way to check for Status Reads from the Drax. It is another packet that can be sent without polling. It can send whenever
     """
     def write_serial_check_for_input_events(self, messageToWrite, responseID, responseSize):
         read = self.write_serial_wait_for_read(messageToWrite)
