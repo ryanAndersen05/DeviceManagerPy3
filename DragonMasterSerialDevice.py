@@ -892,7 +892,6 @@ class Draxboard(SerialDevice):
         byte3 = outputToggleu32 >> 8 & 0xff
         byte4 = outputToggleu32 >> 0 & 0xff
 
-        print (outputToggleu32)
         outputMessageArray = self.SET_OUTPUT_STATE.copy()
         checkSumByteIndex = 7
         outputMessageArray[3] = byte4
@@ -904,10 +903,7 @@ class Draxboard(SerialDevice):
 
         read = self.write_serial_check_for_input_events(outputMessageArray, Draxboard.OUTPUT_EVENT_ID, Draxboard.OUTPUT_EVENT_SIZE)
         if read != None and len(read) >= Draxboard.OUTPUT_EVENT_SIZE and read[0] == Draxboard.OUTPUT_EVENT_ID:
-            print (read)
             self.draxOutputState = (int(read[4]) << 8) + read[3]
-            print (self.draxOutputState)
-            print (str(read[4]) + "  " + str(read[3]))
             self.send_current_drax_output_state(read[4], read[3])
 
         return read
