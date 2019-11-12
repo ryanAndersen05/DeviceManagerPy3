@@ -22,7 +22,7 @@ Our device manager class that will find and hold all of our connected devices an
 It will manages messages between our Unity Application and assign commands to the correct devices.
 """
 class DragonMasterDeviceManager:
-    VERSION = "2.0.0"
+    VERSION = "2.0.1"
     KILL_DEVICE_MANAGER_APPLICATION = False #Setting this value to true will kill the main thread of our Device Manager application effectively closing all other threads
 
     #region TCP Device Commands
@@ -1082,6 +1082,11 @@ def interpret_debug_command(commandToRead, deviceManager):
         DragonMasterDeviceManager.DEBUG_DISPLAY_JOY_AXIS = not DragonMasterDeviceManager.DEBUG_DISPLAY_JOY_AXIS
         return
     #DRAX DEBUG
+    elif command == "flashdrax":
+        if len(commandSplit) >= 2:
+            debug_flash_draxboards(deviceManager, int(commandSplit[1]))
+        else:
+            debug_flash_draxboards(deviceManager)
     elif command == "bitenable":
         if len(commandSplit) >= 3:
             debug_bitenable_drax(deviceManager, int(commandSplit[1]), int(commandSplit[2]))
@@ -1187,15 +1192,15 @@ Prints out a help message to the user to have easy access to what commands to wh
 def debug_help_message():
     print (set_string_length("help", 60, '-'))
     print ("You can find the player station associated with each device with the command 'status'")
-    print ("FORMAT FOR ALL DEVICE COMMANDS: 'command playerstation data...'")
+    print ("FORMAT FOR ALL DEVICE COMMANDS: 'command data... playerStationHash'")
     print ("NOTE: If you only enter the command it will perform a default function to ALL devices that correspond to that function")
-    print ("NOTE: To send commands to all playerstation enter -1. Otherwise enter the player station hash associated with the device you would like to test")
+    print ("NOTE: By default, we will send commands to all playerstations unless you specifically put the hash at the end of the command")
     print ('-' * 60)
     print ('**General Commands**')
     print ("'quit' - This will exit the python appliation by killing the main thread")
     print ("'status' - Displays all connected devices and their current state")
     print ("'version' - Prints the current version of our python application.")
-    print ("'flashdrax' - This will trigger the ticket light to turn on and off and display which station it is applied to (data=[stationHash])")
+    print ("'flashdrax' - This will trigger the ticket light to turn on and off and display which station it is applied to (data=[])")
     print ("'msgout' - This will enable/disable displaying messages that are received from our Unity Application")
     print ("'msgin' - This will enable/disable the messages that we queue to send to our Unity Application")
     print ("'msgtrans' - Translates the packets that we are sending and receiving from Unity")
@@ -1208,6 +1213,7 @@ def debug_help_message():
     print ('-' * 60)
     print ("**JOYSTICK COMMANDS**")
     print ("'displayjoy' - This will print out all joystick values that are gathered. To turn off reenter the command (data=[])")
+    print ("    NOTE: 'displayjoy' can get very spammy. simply type display joy even if its not all on one line and it will register")
     print ('-' * 60)
     print ("**Printer Commands**")
     print ("'print' - Prints a sample voucher ticket (data=[])")
@@ -1230,7 +1236,7 @@ def debug_help_message():
 """
 Debug method used to enable a bit on the draxboard output
 """
-def debug_bitenable_drax(deviceManager, playerstation = -1, bitToEnable = 0):
+def debug_bitenable_drax(deviceManager, bitToEnable = 0, playerstation = -1):
     if bitToEnable < 0 or bitToEnable >= 16:
         print ("Make sure that the bit you are enabling is a value from 0 to 15")
         return
@@ -1252,7 +1258,7 @@ def debug_bitenable_drax(deviceManager, playerstation = -1, bitToEnable = 0):
 """
 Debug method used to disable a bit on the draxboard output
 """
-def debug_bitdisable_drax(deviceManager, playerstation = -1, bitToDisable = 0):
+def debug_bitdisable_drax(deviceManager, bitToDisable = 0, playerstation = -1):
     if bitToDisable < 0 or bitToDisable >= 16:
         print ("Make sure that the bit you are disabling is a value from 0 to 15")
         return
@@ -1275,7 +1281,7 @@ def debug_bitdisable_drax(deviceManager, playerstation = -1, bitToDisable = 0):
 """
 Debug method used to set that Draxboard output state
 """
-def debug_draxout(deviceManager, playerstation = -1, outputState = 0):
+def debug_draxout(deviceManager, outputState = 0, playerstation = -1):
     if outputState < 0 or outputState >= 65536:
         print ("Make sure that the output state is a value from 0 to 65535")
         return
@@ -1297,7 +1303,7 @@ def debug_draxout(deviceManager, playerstation = -1, outputState = 0):
 """
 Debug method used to increment the hard meters that are attached to the draxboards
 """
-def debug_meter_increment(deviceManager, playerstation = -1, meterID=0, incrementValue=1):
+def debug_meter_increment(deviceManager, meterID=0, incrementValue=1, playerstation = -1):
 
     return
 #endregion debug drax functions
@@ -1330,6 +1336,21 @@ def debug_print_all_player_stations(deviceManager):
         print (pStation.to_string())
 
     print ('=' * widthOfPrint)
+
+    return
+
+def debug_flash_draxboards(deviceManager, playerStationHash = -1):
+    if (playerStationHash < 0):
+        for pStation in deviceManager.playerStationDictionary.values():
+            if pStation.connectedDraxboard != None:
+                print ("Flashing Ticket Light For Hash: " + str(pStation.connectedDraxboard.get_player_station_hash()))
+                for i in range(8):
+                    pStation.connectedDraxboard.toggle_output_state_of_drax(1 << 2, 2)
+                    sleep(.15)
+                    pStation.connectedDraxboard.toggle_output_state_of_drax(1 << 2, 1)
+                    sleep(.15)
+                
+                
 
     return
 
