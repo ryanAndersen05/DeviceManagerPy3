@@ -7,6 +7,9 @@ from sys import stdin
 import queue
 import threading
 from time import sleep
+import pytz
+import os
+import time
 
 #internal project imports
 import DragonMasterSerialDevice
@@ -1281,6 +1284,9 @@ def debug_flash_draxboards(deviceManager, playerStationHash = -1):
         actually_flash_drax(pStation)
     return
 
+"""
+Helper method to flash the ticket light of the draxboard on and off 8 times
+"""
 def actually_flash_drax(pStation):
     if pStation.connectedDraxboard != None:
         print ('-' * 60)
@@ -1338,7 +1344,6 @@ def debug_bitdisable_drax(deviceManager, bitToDisable = 0, playerstationHash = -
         pStation.connectedDraxboard.toggle_output_state_of_drax(1 << bitToDisable, 2)
     return
 
-
 """
 Debug method used to set that Draxboard output state
 """
@@ -1385,25 +1390,6 @@ def interpret_DBV_command(dbv, command):
         dbv.stack_bill()
     elif command == "REJECT":
         dbv.reject_bill()
-    
-
-"""
-Debug method that prints all the currently connected player station devices
-"""
-def debug_print_all_player_stations(deviceManager):
-    widthOfPrint = 32
-    print ("State Of All Collected Devices")
-    print ('=' * widthOfPrint)
-    for pStation in deviceManager.playerStationDictionary.values:
-        print (pStation.to_string())
-
-    print ('=' * widthOfPrint)
-
-    return
-
-                
-                
-
     return
 
 #region debug DBV commands
@@ -1411,7 +1397,18 @@ def debug_print_all_player_stations(deviceManager):
 
 """
 def debug_idle_dbv(deviceManager, playerStationHash = -1):
+    if playerStationHash < 0: 
+        for pStation in deviceManager.playerStationDictionary.values():
+            if pStation.connectedBillAcceptor != None:
+                pStation.connectedBillAcceptor.idle_dbv()
+        return
 
+    if playerStationHash not in deviceManager.playerStationHashToParentDevicePath:
+        print ("The player station hash was not found. Perhaps there is no draxboard connected for that station")
+        return
+    pStationKey - deviceManager.playerStationHashToParentDevicePath[pStationKey]
+    if deviceManager.playerStationDictionary[pStationKey].connectedBillAcceptor != None:
+        deviceManager.playerStationDictionary[pStationKey].connectedBillAcceptor.idle_dbv()
     return
 
 """
