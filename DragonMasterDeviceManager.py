@@ -1415,28 +1415,73 @@ def debug_idle_dbv(deviceManager, playerStationHash = -1):
 Debug method that will set our dbv to the inhibit state based on the dbv comport that is passed in
 """
 def debug_inhibit_dbv(deviceManager, playerStationHash = -1):
+    if playerStationHash < 0: 
+        for pStation in deviceManager.playerStationDictionary.values():
+            if pStation.connectedBillAcceptor != None:
+                pStation.connectedBillAcceptor.inhibit_dbv()
+        return
 
+    if playerStationHash not in deviceManager.playerStationHashToParentDevicePath:
+        print ("The player station hash was not found. Perhaps there is no draxboard connected for that station")
+        return
+    pStationKey - deviceManager.playerStationHashToParentDevicePath[pStationKey]
+    if deviceManager.playerStationDictionary[pStationKey].connectedBillAcceptor != None:
+        deviceManager.playerStationDictionary[pStationKey].connectedBillAcceptor.inhibit_dbv()
     return
+    
 
 """
 Debug method that will reset our DBV based on the comport
 """
 def debug_reset_dbv(deviceManager, playerStationHash = -1):
-    
+    if playerStationHash < 0: 
+        for pStation in deviceManager.playerStationDictionary.values():
+            if pStation.connectedBillAcceptor != None:
+                pStation.connectedBillAcceptor.reset_dbv()
+        return
+
+    if playerStationHash not in deviceManager.playerStationHashToParentDevicePath:
+        print ("The player station hash was not found. Perhaps there is no draxboard connected for that station")
+        return
+    pStationKey - deviceManager.playerStationHashToParentDevicePath[pStationKey]
+    if deviceManager.playerStationDictionary[pStationKey].connectedBillAcceptor != None:
+        deviceManager.playerStationDictionary[pStationKey].connectedBillAcceptor.reset_dbv()
     return
 
 """
 Debug method to accept a bill that is in escrow
 """
 def debug_accept_bill_dbv(deviceManager, playerStationHash = -1):
+    if playerStationHash < 0: 
+        for pStation in deviceManager.playerStationDictionary.values():
+            if pStation.connectedBillAcceptor != None:
+                pStation.connectedBillAcceptor.stack_bill()
+        return
 
+    if playerStationHash not in deviceManager.playerStationHashToParentDevicePath:
+        print ("The player station hash was not found. Perhaps there is no draxboard connected for that station")
+        return
+    pStationKey - deviceManager.playerStationHashToParentDevicePath[pStationKey]
+    if deviceManager.playerStationDictionary[pStationKey].connectedBillAcceptor != None:
+        deviceManager.playerStationDictionary[pStationKey].connectedBillAcceptor.stack_bill()
     return
 
 """
 Debug method to reject a bill that is in escrow
 """
 def debug_reject_bill_dbv(deviceManager, playerStationHash = -1):
+    if playerStationHash < 0: 
+        for pStation in deviceManager.playerStationDictionary.values():
+            if pStation.connectedBillAcceptor != None:
+                pStation.connectedBillAcceptor.reject_bill()
+        return
 
+    if playerStationHash not in deviceManager.playerStationHashToParentDevicePath:
+        print ("The player station hash was not found. Perhaps there is no draxboard connected for that station")
+        return
+    pStationKey - deviceManager.playerStationHashToParentDevicePath[pStationKey]
+    if deviceManager.playerStationDictionary[pStationKey].connectedBillAcceptor != None:
+        deviceManager.playerStationDictionary[pStationKey].connectedBillAcceptor.reject_bill()
     return
 #endregion debug DBV commands
 
