@@ -1406,7 +1406,7 @@ def debug_idle_dbv(deviceManager, playerStationHash = -1):
     if playerStationHash not in deviceManager.playerStationHashToParentDevicePath:
         print ("The player station hash was not found. Perhaps there is no draxboard connected for that station")
         return
-    pStationKey - deviceManager.playerStationHashToParentDevicePath[pStationKey]
+    pStationKey = deviceManager.playerStationHashToParentDevicePath[playerStationHash]
     if deviceManager.playerStationDictionary[pStationKey].connectedBillAcceptor != None:
         deviceManager.playerStationDictionary[pStationKey].connectedBillAcceptor.idle_dbv()
     return
@@ -1424,7 +1424,7 @@ def debug_inhibit_dbv(deviceManager, playerStationHash = -1):
     if playerStationHash not in deviceManager.playerStationHashToParentDevicePath:
         print ("The player station hash was not found. Perhaps there is no draxboard connected for that station")
         return
-    pStationKey - deviceManager.playerStationHashToParentDevicePath[pStationKey]
+    pStationKey = deviceManager.playerStationHashToParentDevicePath[playerStationHash]
     if deviceManager.playerStationDictionary[pStationKey].connectedBillAcceptor != None:
         deviceManager.playerStationDictionary[pStationKey].connectedBillAcceptor.inhibit_dbv()
     return
@@ -1443,7 +1443,7 @@ def debug_reset_dbv(deviceManager, playerStationHash = -1):
     if playerStationHash not in deviceManager.playerStationHashToParentDevicePath:
         print ("The player station hash was not found. Perhaps there is no draxboard connected for that station")
         return
-    pStationKey - deviceManager.playerStationHashToParentDevicePath[pStationKey]
+    pStationKey = deviceManager.playerStationHashToParentDevicePath[playerStationHash]
     if deviceManager.playerStationDictionary[pStationKey].connectedBillAcceptor != None:
         deviceManager.playerStationDictionary[pStationKey].connectedBillAcceptor.reset_dbv()
     return
@@ -1461,7 +1461,7 @@ def debug_accept_bill_dbv(deviceManager, playerStationHash = -1):
     if playerStationHash not in deviceManager.playerStationHashToParentDevicePath:
         print ("The player station hash was not found. Perhaps there is no draxboard connected for that station")
         return
-    pStationKey - deviceManager.playerStationHashToParentDevicePath[pStationKey]
+    pStationKey = deviceManager.playerStationHashToParentDevicePath[playerStationHash]
     if deviceManager.playerStationDictionary[pStationKey].connectedBillAcceptor != None:
         deviceManager.playerStationDictionary[pStationKey].connectedBillAcceptor.stack_bill()
     return
@@ -1479,7 +1479,7 @@ def debug_reject_bill_dbv(deviceManager, playerStationHash = -1):
     if playerStationHash not in deviceManager.playerStationHashToParentDevicePath:
         print ("The player station hash was not found. Perhaps there is no draxboard connected for that station")
         return
-    pStationKey - deviceManager.playerStationHashToParentDevicePath[pStationKey]
+    pStationKey = deviceManager.playerStationHashToParentDevicePath[playerStationHash]
     if deviceManager.playerStationDictionary[pStationKey].connectedBillAcceptor != None:
         deviceManager.playerStationDictionary[pStationKey].connectedBillAcceptor.reject_bill()
     return
