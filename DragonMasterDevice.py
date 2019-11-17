@@ -10,10 +10,11 @@ import usb.core
 import usb.util
 import queue
 
-
+#escpos imports
 from escpos.printer import Usb
 from escpos.constants import RT_STATUS_ONLINE, RT_MASK_ONLINE
 from escpos.constants import RT_STATUS_PAPER, RT_MASK_PAPER, RT_MASK_LOWPAPER, RT_MASK_NOPAPER
+
 #Internal project imports
 import DragonMasterDeviceManager
 import DragonMasterSerialDevice
@@ -282,6 +283,10 @@ class Printer(DragonMasterDevice):
         super().disconnect_device()
         return
 
+    """
+    Method that will check the current state of the connected printer. This will send a message to our Unity
+    Application if the state has changed
+    """
     def check_for_printer_state_thread(self):
         while self.printerObject != None:
             try:
@@ -394,6 +399,8 @@ class Printer(DragonMasterDevice):
 
     """
     Prints and formats our audit ticket from the byte array data that we receive
+
+    TODO: Update this to match the current voucher ticket from our Python2.7 application
     """
     def print_audit_ticket(self, auditTicketData, line_length = 32, whiteSpaceUnderTicket=7):
 
@@ -634,11 +641,10 @@ class CustomTG02(Printer):
                 return dev.parent.device_path
                 
         return None
-            
 
-        # self.parentPath = self.deviceNode.parent.parent.parent.device_path
-        # self.devicePath = self.deviceNode.device_path
-
+    """
+    Sends a serial message to configure the text format of the custom printer
+    """
     def config_text(self):
         msg = '\x1b\xc1\x30'
         self.printerObject.device.write(CustomTG02.OUT_EP, msg, 1)
@@ -781,6 +787,8 @@ class ReliancePrinter(Printer):
                 print (e)
         return None
     #endregion helper methods
+
+
     #region override printer methods
     def audit_ticket(self, auditInfoString):
         self.associatedRelianceSerial.retract()
@@ -803,6 +811,9 @@ class ReliancePrinter(Printer):
 ##Retrieve device methods
 """
 This method will retrieve all valid joysticks that are connected to our machine
+
+Returns two lists. The first list is all connected Ultimarc joysticks
+The seconds list are connected Bao Lian Joysticks
 """
 def get_all_connected_joystick_devices():
     allJoystickDevices = [evdev.InputDevice(fn) for fn in evdev.list_devices()] #Creates a list of all connected input devices

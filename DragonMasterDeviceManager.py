@@ -25,7 +25,7 @@ Our device manager class that will find and hold all of our connected devices an
 It will manages messages between our Unity Application and assign commands to the correct devices.
 """
 class DragonMasterDeviceManager:
-    VERSION = "2.0.1"
+    VERSION = "2.0.2"
     KILL_DEVICE_MANAGER_APPLICATION = False #Setting this value to true will kill the main thread of our Device Manager application effectively closing all other threads
 
     #region TCP Device Commands
@@ -35,6 +35,7 @@ class DragonMasterDeviceManager:
     DEVICE_DISCONNECTED = 0x02 #When a new device is successfully removed from our manager we will send this message to Unity
     OMNI_EVENT = 0x03 #For messages that we send/receive to our omnidongle
     RETRIEVE_CONNECTED_DEVICES = 0x04 #This will return a device connected event for every currently connected device. This is good on soft reboot when our IO manager does not know what devices are currently connected
+    KILL_APPLICATION_EVENT = 0x05 #This event will trigger an event to kill the main thread, effectively shutting down the entire application
 
     ##DRAX COMMANDS
     DRAX_ID = 0x10
@@ -56,7 +57,7 @@ class DragonMasterDeviceManager:
     PRINTER_ID = 0X40
 
     #Receive Events
-    PRINTER_CASHOUT_TICKET = 0X41 #Command to print a cashout ticket
+    PRINTER_CASHOUT_TICKET = 0X41 #Command to print a cashout/voucher ticket
     PRINTER_AUDIT_TICKET = 0X042 #Command to print an audit ticket
     PRINTER_CODEX_TICKET = 0X43 #Command to print a codex ticket
     PRINTER_TEST_TICKET = 0X44 #Command to print a test ticket
@@ -104,6 +105,7 @@ class DragonMasterDeviceManager:
 
     def __init__(self,):
         self.tcpManager = TCPManager(self)
+
         self.CONNECTED_OMNIDONGLE = None #Since there should only be one omnidongle in our machine, we will only search until we find the first connection
         self.allConnectedDevices = [] #(DragonMasterDevice)
         self.playerStationDictionary = {}#Key: Parent USB Device Path (string) | Value: Player Station (PlayerStation)
@@ -425,8 +427,15 @@ class DragonMasterDeviceManager:
             print ("The event message was too short...")
             return 
         playerStationHash = convert_byte_array_to_value(eventMessage[1:4])
+        #General Event Messages
+        if eventMessage == DragonMasterDeviceManager.STATUS_FROM_UNITY:
+
+            return
+        elif eventMessage == DragonMasterDeviceManager.KILL_APPLICATION_EVENT:
+            DragonMasterDeviceManager.KILL_DEVICE_MANAGER_APPLICATION = True
+            return
         #Drax Outputs
-        if eventMessage == DragonMasterDeviceManager.DRAX_HARD_METER_EVENT:
+        elif eventMessage == DragonMasterDeviceManager.DRAX_HARD_METER_EVENT:
             self.on_drax_hard_meter_event(playerStationHash, eventMessage[5:])
             return
         elif eventMessage == DragonMasterDeviceManager.DRAX_OUTPUT_EVENT:
@@ -651,7 +660,8 @@ class DragonMasterDeviceManager:
             return
 
         for event in eventList:
-            self.interpret_event_from_unity(event)
+            if not DragonMasterDeviceManager.KILL_DEVICE_MANAGER_APPLICATION:
+                self.interpret_event_from_unity(event)
             pass
         return
         
@@ -866,6 +876,11 @@ class TCPManager:
                 socketSend.listen(1)
                 conn, addr = socketSend.accept()
 
+                if DragonMasterDeviceManager.KILL_DEVICE_MANAGER_APPLICATION:
+                    #Messages will not be sent if application is queued to end
+                    print ("Killing Send thread due to Kill Application Event")
+                    return
+                
                 if conn != None:
                     bytesToSend = []
                     while not self.tcpEventQueue.empty():
@@ -1374,24 +1389,7 @@ def debug_meter_increment(deviceManager, meterID=0, incrementValue=1, playerstat
 
     return
 #endregion debug drax functions
-                
-
-def interpret_DBV_command(dbv, command):
-    command = command.upper()
-    if command == "RESET":
-        dbv.reset_dbv()
-    elif command == "IDLE":
-        dbv.idle_dbv()
-    elif command == "INHIBIT":
-        dbv.inhibit_dbv()
-    elif command == "STATE":
-        dbv.get_dbv_state()
-    elif command == "STACK":
-        dbv.stack_bill()
-    elif command == "REJECT":
-        dbv.reject_bill()
-    return
-
+            
 #region debug DBV commands
 """
 
