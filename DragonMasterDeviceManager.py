@@ -1141,15 +1141,15 @@ def interpret_debug_command(commandToRead, deviceManager):
             return
     elif command == "meter":
         if len(commandSplit) >= 4:
-            debug_draxout(deviceManager, commandSplit[1], commandSplit[2], commandSplit[3])
+            debug_meter_increment(deviceManager, commandSplit[1], commandSplit[2], commandSplit[3])
         elif len(commandSplit) >= 3:
-            debug_draxout(deviceManager, commandSplit[1], commandSplit[2])
+            debug_meter_increment(deviceManager, commandSplit[1], commandSplit[2])
             return
         elif len(commandSplit) >= 2:
-            debug_draxout(deviceManager, commandSplit[1])
+            debug_meter_increment(deviceManager, commandSplit[1])
             return
         else:
-            debug_draxout(deviceManager)
+            debug_meter_increment(deviceManager)
             return
     #PRINT DEBUG
     elif command == "print":
@@ -1385,8 +1385,22 @@ def debug_draxout(deviceManager, outputState = 0, playerStationHash = -1):
 """
 Debug method used to increment the hard meters that are attached to the draxboards
 """
-def debug_meter_increment(deviceManager, meterID=0, incrementValue=1, playerstation = -1):
-
+def debug_meter_increment(deviceManager, meterID=0, incrementValue=1, playerStationHash = -1):
+    if playerStationHash < 0:
+        for pStation in deviceManager.playerStationDictionary.values():
+            if pStation.connectedDraxboard != None:
+                pStation.connectedDraxboard.increment_meter_ticks(meterID, incrementValue)
+    else:
+        if playerStationHash not in deviceManager.playerStationHashToParentDevicePath:
+            print ("The player station hash was not found. Perhaps there is no draxboard connected for that station")
+            return
+        pStationKey = deviceManager.playerStationHashToParentDevicePath[playerStationHash]
+        pStation = deviceManager.playerStationDictionary[pStationKey]
+        if pStation.connectedDraxboard == None:
+            print ("There is no Draxboard connected to this Station Hash")
+            return
+        pStation.connectedDraxboard.increment_meter_ticks(meterID, incrementValue)
+    return
     return
 #endregion debug drax functions
             
