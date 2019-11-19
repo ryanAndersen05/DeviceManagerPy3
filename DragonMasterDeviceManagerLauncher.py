@@ -11,7 +11,8 @@ import DragonMasterDeviceManager
 
 
 """
-@author Ryan Andersen, EQ Games, Phone #: (404-643-1783)bit
+@author Ryan Andersen, EQ Games, Phone #: (404-643-1783)
+email: ryan@eq-games.com
 """
 ################################################################################################################################################
 

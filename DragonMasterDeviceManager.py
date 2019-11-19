@@ -90,18 +90,24 @@ class DragonMasterDeviceManager:
     BA_IDLE_EVENT = 0X88 #Command to set the BA to idle
     BA_INHIBIT_EVENT = 0X89 #Command to set the BA to inhibit
     BA_RESET_EVENT = 0X8a #Command to reset the BA (Good if there is some error that isn't resolved automatically)
-
     #endregion TCP Device Commands
 
+    #region const variables
+    STATUS_MAX_SECONDS_TO_WAIT = 65
+    #endregion const variables
 
     #region debug variables
+    DEBUG_MODE = True
+
     DEBUG_PRINT_EVENTS_SENT_TO_UNITY = False #Mark this true to show events that we enque to send to Unity
     DEBUG_PRINT_EVENTS_RECEIVED_FROM_UNITY = False #Mark this true to show events that we have received from Unity
     DEBUG_TRANSLATE_PACKETS = False #Mark this true if you would like the packet names to be shown in English rather that Raw byte commands
     DEBUG_DISPLAY_JOY_AXIS = False #Mark this true to display all joystick axes values that are collected.
 
+
+
     
-    #endregion debum variables
+    #endregion debug variables
 
 
     def __init__(self,):
@@ -111,6 +117,7 @@ class DragonMasterDeviceManager:
         self.allConnectedDevices = [] #(DragonMasterDevice)
         self.playerStationDictionary = {}#Key: Parent USB Device Path (string) | Value: Player Station (PlayerStation)
         self.playerStationHashToParentDevicePath = {}#Key: Hash Value (uint) | Value: Parent USB Device Path (string)
+        self.statusMessageReceived = False #As long as the variable is marked true before we check the status of the Unity application, it means that the game is functioning correctly and we will wait another minute
         
 
         self.searchingForDevices = False
@@ -121,16 +128,13 @@ class DragonMasterDeviceManager:
         deviceAddedThread.start()
 
         #Begins a thread that allows a user to enter debug commands into a terminal if there is one available. This will not work if run through the bash script
-        debugThread = threading.Thread(target=debug_command_thread, args=(self,))
-        debugThread.daemon = True
-        debugThread.start()
+        if DragonMasterDeviceManager.DEBUG_MODE:
+            debugThread = threading.Thread(target=debug_command_thread, args=(self,))
+            debugThread.daemon = True
+            debugThread.start()
         
         sleep(.3)
         self.search_for_devices()
-        
-        # while (True):
-        #     self.search_for_devices()
-        #     sleep(5)
         return
 
 
@@ -157,12 +161,27 @@ class DragonMasterDeviceManager:
         
         return
 
+    """
+    There have been events where our Unity application has stopped responding. In this case the game will not shut itself down
+    and therefore will never restart and try again. With this watchdog thread, if we do not receive a message from Unity after
+    1 minute has passed, then we will assume it has stopped responding and attempt to shut it down.
+
+    TODO: Make sure to add terminal message to shutdown the game if a status has not been received
+    """
+    def periodically_check_that_unity_is_still_running(self):
+        while (not DragonMasterDeviceManager.KILL_APPLICATION_EVENT):
+            sleep(DragonMasterDeviceManager.STATUS_MAX_SECONDS_TO_WAIT)
+            if self.statusMessageReceived:
+                self.statusMessageReceived = False
+            else:
+                print ("Do something here to shut off the game... it has not been responding")
+
+        return
+
     #endregion threaded events
 
 
     #region Device Management
-    
-
     """
     This method will search for all valid devices that are connected to our machine
     """
@@ -392,7 +411,7 @@ class DragonMasterDeviceManager:
         return playerStation.connectedDraxboard.playerStationHash
 
     """
-
+    Returns the usb path, using the playerstation hash
     """
     def get_parent_usb_path_from_player_station_hash(self, pStationHash):
         if pStationHash in self.playerStationHashToParentDevicePath:
