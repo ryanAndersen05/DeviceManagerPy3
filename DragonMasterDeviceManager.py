@@ -1227,7 +1227,10 @@ def interpret_debug_command(commandToRead, deviceManager):
 Prints out the current state of every device that is currently connected to our machine
 """
 def debug_status_message(deviceManager):
+    print ('=' * 60)
     print ()
+    print ()
+
     if deviceManager.CONNECTED_OMNIDONGLE != None:
         print ("Connected Omnidongle: " + deviceManager.CONNECTED_OMNIDONGLE.to_string())
     else:
