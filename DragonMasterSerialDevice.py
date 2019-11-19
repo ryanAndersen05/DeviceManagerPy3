@@ -814,18 +814,23 @@ class Draxboard(SerialDevice):
             incrementMeterCommand[6] = checkSum
 
             read = self.write_serial_check_for_input_events(incrementMeterCommand, Draxboard.METER_INCREMENT_ID, Draxboard.METER_INCREMENT_SIZE)
-
+            print (read)
             readPendingMeterCommand = self.READ_PENDING_METER
-
+            
             readPendingMeterCommand[3] = meterIDToIncrement
             readPendingMeterCommand[4] = self.calculate_checksum(readPendingMeterCommand)
             firstResult = self.write_serial_check_for_input_events(readPendingMeterCommand, Draxboard.PENDING_METER_ID, Draxboard.PENDING_METER_SIZE)
             sleep(.25)
             secondResult = self.write_serial_check_for_input_events(readPendingMeterCommand, Draxboard.PENDING_METER_ID, Draxboard.PENDING_METER_SIZE)
+            if (firstResult == None or secondResult == None):
+                self.dragonMasterDeviceManager.add_event_to_send(DragonMasterDeviceManager.DragonMasterDeviceManager.DRAX_METER_ERROR, self.playerStationHash)
+                print ("One or more meter response messages was None. There is a possible error with the drax hard meters")
+                return
             meterResultFirst = (firstResult[4+1] << 8) + firstResult[4]
             meterResultSecond = (secondResult[4+1] << 8) + firstResult[4]
 
         except Exception as e:
+            self.dragonMasterDeviceManager.add_event_to_send(DragonMasterDeviceManager.DragonMasterDeviceManager.DRAX_METER_ERROR, self.playerStationHash)#Add that there was an error attempting to tick meters
             print ("There was an error while sending our hard meter tick event")
             print (e)
         return

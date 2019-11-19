@@ -48,6 +48,7 @@ class DragonMasterDeviceManager:
     DRAX_OUTPUT_BIT_ENABLE_EVENT = 0x13 #Enables the bits that are passed in. Can be multiple bits at once
     DRAX_OUTPUT_BIT_DISABLE_EVENT = 0x14 #Disables the bits that are passed in. Can be multiple bits at once
     DRAX_HARD_METER_EVENT = 0X15 #Event to Increment our hard meters taht are attached to our draxboards
+    DRAX_METER_ERROR = 0X16 #This message will be sent if there is an error attempting to increment
 
     ##JOYSTICK COMMANDS
     JOYSTICK_ID = 0X20
@@ -64,12 +65,12 @@ class DragonMasterDeviceManager:
     PRINTER_REPRINT_TICKET = 0x45 #Command to print a reprint ticket
 
     #Send Events
-    PRINT_COMPLETE_EVENT = 0X45 #Upone completing any print job, you should receive a PRINT_COMPLETE_EVENT message to verify that we successfully printed a ticket
-    PRINT_ERROR_EVENT = 0x46 #If there was an error at some point in the print job, we will send this message instead
-    PRINTER_STATE_EVENT = 0x47 #Returns the state of the printer
+    PRINT_COMPLETE_EVENT = 0X46 #Upon completing any print job, you should receive a PRINT_COMPLETE_EVENT message to verify that we successfully printed a ticket
+    PRINT_ERROR_EVENT = 0x47 #If there was an error at some point in the print job, we will send this message instead
+    PRINTER_STATE_EVENT = 0x48 #Returns the state of the printer
 
     #Printer Types
-    CUSTOM_TG02 = 0X01
+    CUSTOM_TG02 = 0X01 
     RELIANCE_PRINTER = 0X02
     PYRAMID_PRINTER = 0X03
 
@@ -81,7 +82,7 @@ class DragonMasterDeviceManager:
     BA_BILL_ACCEPTED_EVENT = 0X82 #Bill was accepted event
     BA_BILL_REJECTED_EVENT = 0X83 #Bill was rejected event
     BA_BILL_RETURNED_EVENT = 0x84 #Bill was returned event
-    BA_BILL_STATE_UPDATE_EVENT = 0x85
+    BA_BILL_STATE_UPDATE_EVENT = 0x85 #Event to Send the status of the bill acceptor
 
     #Receive Events
     BA_ACCEPT_BILL_EVENT = 0X86 #Command to accept the bill that is currently in escrow
@@ -1141,12 +1142,12 @@ def interpret_debug_command(commandToRead, deviceManager):
             return
     elif command == "meter":
         if len(commandSplit) >= 4:
-            debug_meter_increment(deviceManager, commandSplit[1], commandSplit[2], commandSplit[3])
+            debug_meter_increment(deviceManager, int(commandSplit[1]), int(commandSplit[2]), int(commandSplit[3]))
         elif len(commandSplit) >= 3:
-            debug_meter_increment(deviceManager, commandSplit[1], commandSplit[2])
+            debug_meter_increment(deviceManager, int(commandSplit[1]), int(commandSplit[2]))
             return
         elif len(commandSplit) >= 2:
-            debug_meter_increment(deviceManager, commandSplit[1])
+            debug_meter_increment(deviceManager, int(commandSplit[1]))
             return
         else:
             debug_meter_increment(deviceManager)
