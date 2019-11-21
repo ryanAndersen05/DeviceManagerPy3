@@ -1173,19 +1173,19 @@ def interpret_debug_command(commandToRead, deviceManager):
             return
     #PRINT DEBUG
     elif command == "print":
-
+        print ("Not Implemented")
         return
     elif command == "rprint":
-
+        print ("Not Implemented")
         return
     elif command == 'tprint':
-        
+        print ("Not Implemented")
         return
     elif command == 'cprint':
-
+        print ("Not Implemented")
         return
     elif command == 'aprint':
-
+        print ("Not Implemented")
         return
     #BILL ACCEPTOR DEBUG
     elif command == "reset":
@@ -1219,7 +1219,7 @@ def interpret_debug_command(commandToRead, deviceManager):
             debug_reject_bill_dbv(deviceManager)
         return
     else:
-        print ("Command was not found... Please use 'help' to see all available commands")
+        print ("'" + command + "' is not a valid command... type 'help' to see all available commands")
     return
     
 
