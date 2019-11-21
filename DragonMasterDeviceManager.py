@@ -1176,17 +1176,37 @@ def interpret_debug_command(commandToRead, deviceManager):
     elif command == "print":
 
         print ("Valid Command. Not Implemented")
+        if len(commandSplit) >= 2:
+            debug_print_voucher_ticket(deviceManager, commandSplit[1])
+        else:
+            debug_print_voucher_ticket(deviceManager)
         return
     elif command == "rprint":
+        if len(commandSplit) >= 2:
+            debug_print_reprint_ticket(deviceManager, commandSplit[1])
+        else:
+            debug_print_reprint_ticket(deviceManager)
         print ("Valid Command. Not Implemented")
         return
     elif command == 'tprint':
+        if len(commandSplit) >= 2:
+            debug_print_test_ticket(deviceManager, commandSplit[1])
+        else:
+            debug_print_test_ticket(deviceManager)
         print ("Valid Command. Not Implemented")
         return
     elif command == 'cprint':
+        if len(commandSplit) >= 2:
+            debug_print_codex_ticket(deviceManager, commandSplit[1])
+        else:
+            debug_print_codex_ticket(deviceManager)
         print ("Valid Command. Not Implemented")
         return
     elif command == 'aprint':
+        if len(commandSplit) >= 2:
+            debug_print_audit_ticket(deviceManager, commandSplit[1])
+        else:
+            debug_print_audit_ticket(deviceManager)
         print ("Valid Command. Not Implemented")
         return
     #BILL ACCEPTOR DEBUG
@@ -1527,6 +1547,10 @@ def debug_reject_bill_dbv(deviceManager, playerStationHash = -1):
 Prints a voucher ticket as it would appear with 0 credits
 """
 def debug_print_voucher_ticket(deviceManager, playerStationHash = -1):
+
+    return
+
+def debug_print_reprint_ticket(deviceManager, playerStationHash = -1):
 
     return
 
