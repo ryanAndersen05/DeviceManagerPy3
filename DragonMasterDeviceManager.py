@@ -1112,6 +1112,7 @@ def interpret_debug_command(commandToRead, deviceManager):
         return
     elif command == "msgin":
         DragonMasterDeviceManager.DEBUG_PRINT_EVENTS_RECEIVED_FROM_UNITY = not DragonMasterDeviceManager.DEBUG_PRINT_EVENTS_RECEIVED_FROM_UNITY
+        
         return
     elif command == "msgout":
         DragonMasterDeviceManager.DEBUG_PRINT_EVENTS_SENT_TO_UNITY = not DragonMasterDeviceManager.DEBUG_PRINT_EVENTS_SENT_TO_UNITY
@@ -1173,19 +1174,20 @@ def interpret_debug_command(commandToRead, deviceManager):
             return
     #PRINT DEBUG
     elif command == "print":
-        print ("Not Implemented")
+
+        print ("Valid Command. Not Implemented")
         return
     elif command == "rprint":
-        print ("Not Implemented")
+        print ("Valid Command. Not Implemented")
         return
     elif command == 'tprint':
-        print ("Not Implemented")
+        print ("Valid Command. Not Implemented")
         return
     elif command == 'cprint':
-        print ("Not Implemented")
+        print ("Valid Command. Not Implemented")
         return
     elif command == 'aprint':
-        print ("Not Implemented")
+        print ("Valid Command. Not Implemented")
         return
     #BILL ACCEPTOR DEBUG
     elif command == "reset":
@@ -1519,6 +1521,36 @@ def debug_reject_bill_dbv(deviceManager, playerStationHash = -1):
         deviceManager.playerStationDictionary[pStationKey].connectedBillAcceptor.reject_bill()
     return
 #endregion debug DBV commands
+
+#region debug printer commands
+"""
+Prints a voucher ticket as it would appear with 0 credits
+"""
+def debug_print_voucher_ticket(deviceManager, playerStationHash = -1):
+
+    return
+
+"""
+Prints a test ticket as it would appear with a balance of 0 credits
+"""
+def debug_print_test_ticket(deviceManager, playerStationHash = -1):
+
+    return
+"""
+Prints a codes ticket with all values set to 0
+"""
+def debug_print_codex_ticket(deviceManager, playerStationHash = -1):
+
+    return
+
+"""
+Prints an audit ticket with all values set to 0
+"""
+def debug_print_audit_ticket(deviceManager, playerStationHash = -1):
+
+    return
+
+#endregion debug printer commands
 
 """
 Returns a string representation of the commands that are being sent and received. This is relly only for debugging purposes
