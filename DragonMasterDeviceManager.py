@@ -1,6 +1,7 @@
 #external lib imports
 import socket
 import pyudev
+import sys
 from sys import stdin
 
 #std lib imports
@@ -127,14 +128,18 @@ class DragonMasterDeviceManager:
         deviceAddedThread.daemon = True
         deviceAddedThread.start()
 
+        sleep(.3)
+        self.search_for_devices()
+
         #Begins a thread that allows a user to enter debug commands into a terminal if there is one available. This will not work if run through the bash script
         if DragonMasterDeviceManager.DEBUG_MODE:
+            print ()
+            print ("DEBUG MODE IS ON")
             debugThread = threading.Thread(target=debug_command_thread, args=(self,))
             debugThread.daemon = True
             debugThread.start()
         
-        sleep(.3)
-        self.search_for_devices()
+        
         return
 
 
@@ -1071,7 +1076,7 @@ def set_string_length_multiple(string1, string2, lengthOfString = 60, spacingCha
 def debug_command_thread(deviceManager):
 
     while(True):
-        commandToRead = stdin.readline()
+        commandToRead = input("Enter Command: ")
         if commandToRead != None:
             interpret_debug_command(commandToRead,deviceManager)
 
@@ -1107,7 +1112,8 @@ def interpret_debug_command(commandToRead, deviceManager):
         return
     elif command == "version":
         print ('-' * 60)
-        print("Version: v" + DragonMasterDeviceManager.VERSION)
+        print ("Python Ver: " + sys.version)
+        print("Device Manager Ver: v" + DragonMasterDeviceManager.VERSION)
         print ('-' * 60)
         return
     elif command == "msgin":
@@ -1172,39 +1178,40 @@ def interpret_debug_command(commandToRead, deviceManager):
         else:
             debug_meter_increment(deviceManager)
             return
+        
     #PRINT DEBUG
     elif command == "print":
 
         print ("Valid Command. Not Implemented")
         if len(commandSplit) >= 2:
-            debug_print_voucher_ticket(deviceManager, commandSplit[1])
+            debug_print_voucher_ticket(deviceManager, int(commandSplit[1]))
         else:
             debug_print_voucher_ticket(deviceManager)
         return
     elif command == "rprint":
         if len(commandSplit) >= 2:
-            debug_print_reprint_ticket(deviceManager, commandSplit[1])
+            debug_print_reprint_ticket(deviceManager, int(commandSplit[1]))
         else:
             debug_print_reprint_ticket(deviceManager)
         print ("Valid Command. Not Implemented")
         return
     elif command == 'tprint':
         if len(commandSplit) >= 2:
-            debug_print_test_ticket(deviceManager, commandSplit[1])
+            debug_print_test_ticket(deviceManager, int(commandSplit[1]))
         else:
             debug_print_test_ticket(deviceManager)
         print ("Valid Command. Not Implemented")
         return
     elif command == 'cprint':
         if len(commandSplit) >= 2:
-            debug_print_codex_ticket(deviceManager, commandSplit[1])
+            debug_print_codex_ticket(deviceManager, int(commandSplit[1]))
         else:
             debug_print_codex_ticket(deviceManager)
         print ("Valid Command. Not Implemented")
         return
     elif command == 'aprint':
         if len(commandSplit) >= 2:
-            debug_print_audit_ticket(deviceManager, commandSplit[1])
+            debug_print_audit_ticket(deviceManager, int(commandSplit[1]))
         else:
             debug_print_audit_ticket(deviceManager)
         print ("Valid Command. Not Implemented")
