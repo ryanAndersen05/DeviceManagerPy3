@@ -810,7 +810,11 @@ class PlayerStationContainer:
         self.connectedJoystick = None
         self.connectedPrinter = None    
 
-    def to_string(self):
+    """
+    to string mesage that displays all the devices that are connected to the player station. If FullStation is set to true
+    this will write out MISSING for devices that are not present in this station
+    """
+    def to_string(self, fullStation = False):
         playerStationString = '-' * 60
         if self.connectedDraxboard != None:
             print ("Station Hash: " + str(self.connectedDraxboard.get_player_station_hash()))
@@ -818,12 +822,20 @@ class PlayerStationContainer:
             print ("NO STATION HASH SET (Draxboard not found for this station)")
         if self.connectedJoystick:
             playerStationString += '\nJOY   |' + self.connectedJoystick.to_string()
+        elif fullStation:
+            playerStationString += "\nJOY   |MISSING" 
         if self.connectedDraxboard:
             playerStationString += '\nDRAX  |' + self.connectedDraxboard.to_string()
+        elif fullStation:
+            playerStationString += "\nDRAX  |MISSING" 
         if self.connectedPrinter:
             playerStationString += '\nPRINT |' + self.connectedPrinter.to_string()
+        elif fullStation:
+            playerStationString += "\nPRINT |MISSING" 
         if self.connectedBillAcceptor:
             playerStationString += '\nDBV   |' + self.connectedBillAcceptor.to_string()
+        elif fullStation:
+            playerStationString += "\nDBV   |MISSING" 
         playerStationString += '\n' + '-' * 60
         return playerStationString
         
@@ -1271,7 +1283,8 @@ def debug_status_message(deviceManager):
         return
 
     for key in deviceManager.playerStationDictionary:
-        print (deviceManager.playerStationDictionary[key].to_string())
+        print (deviceManager.playerStationDictionary[key].to_string(True))
+    print ("TOTAL DEV: " + str(len(deviceManager.allConnectedDevices)))
     
     return
 
