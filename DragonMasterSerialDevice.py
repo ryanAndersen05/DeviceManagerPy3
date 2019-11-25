@@ -818,6 +818,7 @@ class Draxboard(SerialDevice):
             readPendingMeterCommand = self.READ_PENDING_METER[:]
             
             readPendingMeterCommand[3] = meterIDToIncrement
+            readPendingMeterCommand[4] = 0
             readPendingMeterCommand[4] = self.calculate_checksum(readPendingMeterCommand)
             firstResult = self.write_serial_check_for_input_events(readPendingMeterCommand, Draxboard.PENDING_METER_ID, Draxboard.PENDING_METER_SIZE)
             sleep(.15)
