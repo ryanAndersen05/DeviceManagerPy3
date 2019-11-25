@@ -212,7 +212,7 @@ class SerialDevice(DragonMasterDevice.DragonMasterDevice):
     pass
 
 """
-@author Aaron Thurston, EQ Games/Kaneva, Phone#: 4046-80-2119
+@author Aaron Thurston, EQ Games/Kaneva, Phone#: 404-680-2119
 
 A class that handles all our Bill Acceptor Actions
 """
@@ -815,12 +815,12 @@ class Draxboard(SerialDevice):
 
             read = self.write_serial_check_for_input_events(incrementMeterCommand, Draxboard.METER_INCREMENT_ID, Draxboard.METER_INCREMENT_SIZE)
             print (read)
-            readPendingMeterCommand = self.READ_PENDING_METER
+            readPendingMeterCommand = self.READ_PENDING_METER[:]
             
             readPendingMeterCommand[3] = meterIDToIncrement
             readPendingMeterCommand[4] = self.calculate_checksum(readPendingMeterCommand)
             firstResult = self.write_serial_check_for_input_events(readPendingMeterCommand, Draxboard.PENDING_METER_ID, Draxboard.PENDING_METER_SIZE)
-            sleep(.25)
+            sleep(.15)
             secondResult = self.write_serial_check_for_input_events(readPendingMeterCommand, Draxboard.PENDING_METER_ID, Draxboard.PENDING_METER_SIZE)
             if (firstResult == None or secondResult == None):
                 self.dragonMasterDeviceManager.add_event_to_send(DragonMasterDeviceManager.DragonMasterDeviceManager.DRAX_METER_ERROR, [], self.playerStationHash)
@@ -855,7 +855,7 @@ class Draxboard(SerialDevice):
     def write_serial_check_for_input_events(self, messageToWrite, responseID, responseSize):
         read = self.write_serial_wait_for_read(messageToWrite)
         validRead = None
-
+        print (read)
         while read != None and len(read) > 0:
             if read[0] == responseID:
                 if len(read) <= responseSize:
@@ -881,7 +881,7 @@ class Draxboard(SerialDevice):
         Type 1 - output bit enable (Use this to toggle only one bit on)
         Type 2 - output bit disable (Use this to toggle one bit off)
 
-        NOTE: Any other value aside from 0-2 will result in this method not running
+    NOTE: Any other value aside from 0-2 will result in this method not running
     """
     def toggle_output_state_of_drax(self, outputToggleu32, toggleMessageType=0):
         if toggleMessageType == 0:
@@ -907,7 +907,6 @@ class Draxboard(SerialDevice):
         outputMessageArray[6] = byte1
         outputMessageArray[checkSumByteIndex] = self.calculate_checksum(outputMessageArray)
 
-
         read = self.write_serial_check_for_input_events(outputMessageArray, Draxboard.OUTPUT_EVENT_ID, Draxboard.OUTPUT_EVENT_SIZE)
         if read != None and len(read) >= Draxboard.OUTPUT_EVENT_SIZE and read[0] == Draxboard.OUTPUT_EVENT_ID:
             self.draxOutputState = (int(read[4]) << 8) + read[3]
@@ -915,7 +914,6 @@ class Draxboard(SerialDevice):
 
         return read
     
-
     """
     Sends a packet to our TCP Manager that contains the output state of the draxboard
     """
@@ -936,7 +934,6 @@ class Draxboard(SerialDevice):
             self.add_input_event_to_tcp_queue(inputPacketLine)
             return True
         return False
-    
     pass
 
     """
@@ -944,6 +941,7 @@ class Draxboard(SerialDevice):
     """
     def calculate_checksum(self, packetWeAreSending):
         return sum(packetWeAreSending) % 256
+
 
 """
 Supplimentary class to our reliance printers. This class talks to the reliance printer through
@@ -1118,7 +1116,6 @@ class Omnidongle(SerialDevice):
 
 
 ##Search Device Methods
-
 """
 Returns a list of all connected DBV 400 comports
 """
