@@ -809,7 +809,8 @@ class Draxboard(SerialDevice):
 
             incrementMeterCommand[4] = (ticksToSend >> (8 * 0)) & 0xff
             incrementMeterCommand[5] = (ticksToSend >> (8 * 1)) & 0xff
-
+            incrementMeterCommand[6] = 0
+            
             checkSum = self.calculate_checksum(incrementMeterCommand)
             incrementMeterCommand[6] = checkSum
 
