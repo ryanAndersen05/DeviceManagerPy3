@@ -1084,7 +1084,9 @@ def set_string_length_multiple(string1, string2, lengthOfString = 60, spacingCha
 
 
 #region debug methods
-
+"""
+This thread will allow testers to enter debug commands
+"""
 def debug_command_thread(deviceManager):
 
     while(True):

@@ -32,6 +32,7 @@ class SerialDevice(DragonMasterDevice.DragonMasterDevice):
 
     def __init__(self, deviceManager):
         DragonMasterDevice.DragonMasterDevice.__init__(self, deviceManager)
+        self.readBytesWaiting = bytes()
         self.serialObject = None
         self.pollingDevice = False
         self.serialState = SerialDevice.SERIAL_NOT_POLLING
@@ -67,8 +68,11 @@ class SerialDevice(DragonMasterDevice.DragonMasterDevice):
     This is called upon one byte in the readbuffer. So you may need to add a sleep to ensure that you collect the entire
     message from the serial device
     """
-    def on_data_received_event(self):
-        return
+    def on_data_received_event(self, readData):
+        if (self.SERIAL_IGNORE_EVENT):
+            self.readBytesWaiting += readData
+            return True
+        return False
 
 
 
@@ -116,9 +120,11 @@ class SerialDevice(DragonMasterDevice.DragonMasterDevice):
         self.serialState = SerialDevice.SERIAL_WAIT_FOR_EVENT
         try:
             while self.pollingDevice:
-                if self.serialState == SerialDevice.SERIAL_WAIT_FOR_EVENT  and serialDevice.in_waiting > 1:
-                        self.on_data_received_event()
-                sleep(.016)#Adding a sleep so that we do not consume all the resources and allow python to run other threads
+                if self.serialState == SerialDevice.SERIAL_WAIT_FOR_EVENT:
+                    readData = self.read_from_serial(0, 1)
+                    if readData:
+                        self.on_data_received_event(readData)
+                    
         except Exception as e:
             print ("There was an error polling device " + self.to_string())
             print (e)
@@ -142,17 +148,18 @@ class SerialDevice(DragonMasterDevice.DragonMasterDevice):
     """
     Returns a message if there is one available to read from our serial device
     """
-    def read_from_serial(self, delayBeforeReadMilliseconds = 0):
+    def read_from_serial(self, delayBeforeReadMilliseconds = 0, minBytesToRead = 1):
         sleepDelay = float(delayBeforeReadMilliseconds) / 1000
         self.serialState = SerialDevice.SERIAL_IGNORE_EVENT
         if sleepDelay > 0:
             sleep(sleepDelay)
         
         try:
-            inWaiting = self.serialObject.in_waiting
-            readLine = self.serialObject.read(size=inWaiting)
+            readData  = self.serialObject.read(1)
+            if readData:
+                readData += self.serialObject.read(self.serialObject.in_waiting)
             self.serialState = SerialDevice.SERIAL_WAIT_FOR_EVENT
-            return readLine
+            return readData
         except Exception as e:
             print ("There was an error reading from our device")
             print (e)
@@ -176,7 +183,7 @@ class SerialDevice(DragonMasterDevice.DragonMasterDevice):
     In many cases with our serial devices, we will want to send a message and we will expect a response to that message.
     For this it is recommended that you use this method.
     """
-    def write_serial_wait_for_read(self, messageToSend, minBytesToRead=1, maxMillisecondsToWait=10, delayBeforeReadMilliseconds=0):
+    def write_serial_wait_for_read(self, messageToSend, minBytesToRead=1, maxMillisecondsToWait=10, delayBeforeReadMilliseconds=5):
         self.serialState = SerialDevice.SERIAL_IGNORE_EVENT
         maxMillisecondsToWaitConverted = float(maxMillisecondsToWait) / 1000
 
@@ -190,14 +197,19 @@ class SerialDevice(DragonMasterDevice.DragonMasterDevice):
             return None
 
         initialTime = time()
+        sleep(delayBeforeReadMilliseconds / 1000)
         try:
-            while time() - initialTime < maxMillisecondsToWaitConverted:
-                if (self.serialObject.in_waiting >= minBytesToRead):
-                    if (delayBeforeReadMilliseconds > 0):
-                        sleep(float(delayBeforeReadMilliseconds) / 1000)
-                    inWaiting = self.serialObject.in_waiting
-                    readLine = self.serialObject.read(size=inWaiting)
-                    return readLine
+            if self.readBytesWaiting:
+                returnBytes = self.readBytesWaiting
+                self.readBytesWaiting = bytes()
+                return returnBytes
+            # while time() - initialTime < maxMillisecondsToWaitConverted:
+            #     if (self.serialObject.in_waiting >= minBytesToRead):
+            #         if (delayBeforeReadMilliseconds > 0):
+            #             sleep(float(delayBeforeReadMilliseconds) / 1000)
+            #         inWaiting = self.serialObject.in_waiting
+            #         readLine = self.serialObject.read(size=inWaiting)
+            #         return readLine
         except Exception as e:
             print ("There was a problem reading from our device")
             print (e)
@@ -291,12 +303,14 @@ class DBV400(SerialDevice):
 
     #region on data received
     """ Handles all byte strings sent from the DBV to the host"""
-    def on_data_received_event(self):
-        read = self.read_from_serial()
+    def on_data_received_event(self, readData):
+        if super().on_data_received_event(readData):
+            return
+        read = readData
         if read == None or len(read) < 2:
             return
 
-        print("Core Message: " + read.hex())
+        # print("Core Message: " + read.hex())
         length = len(read)
         messages = []
         index = 0
@@ -307,14 +321,14 @@ class DBV400(SerialDevice):
             index = index + currentLength
             length -= currentLength
 
-        print (messages)
+        # print (messages)
 
         for message in messages:
             self.process_data_received_message(message)
 
     def process_data_received_message(self, read):
         length = read[1]
-        print ("Message:" + read.hex())
+        # print ("Message:" + read.hex())
         if (length <= 8):
             if read[6] == 0x00 and read[7] == 0x01:
                 self.on_inhibit_success(read)
@@ -616,7 +630,6 @@ class DBV400(SerialDevice):
     #region Override Methods
     def start_device(self, deviceElement):
         self.serialObject = self.open_serial_device(deviceElement.device, DBV400.DBV_BAUDRATE, 5, 5)
-        print ("Starting device: " + str(self.serialObject))
         if self.serialObject == None:
             return False
         super().start_device(deviceElement)
@@ -703,6 +716,7 @@ class Draxboard(SerialDevice):
         self.serialObject = self.open_serial_device(deviceElement.device, Draxboard.DRAX_BAUDRATE, 5, 5)
         if self.serialObject == None:
             return False
+        super().start_device(deviceElement)
         self.serialObject.flush()
 
         requestStatus = self.write_serial_check_for_input_events(self.REQUEST_STATUS, Draxboard.REQUEST_STATUS_ID, Draxboard.REQUEST_STATUS_SIZE)
@@ -726,7 +740,6 @@ class Draxboard(SerialDevice):
         if read == None:
             print ("Default output assignement was not successful")
             return False
-        super().start_device(deviceElement)
         self.playerStationHash = self.get_draxboard_device_path_hash(deviceElement)
         
         return True
@@ -747,11 +760,11 @@ class Draxboard(SerialDevice):
     This primarily for retrieving player input as that is the only case where we do not write an event before expecting
     a response. Inputs are driven entirely by our players and as such can happen at any time
     """
-    def on_data_received_event(self):
-        if self.serialState != SerialDevice.SERIAL_WAIT_FOR_EVENT:
+    def on_data_received_event(self, readData):
+        if super().on_data_received_event(readData):
             return
 
-        readEvent = self.read_from_serial(2)
+        readEvent = readData
 
         if readEvent == None:
             print ("Draxboard read event was none....")
@@ -815,7 +828,6 @@ class Draxboard(SerialDevice):
             incrementMeterCommand[6] = checkSum
 
             read = self.write_serial_check_for_input_events(incrementMeterCommand, Draxboard.METER_INCREMENT_ID, Draxboard.METER_INCREMENT_SIZE)
-            print (read)
             readPendingMeterCommand = self.READ_PENDING_METER[:]
             
             readPendingMeterCommand[3] = meterIDToIncrement
@@ -855,9 +867,8 @@ class Draxboard(SerialDevice):
     TODO: Add a way to check for Status Reads from the Drax. It is another packet that can be sent without polling. It can send whenever
     """
     def write_serial_check_for_input_events(self, messageToWrite, responseID, responseSize):
-        read = self.write_serial_wait_for_read(messageToWrite)
+        read = self.write_serial_wait_for_read(messageToWrite, 10)
         validRead = None
-        print (read)
         while read != None and len(read) > 0:
             if read[0] == responseID:
                 if len(read) <= responseSize:
