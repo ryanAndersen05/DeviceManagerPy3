@@ -104,8 +104,7 @@ class DragonMasterDeviceManager:
     DEBUG_PRINT_EVENTS_RECEIVED_FROM_UNITY = False #Mark this true to show events that we have received from Unity
     DEBUG_TRANSLATE_PACKETS = False #Mark this true if you would like the packet names to be shown in English rather that Raw byte commands
     DEBUG_DISPLAY_JOY_AXIS = False #Mark this true to display all joystick axes values that are collected.
-
-
+    DEBUG_SHOW_DRAX_BUTTONS = False
 
     
     #endregion debug variables
@@ -928,7 +927,7 @@ class TCPManager:
                         bytesToSend = bytesToSend + eventToAdd
                         
                         if (DragonMasterDeviceManager.DEBUG_PRINT_EVENTS_SENT_TO_UNITY):
-                            print (eventToAdd)
+                            print ("MSGOUT: " + str(eventToAdd))
                         
                     convertedByteArrayToSend = bytearray(bytesToSend)#Converting our array into a byte array to send through our TCP socket
                     
@@ -1084,6 +1083,14 @@ def set_string_length_multiple(string1, string2, lengthOfString = 60, spacingCha
 
 
 #region debug methods
+#region debug commands
+
+#endregion debug commands
+
+
+
+
+
 """
 This thread will allow testers to enter debug commands
 """
@@ -1132,7 +1139,6 @@ def interpret_debug_command(commandToRead, deviceManager):
         return
     elif command == "msgin":
         DragonMasterDeviceManager.DEBUG_PRINT_EVENTS_RECEIVED_FROM_UNITY = not DragonMasterDeviceManager.DEBUG_PRINT_EVENTS_RECEIVED_FROM_UNITY
-        
         return
     elif command == "msgout":
         DragonMasterDeviceManager.DEBUG_PRINT_EVENTS_SENT_TO_UNITY = not DragonMasterDeviceManager.DEBUG_PRINT_EVENTS_SENT_TO_UNITY
@@ -1145,11 +1151,16 @@ def interpret_debug_command(commandToRead, deviceManager):
         DragonMasterDeviceManager.DEBUG_DISPLAY_JOY_AXIS = not DragonMasterDeviceManager.DEBUG_DISPLAY_JOY_AXIS
         return
     #DRAX DEBUG
+    elif command == "printdraxbutton":
+        DragonMasterDeviceManager.DEBUG_SHOW_DRAX_BUTTONS = not DragonMasterDeviceManager.DEBUG_SHOW_DRAX_BUTTONS
+        print (DragonMasterDeviceManager.DEBUG_SHOW_DRAX_BUTTONS)
+        return
     elif command == "flashdrax":
         if len(commandSplit) >= 2:
             debug_flash_draxboards(deviceManager, int(commandSplit[1]))
         else:
             debug_flash_draxboards(deviceManager)
+        return
     elif command == "bitenable":
         if len(commandSplit) >= 3:
             debug_bitenable_drax(deviceManager, int(commandSplit[1]), int(commandSplit[2]))
@@ -1192,7 +1203,6 @@ def interpret_debug_command(commandToRead, deviceManager):
         else:
             debug_meter_increment(deviceManager)
             return
-        
     #PRINT DEBUG
     elif command == "print":
 
@@ -1318,6 +1328,7 @@ def debug_help_message():
     print ("'msgtrans' - Translates the packets that we are sending and receiving from Unity")
     print ('-' * 60)
     print ("**Draxboard Commands")
+    print ("'draxbutton' - shows the button presses/releases on the draxboard")
     print ("'bitenable - enter 0-15 to enable a specific output on our Draxboard (data=[bitToToggle])")
     print ("'bitdisable - enter 0-15 to disable a specific output on our Draxboard (data=[bitToToggle])")
     print ("'draxout' - enter a ushort value and the draxboard output will be set to that state (data=[ushortOutputState])")

@@ -32,7 +32,6 @@ class SerialDevice(DragonMasterDevice.DragonMasterDevice):
 
     def __init__(self, deviceManager):
         DragonMasterDevice.DragonMasterDevice.__init__(self, deviceManager)
-        self.readBytesWaiting = bytes()
         self.serialObject = None
         self.pollingDevice = False
         self.serialState = SerialDevice.SERIAL_NOT_POLLING
@@ -64,15 +63,14 @@ class SerialDevice(DragonMasterDevice.DragonMasterDevice):
         
     #Universal Serial Methods
     """
-    Upon events being received, this method will be called. You can treat this as an On Serail Read event received
-    This is called upon one byte in the readbuffer. So you may need to add a sleep to ensure that you collect the entire
-    message from the serial device
+    All serial classes will be running a thread to see if there are any events ready to be received. This event will trigger upon one byte being read in. You must read the rest
+    in after the event is called.
+
+    firstByteOfPacket will be of type bytes()
     """
-    def on_data_received_event(self, readData):
-        if (self.SERIAL_IGNORE_EVENT):
-            self.readBytesWaiting += readData
-            return True
-        return False
+    def on_data_received_event(self, firstByteOfPacket):
+        
+        return
 
 
 
@@ -120,10 +118,9 @@ class SerialDevice(DragonMasterDevice.DragonMasterDevice):
         self.serialState = SerialDevice.SERIAL_WAIT_FOR_EVENT
         try:
             while self.pollingDevice:
-                if self.serialState == SerialDevice.SERIAL_WAIT_FOR_EVENT:
-                    readData = self.read_from_serial(0, 1)
-                    if readData:
-                        self.on_data_received_event(readData)
+                firstReadByte = self.serialObject.read(1)
+                if firstReadByte:
+                    self.on_data_received_event(firstReadByte)
                     
         except Exception as e:
             print ("There was an error polling device " + self.to_string())
@@ -145,26 +142,7 @@ class SerialDevice(DragonMasterDevice.DragonMasterDevice):
         self.dragonMasterDeviceManager.remove_device(self)
 
     #READ/WRITE Methods
-    """
-    Returns a message if there is one available to read from our serial device
-    """
-    def read_from_serial(self, delayBeforeReadMilliseconds = 0, minBytesToRead = 1):
-        sleepDelay = float(delayBeforeReadMilliseconds) / 1000
-        self.serialState = SerialDevice.SERIAL_IGNORE_EVENT
-        if sleepDelay > 0:
-            sleep(sleepDelay)
-        
-        try:
-            readData  = self.serialObject.read(1)
-            if readData:
-                readData += self.serialObject.read(self.serialObject.in_waiting)
-            self.serialState = SerialDevice.SERIAL_WAIT_FOR_EVENT
-            return readData
-        except Exception as e:
-            print ("There was an error reading from our device")
-            print (e)
-            self.serialState = SerialDevice.SERIAL_WAIT_FOR_EVENT
-        return
+   
 
     """
     Safely writes a message to our serial object
@@ -179,46 +157,6 @@ class SerialDevice(DragonMasterDevice.DragonMasterDevice):
             print (e)
         return
 
-    """
-    In many cases with our serial devices, we will want to send a message and we will expect a response to that message.
-    For this it is recommended that you use this method.
-    """
-    def write_serial_wait_for_read(self, messageToSend, minBytesToRead=1, maxMillisecondsToWait=10, delayBeforeReadMilliseconds=5):
-        self.serialState = SerialDevice.SERIAL_IGNORE_EVENT
-        maxMillisecondsToWaitConverted = float(maxMillisecondsToWait) / 1000
-
-        try:
-
-            self.serialObject.write(messageToSend)
-        except Exception as e:
-            print ("There was an error writing to our serial device")
-            print (e)
-            self.serialState = SerialDevice.SERIAL_WAIT_FOR_EVENT
-            return None
-
-        initialTime = time()
-        sleep(delayBeforeReadMilliseconds / 1000)
-        try:
-            if self.readBytesWaiting:
-                returnBytes = self.readBytesWaiting
-                self.readBytesWaiting = bytes()
-                return returnBytes
-            # while time() - initialTime < maxMillisecondsToWaitConverted:
-            #     if (self.serialObject.in_waiting >= minBytesToRead):
-            #         if (delayBeforeReadMilliseconds > 0):
-            #             sleep(float(delayBeforeReadMilliseconds) / 1000)
-            #         inWaiting = self.serialObject.in_waiting
-            #         readLine = self.serialObject.read(size=inWaiting)
-            #         return readLine
-        except Exception as e:
-            print ("There was a problem reading from our device")
-            print (e)
-            self.serialState = SerialDevice.SERIAL_WAIT_FOR_EVENT
-            return None
-
-        print ("Serial Read Timed Out")
-        self.serialState = SerialDevice.SERIAL_WAIT_FOR_EVENT
-        return None
     #End READ/WRITE Methods
     #End Universal Serial Methods
     pass
@@ -303,10 +241,8 @@ class DBV400(SerialDevice):
 
     #region on data received
     """ Handles all byte strings sent from the DBV to the host"""
-    def on_data_received_event(self, readData):
-        if super().on_data_received_event(readData):
-            return
-        read = readData
+    def on_data_received_event(self, firstByteOfPacket):
+        read = firstByteOfPacket + self.serialObject.read(self.serialObject.in_waiting)
         if read == None or len(read) < 2:
             return
 
@@ -706,6 +642,7 @@ class Draxboard(SerialDevice):
         self.versionNumberLow = 0
         self.draxOutputState = 0
         self.playerStationNumber = 0
+        self.meterTicksRemaining = 0
 
         self.playerStationHash = 0#The player station hash is a value assigned only to our Draxboard. It is a value derived from the usb path to our draxboard
         return
@@ -716,33 +653,38 @@ class Draxboard(SerialDevice):
         self.serialObject = self.open_serial_device(deviceElement.device, Draxboard.DRAX_BAUDRATE, 5, 5)
         if self.serialObject == None:
             return False
-        super().start_device(deviceElement)
         self.serialObject.flush()
+        super().start_device(deviceElement)
 
-        requestStatus = self.write_serial_check_for_input_events(self.REQUEST_STATUS, Draxboard.REQUEST_STATUS_ID, Draxboard.REQUEST_STATUS_SIZE)
-        if requestStatus == None:
-            print ("Request Status Was None")
-            return False
-        
-        if len(requestStatus) < Draxboard.REQUEST_STATUS_SIZE or requestStatus[0] != Draxboard.REQUEST_STATUS_ID:
-            print ("Reqeust Status length was too short or invalid: " + str(requestStatus))
-            return False
+        self.write_to_serial(self.REQUEST_STATUS)
+        self.write_to_serial(self.DRAXBOARD_OUTPUT_ENABLE)
 
-
-        self.versionNumberHigh = requestStatus[15]
-        self.versionNumberLow = requestStatus[16]
-
-        self.playerStationNumber = requestStatus[10]
-        if self.write_serial_wait_for_read(self.DRAXBOARD_OUTPUT_ENABLE, delayBeforeReadMilliseconds=10) == None:
-            print ("Output Enable was not successful")
-            return False
-        read = self.toggle_output_state_of_drax(0x180f)
-        if read == None:
-            print ("Default output assignement was not successful")
-            return False
-        self.playerStationHash = self.get_draxboard_device_path_hash(deviceElement)
-        
         return True
+
+        # requestStatus = self.write_serial_check_for_input_events(self.REQUEST_STATUS, Draxboard.REQUEST_STATUS_ID, Draxboard.REQUEST_STATUS_SIZE)
+        # if requestStatus == None:
+        #     print ("Request Status Was None")
+        #     return False
+        
+        # if len(requestStatus) < Draxboard.REQUEST_STATUS_SIZE or requestStatus[0] != Draxboard.REQUEST_STATUS_ID:
+        #     print ("Reqeust Status length was too short or invalid: " + str(requestStatus))
+        #     return False
+
+
+        # self.versionNumberHigh = requestStatus[15]
+        # self.versionNumberLow = requestStatus[16]
+
+        # self.playerStationNumber = requestStatus[10]
+        # if self.write_serial_wait_for_read(self.DRAXBOARD_OUTPUT_ENABLE, delayBeforeReadMilliseconds=10) == None:
+        #     print ("Output Enable was not successful")
+        #     return False
+        # read = self.toggle_output_state_of_drax(0x180f)
+        # if read == None:
+        #     print ("Default output assignement was not successful")
+        #     return False
+        # self.playerStationHash = self.get_draxboard_device_path_hash(deviceElement)
+        
+        # return True
 
 
     def fetch_parent_path(self, deviceElement):
@@ -757,22 +699,83 @@ class Draxboard(SerialDevice):
     
 
     """
-    This primarily for retrieving player input as that is the only case where we do not write an event before expecting
-    a response. Inputs are driven entirely by our players and as such can happen at any time
+    This method will return
+
+    NOTE: Be sure that if there is a return packet that you expect, be sure to include it here to ensure
+    that we do not miss any packets
     """
-    def on_data_received_event(self, readData):
-        if super().on_data_received_event(readData):
+    def on_data_received_event(self, firstByteOfPacket):
+        
+        if firstByteOfPacket == Draxboard.INPUT_EVENT_ID:
+            packetData = firstByteOfPacket + self.serialObject.read(Draxboard.INPUT_EVENT_SIZE - 1)
+            self.add_input_event_to_tcp_queue(packetData)
             return
-
-        readEvent = readData
-
-        if readEvent == None:
-            print ("Draxboard read event was none....")
+        elif firstByteOfPacket == Draxboard.STATUS_EVENT_ID:
+            packetData = firstByteOfPacket + self.serialObject.read(Draxboard.STATUS_EVENT_SIZE - 1)
+            self.on_status_packet_received(packetData)
             return
+        elif firstByteOfPacket == Draxboard.REQUEST_STATUS_ID:
+            packetData = firstByteOfPacket + self.serialObject.read(Draxboard.REQUEST_STATUS_SIZE - 1)
+            self.on_request_status_received(packetData)
+            return
+        elif firstByteOfPacket == Draxboard.OUTPUT_EVENT_ID:
+            packetData = firstByteOfPacket + self.serialObject.read(Draxboard.OUTPUT_EVENT_SIZE - 1)
+            self.on_output_packet_received(packetData)
+            return
+        elif firstByteOfPacket == Draxboard.METER_INCREMENT_ID:
+            packetData = firstByteOfPacket + self.serialObject.read(Draxboard.METER_INCREMENT_SIZE - 1)
+            self.on_meter_increment_packet_received(packetData)
+            return
+        elif firstByteOfPacket == Draxboard.PENDING_METER_ID:
+            packetData = firstByteOfPacket + self.serialObject.read(Draxboard.PENDING_METER_SIZE - 1)
+            self.on_pending_meter_packet_received(packetData)
+            return
+        else:
+            self.serialObject.read(self.serialObject.in_waiting)
 
-        for i in range(int(len(readEvent) / Draxboard.INPUT_EVENT_SIZE)):
-            tempLine = readEvent[i*Draxboard.INPUT_EVENT_SIZE:(i+1*Draxboard.INPUT_EVENT_SIZE)]
-            self.check_packet_for_input_event(tempLine)
+    #region message received events
+    def on_request_status_received(self, bytePacket):
+        if bytePacket != None or len(bytePacket) < Draxboard.REQUEST_STATUS_SIZE:
+            return
+        
+        requestStatus = bytePacket
+        if requestStatus == None:
+            print ("Request Status Was None")
+            return False
+        
+        if len(requestStatus) < Draxboard.REQUEST_STATUS_SIZE or requestStatus[0] != Draxboard.REQUEST_STATUS_ID:
+            print ("Reqeust Status length was too short or invalid: " + str(requestStatus))
+            return False
+
+
+        self.versionNumberHigh = requestStatus[15]
+        self.versionNumberLow = requestStatus[16]
+
+        self.playerStationNumber = requestStatus[10]
+
+        return
+
+    def on_status_packet_received(self, bytePacket):
+
+        return
+
+    def on_output_packet_received(self, bytePacket):
+
+        return
+
+    def on_meter_increment_packet_received(self, bytePacket):
+
+        return
+
+    def on_pending_meter_packet_received(self, bytePacket):
+
+        return
+
+    
+    #endregion message received events
+
+
+        
 
     """
     To string displays the comport of the drax device
@@ -827,21 +830,31 @@ class Draxboard(SerialDevice):
             checkSum = self.calculate_checksum(incrementMeterCommand)
             incrementMeterCommand[6] = checkSum
 
-            read = self.write_serial_check_for_input_events(incrementMeterCommand, Draxboard.METER_INCREMENT_ID, Draxboard.METER_INCREMENT_SIZE)
+            self.write_to_serial(incrementMeterCommand)
+
             readPendingMeterCommand = self.READ_PENDING_METER[:]
             
             readPendingMeterCommand[3] = meterIDToIncrement
             readPendingMeterCommand[4] = 0#need to reset the checksum
             readPendingMeterCommand[4] = self.calculate_checksum(readPendingMeterCommand)
-            firstResult = self.write_serial_check_for_input_events(readPendingMeterCommand, Draxboard.PENDING_METER_ID, Draxboard.PENDING_METER_SIZE)
-            sleep(.15)
-            secondResult = self.write_serial_check_for_input_events(readPendingMeterCommand, Draxboard.PENDING_METER_ID, Draxboard.PENDING_METER_SIZE)
-            if (firstResult == None or secondResult == None):
-                self.dragonMasterDeviceManager.add_event_to_send(DragonMasterDeviceManager.DragonMasterDeviceManager.DRAX_METER_ERROR, [], self.playerStationHash)
-                print ("One or more meter response messages was None. There is a possible error with the drax hard meters")
+            self.write_to_serial(readPendingMeterCommand)
+            sleep(.05)
+            firstResult = self.meterTicksRemaining
+            self.write_to_serial(readPendingMeterCommand)
+            sleep(.05)
+            secondResult = self.meterTicksRemaining
+            if firstResult > secondResult:
+                print ("Meter was successful")
                 return
-            meterResultFirst = (firstResult[4+1] << 8) + firstResult[4]
-            meterResultSecond = (secondResult[4+1] << 8) + firstResult[4]
+            else:
+                print ("Meter was not successful")
+                return
+            # if (firstResult == None or secondResult == None):
+            #     self.dragonMasterDeviceManager.add_event_to_send(DragonMasterDeviceManager.DragonMasterDeviceManager.DRAX_METER_ERROR, [], self.playerStationHash)
+            #     print ("One or more meter response messages was None. There is a possible error with the drax hard meters")
+            #     return
+            # meterResultFirst = (firstResult[4+1] << 8) + firstResult[4]
+            # meterResultSecond = (secondResult[4+1] << 8) + firstResult[4]
 
         except Exception as e:
             self.dragonMasterDeviceManager.add_event_to_send(DragonMasterDeviceManager.DragonMasterDeviceManager.DRAX_METER_ERROR, [], self.playerStationHash)#Add that there was an error attempting to tick meters
@@ -857,33 +870,11 @@ class Draxboard(SerialDevice):
             print ("Invalid Input Event Packet. Please Be sure you are correctly interpreting our input packets")
             return
         inputData = [inputPacket[Draxboard.INPUT_INDEX], inputPacket[Draxboard.DOOR_STATE_INDEX]]
+        if DragonMasterDeviceManager.DragonMasterDeviceManager.DEBUG_SHOW_DRAX_BUTTONS:
+            print (str(self.playerStationHash) + ": " + str(inputData))
+
         self.dragonMasterDeviceManager.add_event_to_send(DragonMasterDeviceManager.DragonMasterDeviceManager.DRAX_INPUT_EVENT, inputData, self.playerStationHash)
         return
-
-    """
-    Due to the fact that we can receive inputs from the player while attempting to write an event to the draxboard, it is
-    possible that the response may contain an input events that we want to filter out and send to our tcp queue in our device manager
-
-    TODO: Add a way to check for Status Reads from the Drax. It is another packet that can be sent without polling. It can send whenever
-    """
-    def write_serial_check_for_input_events(self, messageToWrite, responseID, responseSize):
-        read = self.write_serial_wait_for_read(messageToWrite, 10)
-        validRead = None
-        while read != None and len(read) > 0:
-            if read[0] == responseID:
-                if len(read) <= responseSize:
-                    return read
-                else:
-                    validRead = read[0:responseSize]
-                    read = read[responseSize:len(read)]
-            elif self.check_packet_for_input_event(read):
-                if len(read) <= Draxboard.INPUT_EVENT_SIZE:
-                    read = self.read_from_serial(5)
-                else:
-                    read = read[Draxboard.INPUT_EVENT_SIZE:len(read)]
-            else:
-                return validRead
-        return validRead
 
     """
     Toggles the draxboard output state. This can control certain functions of the draxboard such as
@@ -920,12 +911,12 @@ class Draxboard(SerialDevice):
         outputMessageArray[6] = byte1
         outputMessageArray[checkSumByteIndex] = self.calculate_checksum(outputMessageArray)
 
-        read = self.write_serial_check_for_input_events(outputMessageArray, Draxboard.OUTPUT_EVENT_ID, Draxboard.OUTPUT_EVENT_SIZE)
-        if read != None and len(read) >= Draxboard.OUTPUT_EVENT_SIZE and read[0] == Draxboard.OUTPUT_EVENT_ID:
-            self.draxOutputState = (int(read[4]) << 8) + read[3]
-            self.send_current_drax_output_state(read[4], read[3])
+        self.write_to_serial(outputMessageArray)
+        # if read != None and len(read) >= Draxboard.OUTPUT_EVENT_SIZE and read[0] == Draxboard.OUTPUT_EVENT_ID:
+        #     self.draxOutputState = (int(read[4]) << 8) + read[3]
+        #     self.send_current_drax_output_state(read[4], read[3])
 
-        return read
+        # return read
     
     """
     Sends a packet to our TCP Manager that contains the output state of the draxboard
@@ -948,6 +939,8 @@ class Draxboard(SerialDevice):
             return True
         return False
     pass
+
+    
 
     """
     Returns the checksum of the packet that we are going to send to our Draxboard serail
@@ -1092,12 +1085,9 @@ class Omnidongle(SerialDevice):
             self.dragonMasterDeviceManager.CONNECTED_OMNIDONGLE = None
         return
 
-    """
-    To string method that shows the omnidongle description
-    """
-    def to_string(self):
-        return "POM Omnidongle"
-
+    def on_data_received_event(self, firstByteOfPacket):
+        sleep(.025)
+        
     """
     Sends a packet to our omnidongle. This should result in a message that we can return to our
     Unity Application
@@ -1110,12 +1100,12 @@ class Omnidongle(SerialDevice):
             print ("Our packet length was too short")
             return
         
-        responsePacket = self.write_serial_wait_for_read(self, packetToSend, minBytesToRead=7, maxMillisecondsToWait=2000, delayBeforeReadMilliseconds=25)
-        if (responsePacket != None):
-            self.dragonMasterDeviceManager.add_event_to_send(DragonMasterDeviceManager.DragonMasterDeviceManager.OMNI_EVENT, responsePacket)#We send the response packet that our omnidongle returns after calculating the packet
-        else:
-            print ("Our response packet was returned as None")
-            return
+        self.write_to_serial(packetToSend)
+        # if (responsePacket != None):
+        #     self.dragonMasterDeviceManager.add_event_to_send(DragonMasterDeviceManager.DragonMasterDeviceManager.OMNI_EVENT, responsePacket)#We send the response packet that our omnidongle returns after calculating the packet
+        # else:
+        #     print ("Our response packet was returned as None")
+        #     return
         return
 
     def to_string(self):
