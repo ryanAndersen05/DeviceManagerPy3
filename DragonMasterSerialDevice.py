@@ -3,6 +3,7 @@ import time
 from time import time
 from time import sleep
 import re
+import queue
 
 #external imports
 import serial
@@ -654,9 +655,10 @@ class Draxboard(SerialDevice):
         if self.serialObject == None:
             return False
         self.serialObject.flush()
-        super().start_device(deviceElement)
+        super().start_device(deviceElement)#This will begin the polling thread to read inputs returned by the draxboard
 
         self.write_to_serial(self.REQUEST_STATUS)
+
         self.write_to_serial(self.DRAXBOARD_OUTPUT_ENABLE)
 
         return True
@@ -755,18 +757,31 @@ class Draxboard(SerialDevice):
 
         return
 
+    """
+    This method will be called upon receiving a packet for the draxboard status
+    """
     def on_status_packet_received(self, bytePacket):
 
         return
 
+    """
+    This method will be calle upon receiving a packet from the drax that correlates to the us toggling the output of the draxboard.
+    This will also send a message to Unity to confirm the state that our draxboards have been set to
+    """
     def on_output_packet_received(self, bytePacket):
 
         return
 
+    """
+    This method will be called upon receiving a packet from the drax after sending a packet to increment the hard meter ticks
+    """
     def on_meter_increment_packet_received(self, bytePacket):
 
         return
 
+    """
+    This method will be called upon receiving a pending meters remaining packet
+    """
     def on_pending_meter_packet_received(self, bytePacket):
 
         return
@@ -999,24 +1014,28 @@ class ReliancePrinterSerial(SerialDevice):
         super().disconnect_device()
 
     #region reliace commands
+    def poll_printer_for_current_state(self):
+        self.write_to_serial(ReliancePrinterSerial.PRINTER_STATUS_REQUEST)
+        self.write_to_serial(ReliancePrinterSerial.PAPER_STATUS_REQUEST)
+
     """
     Returns the state of the printer as a byte value. The value will be interpreted by Unity as to whether or not it is in a
     errored state or not. If there is ever an issue retrieving this command it is very likely that the printer was disconnected
+
+    TODO: Change how we get printer status now
     """
     def get_printer_status(self):
-        # self.serialDevice.flush()
-        byteArrayToReturn = self.write_serial_wait_for_read(ReliancePrinterSerial.PRINTER_STATUS_REQUEST)
         
-        return byteArrayToReturn
-
+        return None
+        
     """
     This will return the current status of the paper as a byte value. Either as a 0, 1, or 2. Paper status is the availability of the paper
+
+    TODO: change how we get paper status now
     """
     def get_paper_status(self):
-        # self.serialDevice.flush()
-        byteArrayToReturn = self.write_serial_wait_for_read(ReliancePrinterSerial.PAPER_STATUS_REQUEST)
-        
-        return byteArrayToReturn
+              
+        return None
 
     """
     Call this command to cut the printed paper from the reliance printer
@@ -1068,6 +1087,32 @@ class Omnidongle(SerialDevice):
         return True
 
     """
+    Due to the nature of the Omnidongle communcation, we will not be polling the device for events. Instead we will wait for a response from the dongle immediately after sending a
+    packet to the device
+    """
+    def poll_serial_thread(self):
+        serialDevice = self.serialObject
+        self.pollingDevice = True
+        self.serialState = SerialDevice.SERIAL_WAIT_FOR_EVENT
+        try:
+            while self.pollingDevice:
+                if SerialDevice.in_waiting():#This is strictly just here to throw an exception if the device is ever disconnected. That way we can properly remove from the device manager
+                    pass
+                sleep(.05)
+                    
+        except Exception as e:
+            print ("There was an error polling device " + self.to_string())
+            print (e)
+            self.on_poll_serial_errored()
+            self.pollingDevice = False  # Thread will end if there is an error polling for a device
+
+            
+
+        print (self.to_string() + " no longer polling for events")#Just want this for testing. want to remove later
+        return
+        
+
+    """
     The parent path for our Omnidongle is not important as it is not assigned to any
     Player Station
     """
@@ -1084,9 +1129,7 @@ class Omnidongle(SerialDevice):
         if (self.dragonMasterDeviceManager.CONNECTED_OMNIDONGLE == self):
             self.dragonMasterDeviceManager.CONNECTED_OMNIDONGLE = None
         return
-
-    def on_data_received_event(self, firstByteOfPacket):
-        sleep(.025)
+        
         
     """
     Sends a packet to our omnidongle. This should result in a message that we can return to our
@@ -1101,13 +1144,20 @@ class Omnidongle(SerialDevice):
             return
         
         self.write_to_serial(packetToSend)
-        # if (responsePacket != None):
-        #     self.dragonMasterDeviceManager.add_event_to_send(DragonMasterDeviceManager.DragonMasterDeviceManager.OMNI_EVENT, responsePacket)#We send the response packet that our omnidongle returns after calculating the packet
-        # else:
-        #     print ("Our response packet was returned as None")
-        #     return
+        firstByteOfPacket = self.serialObject.read(1)
+        if firstByteOfPacket == None:
+            print ("OMNIERROR: No packet was returned after a timeout")
+            return
+
+        sleep(.025)#Give it a small buffer time before reading the packet in. Omnidonge message can get very long and we may miss something if we start reading immediately
+
+        responsePacket = firstByteOfPacket + self.serialObject.read(self.serialObject.in_waiting())
+        self.dragonMasterDeviceManager.add_event_to_send(DragonMasterDeviceManager.DragonMasterDeviceManager.OMNI_EVENT, responsePacket)
         return
 
+    """
+    Returns the type of device as well as the comport that this device is associated with
+    """
     def to_string(self):
         if self.comport != None:
             return "POM Omnidongle (" + self.comport + ")"
