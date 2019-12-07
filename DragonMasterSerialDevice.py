@@ -644,8 +644,8 @@ class Draxboard(SerialDevice):
         self.draxOutputState = 0
         self.playerStationNumber = 0
         self.meterTicksRemaining = 0
-
         self.playerStationHash = 0#The player station hash is a value assigned only to our Draxboard. It is a value derived from the usb path to our draxboard
+
         return
 
     #region Override methods
@@ -658,8 +658,10 @@ class Draxboard(SerialDevice):
         super().start_device(deviceElement)#This will begin the polling thread to read inputs returned by the draxboard
 
         self.write_to_serial(self.REQUEST_STATUS)
-
-        self.write_to_serial(self.DRAXBOARD_OUTPUT_ENABLE)
+        self.write_to_serial(self.DRAXBOARD_OUTPUT_ENABLE)#Turns on all outputs that need to be on
+        
+        self.toggle_output_state_of_drax(0x180f)
+        self.playerStationHash = self.get_draxboard_device_path_hash(deviceElement)
 
         return True
 
@@ -707,8 +709,10 @@ class Draxboard(SerialDevice):
     that we do not miss any packets
     """
     def on_data_received_event(self, firstByteOfPacket):
-        
-        if firstByteOfPacket == Draxboard.INPUT_EVENT_ID:
+        if len(firstByteOfPacket) < 1:
+            return
+        #Dynamic Packets: Packets that can be received at any point regardless of whether they were requested or not
+        if firstByteOfPacket[0] == Draxboard.INPUT_EVENT_ID:
             packetData = firstByteOfPacket + self.serialObject.read(Draxboard.INPUT_EVENT_SIZE - 1)
             self.add_input_event_to_tcp_queue(packetData)
             return
@@ -716,6 +720,7 @@ class Draxboard(SerialDevice):
             packetData = firstByteOfPacket + self.serialObject.read(Draxboard.STATUS_EVENT_SIZE - 1)
             self.on_status_packet_received(packetData)
             return
+        #Response Packet. Packets that are a response to packets that we sent
         elif firstByteOfPacket == Draxboard.REQUEST_STATUS_ID:
             packetData = firstByteOfPacket + self.serialObject.read(Draxboard.REQUEST_STATUS_SIZE - 1)
             self.on_request_status_received(packetData)
@@ -734,6 +739,7 @@ class Draxboard(SerialDevice):
             return
         else:
             self.serialObject.read(self.serialObject.in_waiting)
+            return
 
     #region message received events
     def on_request_status_received(self, bytePacket):
@@ -759,9 +765,11 @@ class Draxboard(SerialDevice):
 
     """
     This method will be called upon receiving a packet for the draxboard status
+
+    TODO: Implement some functionality upon receiving a status packet
     """
     def on_status_packet_received(self, bytePacket):
-
+        print ("Status packet was received... Nothing implemented to handle this though...")
         return
 
     """
@@ -769,21 +777,23 @@ class Draxboard(SerialDevice):
     This will also send a message to Unity to confirm the state that our draxboards have been set to
     """
     def on_output_packet_received(self, bytePacket):
-
+        print ("Outpu Packet: " + str(bytePacket))
         return
 
     """
     This method will be called upon receiving a packet from the drax after sending a packet to increment the hard meter ticks
+
+    The response should detail which meter is being set to increment and how many ticks This is simply a confirmation
     """
     def on_meter_increment_packet_received(self, bytePacket):
-
+        print ("Meter Out: " + str(bytePacket))
         return
 
     """
-    This method will be called upon receiving a pending meters remaining packet
+    This method will be called upon receiving a pending meter ticks remaining packet
     """
     def on_pending_meter_packet_received(self, bytePacket):
-
+        print ("Pending Meter: " + str(bytePacket))
         return
 
     
@@ -881,6 +891,7 @@ class Draxboard(SerialDevice):
     Sets up and adds an input packet to our TCP queue, so that it can be sent at the next availability
     """
     def add_input_event_to_tcp_queue(self, inputPacket):
+        
         if inputPacket == None or len(inputPacket) < Draxboard.INPUT_EVENT_SIZE or inputPacket[0] != Draxboard.INPUT_EVENT_ID:
             print ("Invalid Input Event Packet. Please Be sure you are correctly interpreting our input packets")
             return
@@ -1151,9 +1162,7 @@ class Omnidongle(SerialDevice):
 
         sleep(.025)#Give it a small buffer time before reading the packet in. Omnidonge message can get very long and we may miss something if we start reading immediately
 
-        responsePacket = firstByteOfPacket + self.serialObject.read(self.serialObject.in_waiting())
-        self.dragonMasterDeviceManager.add_event_to_send(DragonMasterDeviceManager.DragonMasterDeviceManager.OMNI_EVENT, responsePacket)
-        return
+        sodapop05
 
     """
     Returns the type of device as well as the comport that this device is associated with

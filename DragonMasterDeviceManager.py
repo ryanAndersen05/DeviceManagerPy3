@@ -111,6 +111,7 @@ class DragonMasterDeviceManager:
 
 
     def __init__(self,):
+
         self.tcpManager = TCPManager(self)
 
         self.CONNECTED_OMNIDONGLE = None #Since there should only be one omnidongle in our machine, we will only search until we find the first connection
@@ -1088,18 +1089,18 @@ def set_string_length_multiple(string1, string2, lengthOfString = 60, spacingCha
 #endregion debug commands
 
 
-
-
-
 """
 This thread will allow testers to enter debug commands
+
+Once the thread has exited there is no way to restart the debug thread until the application is reset
 """
 def debug_command_thread(deviceManager):
-
     while(True):
         commandToRead = input("Enter Command: ")
         if commandToRead != None:
-            interpret_debug_command(commandToRead,deviceManager)
+            exitDebugThread = interpret_debug_command(commandToRead,deviceManager)
+            if exitDebugThread:
+                return
 
 
 """
@@ -1124,7 +1125,7 @@ def interpret_debug_command(commandToRead, deviceManager):
     elif command == "quit":
         #Setting this value to true will kill the main thread of the python application
         DragonMasterDeviceManager.KILL_DEVICE_MANAGER_APPLICATION = True
-        return
+        return True
     elif command == "test":
         debug_test_event(deviceManager)
         return
@@ -1203,9 +1204,9 @@ def interpret_debug_command(commandToRead, deviceManager):
         else:
             debug_meter_increment(deviceManager)
             return
+
     #PRINT DEBUG
     elif command == "print":
-
         print ("Valid Command. Not Implemented")
         if len(commandSplit) >= 2:
             debug_print_voucher_ticket(deviceManager, int(commandSplit[1]))
