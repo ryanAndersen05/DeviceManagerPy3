@@ -1107,7 +1107,7 @@ class Omnidongle(SerialDevice):
         self.serialState = SerialDevice.SERIAL_WAIT_FOR_EVENT
         try:
             while self.pollingDevice:
-                if SerialDevice.in_waiting():#This is strictly just here to throw an exception if the device is ever disconnected. That way we can properly remove from the device manager
+                if SerialDevice.in_waiting:#This is strictly just here to throw an exception if the device is ever disconnected. That way we can properly remove from the device manager
                     pass
                 sleep(.1)#Polls around 10 times per second to ensure that the dongle is still connected
                     
