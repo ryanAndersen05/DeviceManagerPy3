@@ -521,23 +521,29 @@ class DragonMasterDeviceManager:
 
     """
     Sends an event to the current connected Omnidongle device
+
+
     """
     def on_omnidongle_event_received(self, eventMessage):
         if DragonMasterDeviceManager.CONNECTED_OMNIDONGLE != None:
-            
+
             omnidevice = DragonMasterDeviceManager.CONNECTED_OMNIDONGLE
             omnidevice.add_event_to_queue(omnidevice.send_data_to_omnidongle_wait_for_response, eventMessage[1:])
         return
 
     #region draxboard tcp events
 
+    """
+
+    """
     def on_drax_hard_meter_event(self, playerStationHash, eventData):
         draxboard = self.get_draxboard_from_player_station_hash(playerStationHash)
         if draxboard == None:
             return
         if len(eventData) < 2:
             return
-        draxboard.increment_meter_ticks(eventData[0], eventData[1])        
+        
+        draxboard.add_event_to_queue(draxboard.increment_meter_ticks, eventData[0], eventData[1])        
         return
 
     """
@@ -549,7 +555,7 @@ class DragonMasterDeviceManager:
             return
         if len(eventData) < 2:
             return
-        draxboard.toggle_output_state_of_drax(eventData[0] << 8 + eventData[1], 0)
+        draxboard.add_event_to_queue(draxboard.toggle_output_state_of_drax, eventData[0] << 8 + eventData[1], 0)
         return
 
     """
@@ -561,7 +567,8 @@ class DragonMasterDeviceManager:
             return
         if len(eventData) < 2:
             return
-        draxboard.toggle_output_state_of_drax(eventData[0] << 8 + eventData[1], 1)
+        
+        draxboard.add_event_to_queue(draxboard.toggle_output_state_of_drax, eventData[0] << 8 + eventData[1], 1)
         return
 
     """
@@ -573,7 +580,8 @@ class DragonMasterDeviceManager:
             return
         if len(eventData):
             return
-        draxboard.toggle_output_state_of_drax(eventData[0] << 8 + eventData[1], 2)
+        
+        draxboard.add_event_to_queue(draxboard.toggle_output_state_of_drax, eventData[0] << 8 + eventData[1], 2)
         return
     #endregion draxboard tcp events
 
