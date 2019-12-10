@@ -1008,7 +1008,40 @@ class ReliancePrinterSerial(SerialDevice):
             print ("There was an error starting our Reliance Printer")
             print (e)
 
-        return True 
+        return True
+
+    """
+    Due to the nature of the Omnidongle communcation, we will not be polling the device for events. Instead we will wait for a response from the dongle immediately after sending a
+    packet to the device
+    """
+    def poll_serial_thread(self):
+        serialDevice = self.serialObject
+        self.pollingDevice = True
+        self.serialState = SerialDevice.SERIAL_WAIT_FOR_EVENT
+        try:
+            while self.pollingDevice:
+                if self.serialObject.in_waiting:#This is strictly just here to throw an exception if the device is ever disconnected. That way we can properly remove from the device manager
+                    pass
+                sleep(.1)#Polls around 10 times per second to ensure that the dongle is still connected
+                    
+        except Exception as e:
+            print ("There was an error polling device " + self.to_string())
+            print (e)
+            self.on_poll_serial_errored()
+            self.pollingDevice = False  # Thread will end if there is an error polling for a device
+
+            
+
+        print (self.to_string() + " no longer polling for events")#Just want this for testing. want to remove later
+        return
+
+    """
+
+    """
+    def on_data_received_event(self, firstByteOfPacket):
+        print (firstByteOfPacket)
+
+        return
 
     def to_string(self):
         return self.associatedReliancePrinter.to_string()
@@ -1025,9 +1058,7 @@ class ReliancePrinterSerial(SerialDevice):
         super().disconnect_device()
 
     #region reliace commands
-    def poll_printer_for_current_state(self):
-        self.write_to_serial(ReliancePrinterSerial.PRINTER_STATUS_REQUEST)
-        self.write_to_serial(ReliancePrinterSerial.PAPER_STATUS_REQUEST)
+
 
     """
     Returns the state of the printer as a byte value. The value will be interpreted by Unity as to whether or not it is in a
@@ -1036,8 +1067,15 @@ class ReliancePrinterSerial(SerialDevice):
     TODO: Change how we get printer status now
     """
     def get_printer_status(self):
-        
-        return None
+        self.serialObject.read(self.serialObject.in_waiting)
+
+        self.write_to_serial(ReliancePrinterSerial.PRINTER_STATUS_REQUEST)
+        printerStatus = self.serialObject.read(6)
+
+        self.write_to_serial(ReliancePrinterSerial.PAPER_STATUS_REQUEST)
+        printerStatus += self.serialObject.read(1)
+
+        return printerStatus
         
     """
     This will return the current status of the paper as a byte value. Either as a 0, 1, or 2. Paper status is the availability of the paper
@@ -1053,6 +1091,7 @@ class ReliancePrinterSerial(SerialDevice):
     """
     def cut(self):
         self.write_to_serial(ReliancePrinterSerial.PAPER_PRESENT_TO_CUSTOMER)
+        return
 
     """
     Call this method to retract the paper that has been printed
@@ -1107,7 +1146,7 @@ class Omnidongle(SerialDevice):
         self.serialState = SerialDevice.SERIAL_WAIT_FOR_EVENT
         try:
             while self.pollingDevice:
-                if SerialDevice.in_waiting:#This is strictly just here to throw an exception if the device is ever disconnected. That way we can properly remove from the device manager
+                if self.serialObject.in_waiting:#This is strictly just here to throw an exception if the device is ever disconnected. That way we can properly remove from the device manager
                     pass
                 sleep(.1)#Polls around 10 times per second to ensure that the dongle is still connected
                     

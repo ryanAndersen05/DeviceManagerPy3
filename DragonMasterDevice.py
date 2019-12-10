@@ -724,6 +724,9 @@ class ReliancePrinter(Printer):
     """
     def get_updated_printer_state_and_paper_state(self):
         fullPrinterStatus = self.associatedRelianceSerial.get_printer_status()
+        if fullPrinterStatus == None:
+            print ("The return status of our reliance printer was invalid")
+            return (0, 0)
         paperStatus = int(fullPrinterStatus[2])
         printerStatus = 0
         

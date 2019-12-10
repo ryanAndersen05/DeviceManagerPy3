@@ -1162,7 +1162,7 @@ def interpret_debug_command(commandToRead, deviceManager):
         DragonMasterDeviceManager.DEBUG_DISPLAY_JOY_AXIS = not DragonMasterDeviceManager.DEBUG_DISPLAY_JOY_AXIS
         return
     #DRAX DEBUG
-    elif command == "printdraxbutton":
+    elif command == "displaydraxbutton":
         DragonMasterDeviceManager.DEBUG_SHOW_DRAX_BUTTONS = not DragonMasterDeviceManager.DEBUG_SHOW_DRAX_BUTTONS
         print (DragonMasterDeviceManager.DEBUG_SHOW_DRAX_BUTTONS)
         return
@@ -1339,7 +1339,7 @@ def debug_help_message():
     print ("'msgtrans' - Translates the packets that we are sending and receiving from Unity")
     print ('-' * 60)
     print ("**Draxboard Commands")
-    print ("'draxbutton' - shows the button presses/releases on the draxboard")
+    print ("'displaydraxbutton' - shows the button presses/releases on the draxboard")
     print ("'bitenable - enter 0-15 to enable a specific output on our Draxboard (data=[bitToToggle])")
     print ("'bitdisable - enter 0-15 to disable a specific output on our Draxboard (data=[bitToToggle])")
     print ("'draxout' - enter a ushort value and the draxboard output will be set to that state (data=[ushortOutputState])")
