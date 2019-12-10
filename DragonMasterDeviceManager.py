@@ -524,7 +524,9 @@ class DragonMasterDeviceManager:
     """
     def on_omnidongle_event_received(self, eventMessage):
         if DragonMasterDeviceManager.CONNECTED_OMNIDONGLE != None:
-            DragonMasterDeviceManager.CONNECTED_OMNIDONGLE.send_data_to_omnidongle(eventMessage[1:])
+            
+            omnidevice = DragonMasterDeviceManager.CONNECTED_OMNIDONGLE
+            omnidevice.add_event_to_queue(omnidevice.send_data_to_omnidongle_wait_for_response, eventMessage[1:])
         return
 
     #region draxboard tcp events

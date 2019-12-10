@@ -1109,7 +1109,7 @@ class Omnidongle(SerialDevice):
             while self.pollingDevice:
                 if SerialDevice.in_waiting():#This is strictly just here to throw an exception if the device is ever disconnected. That way we can properly remove from the device manager
                     pass
-                sleep(.05)
+                sleep(.1)#Polls around 10 times per second to ensure that the dongle is still connected
                     
         except Exception as e:
             print ("There was an error polling device " + self.to_string())
@@ -1143,10 +1143,10 @@ class Omnidongle(SerialDevice):
         
         
     """
-    Sends a packet to our omnidongle. This should result in a message that we can return to our
-    Unity Application
+    Sends a packet to our omnidongle. After we have sent a message to our omnidongle we will wait for a response to return to our unity application
+    If we do not receive a message we should probably throw an error of some kind here. The dongle should always return something
     """
-    def send_data_to_omnidongle(self, packetToSend):
+    def send_data_to_omnidongle_wait_for_response(self, packetToSend):
         if (packetToSend == None):
             print ("Packet to send was None")
             return
@@ -1159,10 +1159,9 @@ class Omnidongle(SerialDevice):
         if firstByteOfPacket == None:
             print ("OMNIERROR: No packet was returned after a timeout")
             return
-
+            
         sleep(.025)#Give it a small buffer time before reading the packet in. Omnidonge message can get very long and we may miss something if we start reading immediately
-
-        sodapop05
+        self.dragonMasterDeviceManager.add_event_to_send(DragonMasterDeviceManager.DragonMasterDeviceManager.OMNI_EVENT ,firstByteOfPacket + self.serialObject.read(self.serialObject.in_waiting))#returns the response from our omnidongle
 
     """
     Returns the type of device as well as the comport that this device is associated with
