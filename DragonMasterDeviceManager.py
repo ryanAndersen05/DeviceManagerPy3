@@ -1164,7 +1164,10 @@ def interpret_debug_command(commandToRead, deviceManager):
     #DRAX DEBUG
     elif command == "displaydraxbutton":
         DragonMasterDeviceManager.DEBUG_SHOW_DRAX_BUTTONS = not DragonMasterDeviceManager.DEBUG_SHOW_DRAX_BUTTONS
-        print (DragonMasterDeviceManager.DEBUG_SHOW_DRAX_BUTTONS)
+        if (DragonMasterDeviceManager.DEBUG_SHOW_DRAX_BUTTONS):
+            print ("Printing Drax Buttons: ON")
+        else:
+            print ("Printing Drax Buttons: OFF")
         return
     elif command == "flashdrax":
         if len(commandSplit) >= 2:

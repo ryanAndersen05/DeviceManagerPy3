@@ -1076,15 +1076,6 @@ class ReliancePrinterSerial(SerialDevice):
         printerStatus += self.serialObject.read(1)
 
         return printerStatus
-        
-    """
-    This will return the current status of the paper as a byte value. Either as a 0, 1, or 2. Paper status is the availability of the paper
-
-    TODO: change how we get paper status now
-    """
-    def get_paper_status(self):
-              
-        return None
 
     """
     Call this command to cut the printed paper from the reliance printer
