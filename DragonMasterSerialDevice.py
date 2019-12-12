@@ -243,6 +243,8 @@ class DBV400(SerialDevice):
     #region on data received
     """ Handles all byte strings sent from the DBV to the host"""
     def on_data_received_event(self, firstByteOfPacket):
+        
+        sleep(.01)
         read = firstByteOfPacket + self.serialObject.read(self.serialObject.in_waiting)
         if read == None or len(read) < 2:
             return
