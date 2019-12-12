@@ -26,7 +26,7 @@ Our device manager class that will find and hold all of our connected devices an
 It will manages messages between our Unity Application and assign commands to the correct devices.
 """
 class DragonMasterDeviceManager:
-    VERSION = "2.0.2"
+    VERSION = "2.1.0"
     KILL_DEVICE_MANAGER_APPLICATION = False #Setting this value to true will kill the main thread of our Device Manager application effectively closing all other threads
 
     #region TCP Device Commands
