@@ -227,7 +227,6 @@ class DragonMasterDeviceManager:
 
             for dbv in allConnectedDBV400Elements:
                 if dbv and not self.device_manager_contains_dbv400(dbv):
-                    print ("Found")
                     self.add_new_device(DragonMasterSerialDevice.DBV400(self), dbv)
         except Exception as e:
             print ("There was an error while searching for devices.")
@@ -780,7 +779,6 @@ class DragonMasterDeviceManager:
     device manager list
     """
     def device_manager_contains_dbv400(self, dbvElement):
-        print (dbvElement)
         for dev in self.allConnectedDevices:
             if isinstance(dev, DragonMasterSerialDevice.DBV400):
                 if dev.comport == dbvElement.device:
@@ -1120,7 +1118,7 @@ with it
 def interpret_debug_command(commandToRead, deviceManager):
     # debug command format: COMPORT COMMAND
     # ex: 0 RESET #This would correlate to Serial Port 0
-    serialKey = "/dev/ttyACM"
+    
     commandSplit = commandToRead.split()
     if commandSplit == None or len(commandSplit) == 0:
         print ("Command Entered was too short")
@@ -1594,23 +1592,92 @@ def debug_reject_bill_dbv(deviceManager, playerStationHash = -1):
 Prints a voucher ticket as it would appear with 0 credits
 """
 def debug_print_voucher_ticket(deviceManager, playerStationHash = -1):
+    testvoucherBytePacket = bytes([])
 
-    return
+    if playerStationHash < 0:
+        for pStation in deviceManager.playerStationDictionary.values():
+            if pStation.connectedPrinter != None:
+                pStation.connectedPrinter.print_voucher_ticket()
 
-def debug_print_reprint_ticket(deviceManager, playerStationHash = -1):
+        return
+    if playerStationHash not in deviceManager.playerStationHashToParentDevicePath:
+        print ("The player station hash that was passed in was not valid")
+        return
+    pStationKey = deviceManager.playerStationHashToParentDevicePath[playerStationHash]
+    if deviceManager.playerStationDictionary[pStationKey].connectedPrinter != None:
+        deviceManager.playerStationDictionary[pStationKey].connectedPrinter.print_voucher_ticket
+    else:
+        print ("Player Station Found but there was no associted printer connected")
 
     return
 
 """
-Prints a test ticket as it would appear with a balance of 0 credits
+Prints a reprint voucher ticket as it would appear with 0 credits
+"""
+def debug_print_reprint_ticket(deviceManager, playerStationHash = -1):
+    testvoucherBytePacket = bytes([])
+
+    if playerStationHash < 0:
+        for pStation in deviceManager.playerStationDictionary.values():
+            if pStation.connectedPrinter != None:
+                pStation.connectedPrinter.print_voucher_ticket()
+
+        return
+    if playerStationHash not in deviceManager.playerStationHashToParentDevicePath:
+        print ("The player station hash that was passed in was not valid")
+        return
+    pStationKey = deviceManager.playerStationHashToParentDevicePath[playerStationHash]
+    if deviceManager.playerStationDictionary[pStationKey].connectedPrinter != None:
+        deviceManager.playerStationDictionary[pStationKey].connectedPrinter.print_voucher_ticket
+    else:
+        print ("Player Station Found but there was no associted printer connected")
+
+    return
+
+"""
+Prints a test ticket as it would appear called from our Unity Application
 """
 def debug_print_test_ticket(deviceManager, playerStationHash = -1):
+    testvoucherBytePacket = bytes([])
+
+    if playerStationHash < 0:
+        for pStation in deviceManager.playerStationDictionary.values():
+            if pStation.connectedPrinter != None:
+                pStation.connectedPrinter.print_voucher_ticket()
+
+        return
+    if playerStationHash not in deviceManager.playerStationHashToParentDevicePath:
+        print ("The player station hash that was passed in was not valid")
+        return
+    pStationKey = deviceManager.playerStationHashToParentDevicePath[playerStationHash]
+    if deviceManager.playerStationDictionary[pStationKey].connectedPrinter != None:
+        deviceManager.playerStationDictionary[pStationKey].connectedPrinter.print_voucher_ticket
+    else:
+        print ("Player Station Found but there was no associted printer connected")
 
     return
+
+
 """
 Prints a codes ticket with all values set to 0
 """
 def debug_print_codex_ticket(deviceManager, playerStationHash = -1):
+    testvoucherBytePacket = bytes([])
+
+    if playerStationHash < 0:
+        for pStation in deviceManager.playerStationDictionary.values():
+            if pStation.connectedPrinter != None:
+                pStation.connectedPrinter.print_voucher_ticket()
+
+        return
+    if playerStationHash not in deviceManager.playerStationHashToParentDevicePath:
+        print ("The player station hash that was passed in was not valid")
+        return
+    pStationKey = deviceManager.playerStationHashToParentDevicePath[playerStationHash]
+    if deviceManager.playerStationDictionary[pStationKey].connectedPrinter != None:
+        deviceManager.playerStationDictionary[pStationKey].connectedPrinter.print_voucher_ticket
+    else:
+        print ("Player Station Found but there was no associted printer connected")
 
     return
 
@@ -1618,6 +1685,22 @@ def debug_print_codex_ticket(deviceManager, playerStationHash = -1):
 Prints an audit ticket with all values set to 0
 """
 def debug_print_audit_ticket(deviceManager, playerStationHash = -1):
+    testvoucherBytePacket = bytes([])
+
+    if playerStationHash < 0:
+        for pStation in deviceManager.playerStationDictionary.values():
+            if pStation.connectedPrinter != None:
+                pStation.connectedPrinter.print_voucher_ticket()
+
+        return
+    if playerStationHash not in deviceManager.playerStationHashToParentDevicePath:
+        print ("The player station hash that was passed in was not valid")
+        return
+    pStationKey = deviceManager.playerStationHashToParentDevicePath[playerStationHash]
+    if deviceManager.playerStationDictionary[pStationKey].connectedPrinter != None:
+        deviceManager.playerStationDictionary[pStationKey].connectedPrinter.print_voucher_ticket
+    else:
+        print ("Player Station Found but there was no associted printer connected")
 
     return
 

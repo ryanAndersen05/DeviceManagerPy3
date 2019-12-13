@@ -406,31 +406,29 @@ class Printer(DragonMasterDevice):
 
         '''
         auditInfoString parameter list / order (ex. auditInfoString[1] = parentDeviceKey)
-        0: Event Name ("PRINTAUDIT")
-        1: parentDeviceKey
-        2: Player station ( 0 = Machine wide Audit, 1-8 = Player station specific)
-        3: Security Level (1-5) (If security level < 5, we will not print the archive values)
-        4-6: List Clear Date (Archive, Weekly, Daily)
-        7-9: List Clear Time (Archive, Weekly, Daily)
-        10-12: Credit In (Archive, Weekly, Daily)
-        13-15: Wins Out (Archive, Weekly, Daily)
-        16-18: I-O Hold (Archive, Weekly, Daily)
-        19-21: Hold % (Archive, Weekly, Daily)
-        22-24: Points Played (Archive, Weekly, Daily)
-        25-27: Points Won (Archive, Weekly, Daily)
-        28-30: P-W Earned (Archive, Weekly, Daily)
-        31-33: Return % (Archive, Weekly, Daily)
-        34-36: Games Played (Archive, Weekly, Daily)
-        37-39: Games Won (Archive, Weekly, Daily)
-        40-42: Hit % (Archive, Weekly, Daily)
-        43-45: Coupon Sale (Archive, Weekly, Daily)
-        46-48: Free Entry (Archive, Weekly, Daily)
-        49: Current Terminal Balance
-        50: Fill Time Remaining
-        51: Period that will be printed
-        52: Audit JSON string (Convert this to QR code)
-        53: large progressive reward value
-        54: small progressive reward value
+        0: Player station ( 0 = Machine wide Audit, 1-8 = Player station specific)
+        1: Security Level (1-5) (If security level < 5, we will not print the archive values)
+        2-4: List Clear Date (Archive, Weekly, Daily)
+        5-7: List Clear Time (Archive, Weekly, Daily)
+        8-10: Credit In (Archive, Weekly, Daily)
+        11-13: Wins Out (Archive, Weekly, Daily)
+        14-16: I-O Hold (Archive, Weekly, Daily)
+        17-19: Hold % (Archive, Weekly, Daily)
+        20-22: Points Played (Archive, Weekly, Daily)
+        23-25: Points Won (Archive, Weekly, Daily)
+        26-28: P-W Earned (Archive, Weekly, Daily)
+        29-31: Return % (Archive, Weekly, Daily)
+        32-34: Games Played (Archive, Weekly, Daily)
+        35-37: Games Won (Archive, Weekly, Daily)
+        38-40: Hit % (Archive, Weekly, Daily)
+        41-43: Coupon Sale (Archive, Weekly, Daily)
+        44-46: Free Entry (Archive, Weekly, Daily)
+        47: Current Terminal Balance
+        48: Fill Time Remaining
+        49: Period that will be printed
+        50: Audit JSON string (Convert this to QR code)
+        51: large progressive reward value
+        52: small progressive reward value
         '''
 
         
