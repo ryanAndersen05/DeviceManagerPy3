@@ -393,26 +393,28 @@ class DBV400(SerialDevice):
 
     """ Inhibit message was successfuly received by the DBV """ 
     def on_inhibit_request_received(self):
-        print ("Inhibit Request Recieved")
+        print ("Inhibit Request Recieved: " +str(self.get_player_station_hash()))
         pass
     
     """ DBV was successfully set to inhibit state. Send ACK to DBV to confirm state """
     def on_inhibit_success(self,message):
         inhibitMessage = DBV400.INHIBIT_ACK
         inhibitMessage[5] = message[5]
+        print ("Inhibit Success: " + str(self.get_player_station_hash()))
         self.State = DBV400.INHIBIT_STATE
         self.send_dbv_message(inhibitMessage)
         self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT,self.State)
 
     """ Idle request successfully received by the DBV """
     def on_idle_request_received(self):
-        print ("Idle request received")
+        print ("Idle request received: " + str(self.get_player_station_hash()))
         pass
     
     """ DBV was successfully set to idle state. Send ACK to DBV to confirm state """
     def on_idle_success(self,message):
         idleMessage = DBV400.IDLE_ACK
         idleMessage[5] = message[5]
+        print ("Idle success received: " + str(self.get_player_station_hash()))
         self.State = DBV400.IDLE_STATE
         self.send_dbv_message(idleMessage)
         self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT,self.State)
