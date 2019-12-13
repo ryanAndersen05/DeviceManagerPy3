@@ -123,7 +123,7 @@ class SerialDevice(DragonMasterDevice.DragonMasterDevice):
                     self.on_data_received_event(firstReadByte)
                     
         except Exception as e:
-            print ("There was an error polling device " + self.to_string())
+            print ("There was an error polling device " + self.get_player_station_hash() + ", Error: " + self.to_string())
             print (e)
             self.on_poll_serial_errored()
             self.pollingDevice = False  # Thread will end if there is an error polling for a device
