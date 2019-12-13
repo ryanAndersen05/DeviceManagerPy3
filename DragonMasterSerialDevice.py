@@ -245,6 +245,7 @@ class DBV400(SerialDevice):
     def on_data_received_event(self, firstByteOfPacket):
         
         sleep(.01)
+        print("Reading for: " + str(self.get_player_station_hash()))
         read = firstByteOfPacket + self.serialObject.read(self.serialObject.in_waiting)
         if read == None or len(read) < 2:
             return
@@ -266,8 +267,8 @@ class DBV400(SerialDevice):
             self.process_data_received_message(message)
 
     def process_data_received_message(self, read):
+        print ("DBV Path: " + str(self.get_player_station_hash()) + ", Message:" + read.hex())
         length = read[1]
-        # print ("Message:" + read.hex())
         if (length <= 8):
             if read[6] == 0x00 and read[7] == 0x01:
                 self.on_inhibit_success(read)
