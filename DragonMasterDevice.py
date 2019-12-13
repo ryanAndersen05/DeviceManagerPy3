@@ -114,6 +114,7 @@ class DragonMasterDevice:
 
 """
 Joystick class. Sends events to our Unity application of the current state of the joystick
+
 """
 class Joystick(DragonMasterDevice):
     JOYSTICK_DEVICE_NAME = "Ultimarc UltraStik Ultimarc Ultra-Stik Player 1"

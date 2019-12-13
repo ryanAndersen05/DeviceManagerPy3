@@ -599,7 +599,7 @@ class DBV400(SerialDevice):
         
 
     def to_string(self):
-        return "DBV-400"
+        return "DBV-400 " + self.comport
     #endregion
 
     pass
