@@ -554,7 +554,7 @@ class DBV400(SerialDevice):
     
     """ Reset the DBV """
     def reset_dbv(self):
-        if (self.State == DBV400.ERROR_STATE_BOX_REMOVED or self.State == DBV400.ERROR_STATE_ACCEPTOR_JAM):
+        if (self.State == DBV400.ERROR_STATE_BOX_REMOVED or self.State == DBV400.ERROR_STATE_ACCEPTOR_JAM or self.State == DBV400.WAITING_STATE):
             return
         self.send_dbv_message(DBV400.RESET_REQUEST)
     
