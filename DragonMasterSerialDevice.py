@@ -597,31 +597,6 @@ class DBV400(SerialDevice):
                 devToReturn = dev.parent.parent.parent.device_path
         return devToReturn
 
-    """
-    Polls a serial thread to check if at any point there is something to read from a given serial device
-    """
-    def poll_serial_thread(self):
-        serialDevice = self.serialObject
-        self.pollingDevice = True
-        self.serialState = SerialDevice.SERIAL_WAIT_FOR_EVENT
-        while self.pollingDevice:
-            try:
-                firstReadByte = self.serialObject.read(1)
-                if firstReadByte:
-                    self.on_data_received_event(firstReadByte)
-                        
-            except Exception as e:
-                print ("There was an error polling device " + str(self.get_player_station_hash()) + ", Error: " + self.to_string())
-                print (e)
-                # self.on_poll_serial_errored()
-                # self.pollingDevice = False  # Thread will end if there is an error polling for a device
-
-            
-
-        print (self.to_string() + " no longer polling for events")#Just want this for testing. want to remove later
-        return
-        
-
     def to_string(self):
         return "DBV-400 " + self.comport
     #endregion
