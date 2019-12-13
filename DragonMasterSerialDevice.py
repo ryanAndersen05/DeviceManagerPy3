@@ -387,11 +387,13 @@ class DBV400(SerialDevice):
 
     """ Reset message was successfully received by the DBV """
     def on_reset_request_received(self):
+        print ("Reset Request Received")
         self.AmountStored = 0
         pass
 
     """ Inhibit message was successfuly received by the DBV """ 
     def on_inhibit_request_received(self):
+        print ("Inhibit Request Recieved")
         pass
     
     """ DBV was successfully set to inhibit state. Send ACK to DBV to confirm state """
@@ -404,6 +406,7 @@ class DBV400(SerialDevice):
 
     """ Idle request successfully received by the DBV """
     def on_idle_request_received(self):
+        print ("Idle request received")
         pass
     
     """ DBV was successfully set to idle state. Send ACK to DBV to confirm state """
@@ -446,15 +449,18 @@ class DBV400(SerialDevice):
 
     """ A bill was successfully held in the bill acceptor from a command """
     def on_bill_held(self):
+        print ("Bill Held")
         pass
 
     """ A stack command was successfully processed by the DBV. The bill inserted will now be stacked """
     def on_stack_inhibit_success(self):
+        print ("Stack inhibit success")
         pass
     
     """ The bill stacked in the bill acceptor was succesfully processed and stacked """
     def on_vend_valid(self, message):
-        pass
+        # pass
+        print ("Vend Valid")
         vendValidAck = DBV400.VEND_VALID_ACK
         vendValidAck[5] = message[5]
         self.send_dbv_message(vendValidAck)
@@ -666,7 +672,9 @@ class Draxboard(SerialDevice):
 
         return True
 
+    """
 
+    """
     def fetch_parent_path(self, deviceElement):
         devToReturn = None
         for dev in self.dragonMasterDeviceManager.deviceContext.list_devices():

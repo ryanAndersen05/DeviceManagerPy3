@@ -515,7 +515,7 @@ class DragonMasterDeviceManager:
     We call this method whenever we receive a message from unity telling us that we are completely connected
     """
     def on_status_from_unity(self):
-
+        
         return
 
     """
@@ -1283,6 +1283,8 @@ def interpret_debug_command(commandToRead, deviceManager):
         else:
             debug_reject_bill_dbv(deviceManager)
         return
+    elif command == "fuck":
+        print ("I'm sorry you're having a rough time. Please don't be so hard on yourself. I'm sure you'll get thought it!")
     else:
         print ("'" + command + "' is not a valid command... type 'help' to see all available commands")
     return
