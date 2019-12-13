@@ -527,6 +527,7 @@ class DBV400(SerialDevice):
             message[4] = self.UID
         else:
             message[4] = 0x00
+        print(str(self.get_player_station_hash() + " sending: " + message))
         self.write_to_serial(message)
 
     """ Set the UID of this class. After the UID of the DBV is set, every subsequent packet sent must include it in its 4th index """
