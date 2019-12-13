@@ -226,6 +226,7 @@ class DBV400(SerialDevice):
     CLEAR_STATE = 12  # DBV error has cleared.
     NOTE_STAY_STATE = 13 # A bill has been left in the acceptor slot of the DBV. When removed, the DBV will proceed as normal.
     ACTIVE_STATE = 14 # DBV is actively holding or accepting bill.
+    WAITING_STATE = 15
 
     #endregion
     #region variables
@@ -389,11 +390,13 @@ class DBV400(SerialDevice):
     def on_reset_request_received(self):
         print ("Reset Request Received")
         self.AmountStored = 0
+        self.State = DBV400.WAITING_STATE
         pass
 
     """ Inhibit message was successfuly received by the DBV """ 
     def on_inhibit_request_received(self):
         print ("Inhibit Request Recieved: " +str(self.get_player_station_hash()))
+        self.State = DBV400.WAITING_STATE
         pass
     
     """ DBV was successfully set to inhibit state. Send ACK to DBV to confirm state """
@@ -401,13 +404,14 @@ class DBV400(SerialDevice):
         inhibitMessage = DBV400.INHIBIT_ACK
         inhibitMessage[5] = message[5]
         print ("Inhibit Success: " + str(self.get_player_station_hash()))
-        self.State = DBV400.INHIBIT_STATE
         self.send_dbv_message(inhibitMessage)
         self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT,self.State)
+        self.State = DBV400.INHIBIT_STATE
 
     """ Idle request successfully received by the DBV """
     def on_idle_request_received(self):
         print ("Idle request received: " + str(self.get_player_station_hash()))
+        self.State = DBV400.WAITING_STATE
         pass
     
     """ DBV was successfully set to idle state. Send ACK to DBV to confirm state """
@@ -415,9 +419,9 @@ class DBV400(SerialDevice):
         idleMessage = DBV400.IDLE_ACK
         idleMessage[5] = message[5]
         print ("Idle success received: " + str(self.get_player_station_hash()))
-        self.State = DBV400.IDLE_STATE
         self.send_dbv_message(idleMessage)
         self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT,self.State)
+        self.State = DBV400.IDLE_STATE
 
     """ A DBV has been inserted into DBV. We need to send an escrow message to confirm this """
     """ Our current workflow is to tell the DBV to hold the bill for 60 seconds while deciding whether to stack or reject """
