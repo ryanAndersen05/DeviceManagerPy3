@@ -169,7 +169,7 @@ A class that handles all our Bill Acceptor Actions
 class DBV400(SerialDevice):
     #region Constants
     DBV_DESCRIPTION = "DBV-400"
-    DBV_BAUDRATE = 9600
+    DBV_BAUDRATE = 4800
     UID = 0x42
     #endregion
     #region Commands
