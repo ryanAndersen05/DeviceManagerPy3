@@ -1283,6 +1283,7 @@ def interpret_debug_command(commandToRead, deviceManager):
         else:
             debug_reject_bill_dbv(deviceManager)
         return
+<<<<<<< Updated upstream
     elif command == "toggleidle":
         if len(commandSplit) >=4:
             debug_toggle_dbv_idle(deviceManager, int(commandSplit[1]), float(commandSplit[2]), int(commandSplit[3]))
@@ -1293,8 +1294,20 @@ def interpret_debug_command(commandToRead, deviceManager):
         elif len(commandSplit) >=1:
             debug_toggle_dbv_idle(deviceManager)
         return
+=======
+    elif command == "status":
+        if len(commandSplit) >= 2:
+            debug_status_dbv(deviceManager, commandSplit[1])
+        else:
+            debug_status_dbv(deviceManager)
+    elif command == "state":
+        if len(commandSplit) >= 2:
+            debug_status_dbv(deviceManager, commandSplit[1])
+        else:
+            debug_status_dbv(deviceManager)    
+>>>>>>> Stashed changes
     elif command == "fuck":
-        print ("I'm sorry you're having a rough time. Please don't be so hard on yourself. I'm sure you'll get thought it!")
+        print ("I'm sorry you're having a rough time. Please don't be so hard on yourself. I'm sure you'll get through it!")
     else:
         print ("'" + command + "' is not a valid command... type 'help' to see all available commands")
     return
@@ -1599,6 +1612,7 @@ def debug_reject_bill_dbv(deviceManager, playerStationHash = -1):
         deviceManager.playerStationDictionary[pStationKey].connectedBillAcceptor.reject_bill()
     return
 
+<<<<<<< Updated upstream
 """
 Toggles the dbv between idle an inhibit. The time between idle to the next idle will be determined by the value seconds, between toggles.
 
@@ -1634,6 +1648,24 @@ def debug_toggle_dbv_idle(deviceManager, numberOfToggles = 5, secondsBetweenTogg
 
         toggleToIdle = not toggleToIdle
     return
+=======
+def debug_status_dbv(deviceManager, playerStationHash = -1):
+    if playerStationHash < 0: 
+        for pStation in deviceManager.playerStationDictionary.values():
+            if pStation.connectedBillAcceptor != None:
+                pStation.connectedBillAcceptor.get_dbv_state()
+        return
+    
+    if playerStationHash not in deviceManager.playerStationHashToParentDevicePath:
+        print ("The player station hash was not found. Perhaps there is no draxboard connected for that station")
+        return
+    pStationKey = deviceManager.playerStationHashToParentDevicePath[playerStationHash]
+    if deviceManager.playerStationDictionary[pStationKey].connectedBillAcceptor != None:
+        deviceManager.playerStationDictionary[pStationKey].connectedBillAcceptor.reject_bill()
+    return
+
+
+>>>>>>> Stashed changes
 #endregion debug DBV commands
 
 #region debug printer commands
