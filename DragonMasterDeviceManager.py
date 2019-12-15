@@ -1293,11 +1293,7 @@ def interpret_debug_command(commandToRead, deviceManager):
         elif len(commandSplit) >=1:
             debug_toggle_dbv_idle(deviceManager)
         return
-    elif command == "status":
-        if len(commandSplit) >= 2:
-            debug_status_dbv(deviceManager, commandSplit[1])
-        else:
-            debug_status_dbv(deviceManager)
+   
     elif command == "state":
         if len(commandSplit) >= 2:
             debug_status_dbv(deviceManager, commandSplit[1])

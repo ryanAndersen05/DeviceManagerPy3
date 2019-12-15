@@ -243,28 +243,34 @@ class DBV400(SerialDevice):
     #region on data received
     """ Handles all byte strings sent from the DBV to the host"""
     def on_data_received_event(self, firstByteOfPacket):
-        
-        sleep(.01)
-        print("Reading for: " + str(self.get_player_station_hash()))
-        read = firstByteOfPacket + self.serialObject.read(self.serialObject.in_waiting)
+        read = firstByteOfPacket
+        if read[0] == 0x12:
+            read += self.serialObject.read(1)
+        if len(read) >= 2:
+            read += self.serialObject.read(read[1] - len(read))
+            
+        else:
+            read = firstByteOfPacket + self.serialObject.read(self.serialObject.in_waiting)
+
         if read == None or len(read) < 2:
             return
 
         # print("Core Message: " + read.hex())
+        print (read)
         length = len(read)
         messages = []
         index = 0
 
-        while length > 0:
-            currentLength = read[index + 1]
-            messages.append(read[index: index + currentLength])
-            index = index + currentLength
-            length -= currentLength
+        # while length > 0:
+        #     currentLength = read[index + 1]
+        #     messages.append(read[index: index + currentLength])
+        #     index = index + currentLength
+        #     length -= currentLength
 
         # print (messages)
 
-        for message in messages:
-            self.process_data_received_message(message)
+        # for message in messages:
+        self.process_data_received_message(read)
 
     def process_data_received_message(self, read):
         print ("DBV Path: " + str(self.get_player_station_hash()) + ", Message:" + read.hex())
@@ -580,7 +586,7 @@ class DBV400(SerialDevice):
 
     #region Override Methods
     def start_device(self, deviceElement):
-        self.serialObject = self.open_serial_device(deviceElement.device, DBV400.DBV_BAUDRATE, 0, 0)
+        self.serialObject = self.open_serial_device(deviceElement.device, DBV400.DBV_BAUDRATE, 3, 5)
         if self.serialObject == None:
             return False
         super().start_device(deviceElement)
