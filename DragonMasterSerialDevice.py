@@ -169,7 +169,7 @@ A class that handles all our Bill Acceptor Actions
 class DBV400(SerialDevice):
     #region Constants
     DBV_DESCRIPTION = "DBV-400"
-    DBV_BAUDRATE = 4800
+    DBV_BAUDRATE = 9600
     UID = 0x42
     #endregion
     #region Commands
@@ -238,11 +238,14 @@ class DBV400(SerialDevice):
 
     def __init__(self, deviceManager):
         super().__init__(deviceManager)
+        self.isReading = False
         return
 
     #region on data received
     """ Handles all byte strings sent from the DBV to the host"""
     def on_data_received_event(self, firstByteOfPacket):
+        self.isReading = True
+
         read = firstByteOfPacket
         lengthOfMessage = 0
         if read[0] == 0x12:
@@ -255,10 +258,11 @@ class DBV400(SerialDevice):
             read = firstByteOfPacket + self.serialObject.read(self.serialObject.in_waiting)
 
         if read == None or len(read) < 2:
+            self.isReading = False
             return
 
         # print("Core Message: " + read.hex())
-        print (read)
+        # print (read)
         length = len(read)
         messages = []
         index = 0
@@ -270,13 +274,14 @@ class DBV400(SerialDevice):
         #     length -= currentLength
 
         # print (messages)
-
+        self.isReading = False
         # for message in messages:
         if length == lengthOfMessage:
             self.process_data_received_message(read)
+        
 
     def process_data_received_message(self, read):
-        print ("DBV Path: " + str(self.get_player_station_hash()) + ", Message:" + read.hex())
+        # print ("DBV Path: " + str(self.get_player_station_hash()) + ", Message:" + read.hex())
         length = read[1]
         if (length <= 8):
             if read[6] == 0x00 and read[7] == 0x01:
@@ -404,7 +409,7 @@ class DBV400(SerialDevice):
 
     """ Inhibit message was successfuly received by the DBV """ 
     def on_inhibit_request_received(self):
-        print ("Inhibit Request Recieved: " +str(self.get_player_station_hash()))
+        # print ("Inhibit Request Recieved: " +str(self.get_player_station_hash()))
         self.State = DBV400.WAITING_STATE
         pass
     
@@ -412,14 +417,14 @@ class DBV400(SerialDevice):
     def on_inhibit_success(self,message):
         inhibitMessage = DBV400.INHIBIT_ACK
         inhibitMessage[5] = message[5]
-        print ("Inhibit Success: " + str(self.get_player_station_hash()))
+        # print ("Inhibit Success: " + str(self.get_player_station_hash()))
         self.send_dbv_message(inhibitMessage)
         self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT,self.State)
         self.State = DBV400.INHIBIT_STATE
 
     """ Idle request successfully received by the DBV """
     def on_idle_request_received(self):
-        print ("Idle request received: " + str(self.get_player_station_hash()))
+        # print ("Idle request received: " + str(self.get_player_station_hash()))
         self.State = DBV400.WAITING_STATE
         pass
     
@@ -427,7 +432,7 @@ class DBV400(SerialDevice):
     def on_idle_success(self,message):
         idleMessage = DBV400.IDLE_ACK
         idleMessage[5] = message[5]
-        print ("Idle success received: " + str(self.get_player_station_hash()))
+        # print ("Idle success received: " + str(self.get_player_station_hash()))
         self.send_dbv_message(idleMessage)
         self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT,self.State)
         self.State = DBV400.IDLE_STATE
@@ -531,11 +536,13 @@ class DBV400(SerialDevice):
 
     """ Send the DBV a message, formatting the message with the UID if neccessary """
     def send_dbv_message(self, message):
+        if self.isReading:
+            return
         if self.UidSet == True:
             message[4] = self.UID
         else:
             message[4] = 0x00
-        print(str(self.get_player_station_hash()) + " sending: " + str(message))
+        # print(str(self.get_player_station_hash()) + " sending: " + str(message))
         self.write_to_serial(message)
 
     """ Set the UID of this class. After the UID of the DBV is set, every subsequent packet sent must include it in its 4th index """

@@ -1618,7 +1618,7 @@ def debug_toggle_dbv_idle(deviceManager, numberOfToggles = 5, secondsBetweenTogg
 
     toggleToIdle = True
     for i in range((numberOfToggles * 2)):
-        print ("Toggle: " + str(toggleToIdle))
+        #print ("Toggle: " + str(toggleToIdle))
         if playerStationHash < 0: 
             for pStation in deviceManager.playerStationDictionary.values():
                 if pStation.connectedBillAcceptor != None:
@@ -1637,8 +1637,9 @@ def debug_toggle_dbv_idle(deviceManager, numberOfToggles = 5, secondsBetweenTogg
                 else:
                     deviceManager.playerStationDictionary[pStationKey].connectedBillAcceptor.inhibit_dbv()
         sleep(secondsBetweenToggles / 2)
-
         toggleToIdle = not toggleToIdle
+    print ("Completed Toggle Process")
+    
     return
 def debug_status_dbv(deviceManager, playerStationHash = -1):
     if playerStationHash < 0: 
