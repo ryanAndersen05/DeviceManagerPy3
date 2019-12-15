@@ -244,10 +244,12 @@ class DBV400(SerialDevice):
     """ Handles all byte strings sent from the DBV to the host"""
     def on_data_received_event(self, firstByteOfPacket):
         read = firstByteOfPacket
+        lengthOfMessage = 0
         if read[0] == 0x12:
             read += self.serialObject.read(1)
         if len(read) >= 2:
-            read += self.serialObject.read(read[1] - len(read))
+            read += self.serialObject.read(read[1] - 2)
+            lengthOfMessage = read[1]
             
         else:
             read = firstByteOfPacket + self.serialObject.read(self.serialObject.in_waiting)
@@ -270,7 +272,8 @@ class DBV400(SerialDevice):
         # print (messages)
 
         # for message in messages:
-        self.process_data_received_message(read)
+        if length == lengthOfMessage:
+            self.process_data_received_message(read)
 
     def process_data_received_message(self, read):
         print ("DBV Path: " + str(self.get_player_station_hash()) + ", Message:" + read.hex())
