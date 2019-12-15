@@ -589,7 +589,7 @@ class DBV400(SerialDevice):
 
     #region Override Methods
     def start_device(self, deviceElement):
-        self.serialObject = self.open_serial_device(deviceElement.device, DBV400.DBV_BAUDRATE, 3, 5)
+        self.serialObject = self.open_serial_device(deviceElement.device, DBV400.DBV_BAUDRATE, None, None)
         if self.serialObject == None:
             return False
         super().start_device(deviceElement)
