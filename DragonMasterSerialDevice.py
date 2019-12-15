@@ -322,7 +322,6 @@ class DBV400(SerialDevice):
             self.on_power_up_success()
         if message[10] == 0x00 and message[11] == 0x01:
             self.State = DBV400.INHIBIT_STATE
-            self.send_dbv_message(DBV400.IDLE_REQUEST)
         if message[10] == 0x01 and message[11] == 0x011:
             self.State = DBV400.IDLE_STATE
         if message[10] == 0x01 and message[10] == 0x13:
