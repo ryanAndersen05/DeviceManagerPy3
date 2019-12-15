@@ -119,7 +119,7 @@ class SerialDevice(DragonMasterDevice.DragonMasterDevice):
         try:
             while self.pollingDevice:
                 firstReadByte = self.serialObject.read(1)
-                if firstReadByte:
+                if firstReadByte != None and len(firstReadByte) > 0:
                     self.on_data_received_event(firstReadByte)
                     
         except Exception as e:

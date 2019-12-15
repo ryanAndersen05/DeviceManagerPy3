@@ -1283,6 +1283,16 @@ def interpret_debug_command(commandToRead, deviceManager):
         else:
             debug_reject_bill_dbv(deviceManager)
         return
+    elif command == "toggleidle":
+        if len(commandSplit) >=4:
+            debug_toggle_dbv_idle(deviceManager, int(commandSplit[1]), float(commandSplit[2]), int(commandSplit[3]))
+        elif len(commandSplit) >=3:
+            debug_toggle_dbv_idle(deviceManager, int(commandSplit[1]), float(commandSplit[2]))
+        elif len(commandSplit) >=2:
+            debug_toggle_dbv_idle(deviceManager, int(commandSplit[1]))
+        elif len(commandSplit) >=1:
+            debug_toggle_dbv_idle(deviceManager)
+        return
     elif command == "fuck":
         print ("I'm sorry you're having a rough time. Please don't be so hard on yourself. I'm sure you'll get thought it!")
     else:
@@ -1366,6 +1376,7 @@ def debug_help_message():
     print ("'inhibit' - sends an inhibit request to a bill acceptor")
     print ("'stack' - sends a command to stack a bill if it is currently held in escrow")
     print ("'reject' - sends a command to reject a bill that is currently in escrow")
+    print ("'toggleidle' - sends a command to toggle back and forth between idle and inhibit (data=[#ofToggles, secondsBetwenToggles]")
     print ('-' * 60)
 
     return
@@ -1586,6 +1597,42 @@ def debug_reject_bill_dbv(deviceManager, playerStationHash = -1):
     pStationKey = deviceManager.playerStationHashToParentDevicePath[playerStationHash]
     if deviceManager.playerStationDictionary[pStationKey].connectedBillAcceptor != None:
         deviceManager.playerStationDictionary[pStationKey].connectedBillAcceptor.reject_bill()
+    return
+
+"""
+Toggles the dbv between idle an inhibit. The time between idle to the next idle will be determined by the value seconds, between toggles.
+
+One full toggle is idle->inhibit
+two full toggles is idle->inhibit->idle->inhibit
+"""
+def debug_toggle_dbv_idle(deviceManager, numberOfToggles = 5, secondsBetweenToggles = 1, playerStationHash = -1):
+    if numberOfToggles <= 0 or numberOfToggles > 100:
+        print ("Number of toggles was was out of range. Please pass a number between 1 and 100")
+        return
+
+    toggleToIdle = True
+    for i in range((numberOfToggles * 2)):
+        print ("Toggle: " + str(toggleToIdle))
+        if playerStationHash < 0: 
+            for pStation in deviceManager.playerStationDictionary.values():
+                if pStation.connectedBillAcceptor != None:
+                    if toggleToIdle:
+                        pStation.connectedBillAcceptor.idle_dbv()
+                    else:
+                        pStation.connectedBillAcceptor.inhibit_dbv()
+        else:
+            if playerStationHash not in deviceManager.playerStationHashToParentDevicePath:
+                print ("The player station hash was not found. Perhaps there is no draxboard connected for that station")
+                return
+            pStationKey = deviceManager.playerStationHashToParentDevicePath[playerStationHash]
+            if deviceManager.playerStationDictionary[pStationKey].connectedBillAcceptor != None:
+                if toggleToIdle:
+                    deviceManager.playerStationDictionary[pStationKey].connectedBillAcceptor.idle_dbv()
+                else:
+                    deviceManager.playerStationDictionary[pStationKey].connectedBillAcceptor.inhibit_dbv()
+        sleep(secondsBetweenToggles / 2)
+
+        toggleToIdle = not toggleToIdle
     return
 #endregion debug DBV commands
 
