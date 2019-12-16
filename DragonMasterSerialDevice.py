@@ -261,8 +261,8 @@ class DBV400(SerialDevice):
             self.isReading = False
             return
 
-        # print("Core Message: " + read.hex())
-        # print (read)
+        print (str(self.get_player_station_hash()) + " READ: " + str(read))
+        
         length = len(read)
         messages = []
         index = 0
@@ -542,7 +542,7 @@ class DBV400(SerialDevice):
             message[4] = self.UID
         else:
             message[4] = 0x00
-        # print(str(self.get_player_station_hash()) + " sending: " + str(message))
+        print(str(self.get_player_station_hash()) + " Sending: " + str(message))
         self.write_to_serial(message)
 
     """ Set the UID of this class. After the UID of the DBV is set, every subsequent packet sent must include it in its 4th index """
