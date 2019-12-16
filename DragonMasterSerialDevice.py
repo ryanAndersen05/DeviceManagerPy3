@@ -717,37 +717,32 @@ class Draxboard(SerialDevice):
     def on_data_received_event(self, firstByteOfPacket):
         if len(firstByteOfPacket) < 1:
             return
-
+        read = firstByteOfPacket + self.serialObject.read(2)
+        lengthOfPacket = read[2]
+        read += self.serialObject.read(lengthOfPacket)
         try:
-        #Dynamic Packets: Packets that can be received at any point regardless of whether they were requested or not
+            
+            #Dynamic Packets: Packets that can be received at any point regardless of whether they were requested or not
             if firstByteOfPacket[0] == Draxboard.INPUT_EVENT_ID:
-                packetData = firstByteOfPacket + self.serialObject.read(Draxboard.INPUT_EVENT_SIZE - 1)
-                self.add_input_event_to_tcp_queue(packetData)
+                self.add_input_event_to_tcp_queue(read)
                 return
             elif firstByteOfPacket == Draxboard.STATUS_EVENT_ID:
-                packetData = firstByteOfPacket + self.serialObject.read(Draxboard.STATUS_EVENT_SIZE - 1)
-                self.on_status_packet_received(packetData)
+                self.on_status_packet_received(read)
                 return
             #Response Packet. Packets that are a response to packets that we sent
             elif firstByteOfPacket == Draxboard.REQUEST_STATUS_ID:
-                packetData = firstByteOfPacket + self.serialObject.read(Draxboard.REQUEST_STATUS_SIZE - 1)
-                self.on_request_status_received(packetData)
+                self.on_request_status_received(read)
                 return
             elif firstByteOfPacket == Draxboard.OUTPUT_EVENT_ID:
-                packetData = firstByteOfPacket + self.serialObject.read(Draxboard.OUTPUT_EVENT_SIZE - 1)
-                self.on_output_packet_received(packetData)
+                self.on_output_packet_received(read)
                 return
             elif firstByteOfPacket == Draxboard.METER_INCREMENT_ID:
-                packetData = firstByteOfPacket + self.serialObject.read(Draxboard.METER_INCREMENT_SIZE - 1)
-                self.on_meter_increment_packet_received(packetData)
+                self.on_meter_increment_packet_received(read)
                 return
             elif firstByteOfPacket == Draxboard.PENDING_METER_ID:
-                packetData = firstByteOfPacket + self.serialObject.read(Draxboard.PENDING_METER_SIZE - 1)
-                self.on_pending_meter_packet_received(packetData)
+                self.on_pending_meter_packet_received(read)
                 return
-            else:
-                self.serialObject.read(self.serialObject.in_waiting)
-                return
+            
         except Exception as e:
             print ("There was an error processing a data event from our draxboard")
             print (e)
