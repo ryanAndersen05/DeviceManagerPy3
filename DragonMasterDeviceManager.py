@@ -330,6 +330,7 @@ class DragonMasterDeviceManager:
             elif isinstance(deviceToAdd, DragonMasterSerialDevice.Draxboard):
                 previouslyConnectedDevice = self.playerStationDictionary[deviceToAdd.deviceParentPath].connectedDraxboard
                 self.playerStationDictionary[deviceToAdd.deviceParentPath].connectedDraxboard = deviceToAdd
+                self.playerStationDictionary[deviceToAdd.deviceParentPath].persistedPlayerStationHash = deviceToAdd.playerStationHash
                 self.playerStationHashToParentDevicePath[deviceToAdd.playerStationHash] = deviceToAdd.deviceParentPath
 
             # print (deviceToAdd.deviceParentPath)
@@ -396,10 +397,8 @@ class DragonMasterDeviceManager:
 
 
     """
-    Returns an int value that represents the player station that the device is connected.
-
-    NOTE: This has will return 0 if there is no draxboard connected to the player station. This should only be true if teh draxboard
-    has completely malfunctioned or you are connecting the device to a random port that is not through the draxboard usb hub
+    As long as there was a Draxboard this will return the associated player station hash that is tied to the draxboard device. If there has not been
+    a draxboard connected to this player station, it will simply return a 0 value. This is defined as invalid in most functions in our unity application
     """
     def get_player_station_hash_for_device(self, device):
         playerStationParentPath = device.deviceParentPath
@@ -409,10 +408,7 @@ class DragonMasterDeviceManager:
 
         playerStation = self.playerStationDictionary[playerStationParentPath]
         
-        if playerStation.connectedDraxboard == None:
-            return 0
-
-        return playerStation.connectedDraxboard.playerStationHash
+        return playerStation.persistedPlayerStationHash
 
     """
     Returns the usb path, using the playerstation hash
@@ -813,7 +809,11 @@ This class acts as a container of all the devices that are connected to this dev
 class PlayerStationContainer:
     
     def __init__(self):
+        #Whenever we connect to a new draxboard, this value will be set. As long as the drax is reconnected to the same usb port, this path should remain the same
+        self.persistedPlayerStationHash = 0
+        #Connected Draxboard. Will be None if there is no Drax currently connected
         self.connectedDraxboard = None
+        #
         self.connectedBillAcceptor = None
         self.connectedJoystick = None
         self.connectedPrinter = None    
@@ -824,10 +824,10 @@ class PlayerStationContainer:
     """
     def to_string(self, fullStation = False):
         playerStationString = '-' * 60
-        if self.connectedDraxboard != None:
-            print ("Station Hash: " + str(self.connectedDraxboard.get_player_station_hash()))
+        if self.persistedPlayerStationHash != 0:
+            print ("Station Hash: " + str(self.persistedPlayerStationHash))
         else:
-            print ("NO STATION HASH SET (Draxboard not found for this station)")
+            print ("NO DRAXBOARD HAS BEEN ENUMERATED FOR THIS PLAYER STATION")
         if self.connectedJoystick:
             playerStationString += '\nJOY   |' + self.connectedJoystick.to_string()
         elif fullStation:
@@ -1414,7 +1414,7 @@ Helper method to flash the ticket light of the draxboard on and off 8 times
 def actually_flash_drax(pStation):
     if pStation.connectedDraxboard != None:
         print ('-' * 60)
-        print ("Flashing Ticket Light For Hash: " + str(pStation.connectedDraxboard.get_player_station_hash()))
+        print ("Flashing Ticket Light For Hash: " + str(pStation.persistedPlayerStationHash))
         for i in range(8):
             pStation.connectedDraxboard.toggle_output_state_of_drax(1 << 2, 2)
             sleep(.15)
