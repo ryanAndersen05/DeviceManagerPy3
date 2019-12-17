@@ -262,7 +262,7 @@ class DBV400(SerialDevice):
             return
 
         print (str(self.get_player_station_hash()) + " READ: " + str(read))
-        
+
         length = len(read)
         messages = []
         index = 0
@@ -726,20 +726,20 @@ class Draxboard(SerialDevice):
             if firstByteOfPacket[0] == Draxboard.INPUT_EVENT_ID:
                 self.add_input_event_to_tcp_queue(read)
                 return
-            elif firstByteOfPacket == Draxboard.STATUS_EVENT_ID:
+            elif firstByteOfPacket[0] == Draxboard.STATUS_EVENT_ID:
                 self.on_status_packet_received(read)
                 return
             #Response Packet. Packets that are a response to packets that we sent
-            elif firstByteOfPacket == Draxboard.REQUEST_STATUS_ID:
+            elif firstByteOfPacket[0] == Draxboard.REQUEST_STATUS_ID:
                 self.on_request_status_received(read)
                 return
-            elif firstByteOfPacket == Draxboard.OUTPUT_EVENT_ID:
+            elif firstByteOfPacket[0] == Draxboard.OUTPUT_EVENT_ID:
                 self.on_output_packet_received(read)
                 return
-            elif firstByteOfPacket == Draxboard.METER_INCREMENT_ID:
+            elif firstByteOfPacket[0] == Draxboard.METER_INCREMENT_ID:
                 self.on_meter_increment_packet_received(read)
                 return
-            elif firstByteOfPacket == Draxboard.PENDING_METER_ID:
+            elif firstByteOfPacket[0] == Draxboard.PENDING_METER_ID:
                 self.on_pending_meter_packet_received(read)
                 return
             
@@ -783,8 +783,12 @@ class Draxboard(SerialDevice):
     This will also send a message to Unity to confirm the state that our draxboards have been set to
     """
     def on_output_packet_received(self, bytePacket):
-        print ("Output Packet: " + str(bytePacket))
-
+        try:
+            outputBytes = bytePacket[3:7]
+            self.draxOutputState = int.from_bytes(outputBytes, byteorder='little')
+        except Exception as e:
+            print("There was an error collecting our output event")
+            print (e)
 
         return
 
@@ -941,16 +945,9 @@ class Draxboard(SerialDevice):
         outputMessageArray[checkSumByteIndex] = self.calculate_checksum(outputMessageArray)
 
         self.write_to_serial(outputMessageArray)
-        # if read != None and len(read) >= Draxboard.OUTPUT_EVENT_SIZE and read[0] == Draxboard.OUTPUT_EVENT_ID:
-        #     self.draxOutputState = (int(read[4]) << 8) + read[3]
-        #     self.send_current_drax_output_state(read[4], read[3])
-
-        # return read
-
-    def output_packet_received_from_drax(self, bytePacket):
-        
-
+        self.draxOutputState = outputToggleu32
         return
+        
     
     """
     Sends a packet to our TCP Manager that contains the output state of the draxboard

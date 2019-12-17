@@ -134,6 +134,7 @@ class DragonMasterDeviceManager:
         # unityLockupThread.start()
 
         sleep(.3)
+        print()
         self.search_for_devices()
 
         #Begins a thread that allows a user to enter debug commands into a terminal if there is one available. This will not work if run through the bash script
@@ -200,6 +201,7 @@ class DragonMasterDeviceManager:
             print ("We skipped searching for devices. We are already searching")
             return
         self.searchingForDevices = True
+        originalCountOfDevices = len(self.allConnectedDevices)
         try:
             allConnectedJoysticks, allBaoLianJoysticks = DragonMasterDevice.get_all_connected_joystick_devices()
             allConnectedDraxboards = DragonMasterSerialDevice.get_all_connected_draxboard_elements()
@@ -236,6 +238,9 @@ class DragonMasterDeviceManager:
         except Exception as e:
             print ("There was an error while searching for devices.")
             print (e)
+        if len(self.allConnectedDevices) != originalCountOfDevices:
+            print('-' * 60)
+            print ("Total Devices Connected: " + str(len(self.allConnectedDevices)))
         self.searchingForDevices = False
         return
 
@@ -253,7 +258,7 @@ class DragonMasterDeviceManager:
             self.add_new_device_to_player_station_dictionary(deviceToAdd)
             self.send_device_connected_event(deviceToAdd)
             
-            print (deviceToAdd.to_string() + " was successfully added to our device manager")
+            print (deviceToAdd.to_string() + " was successfully ADDED to our device manager")
         else:
             deviceToAdd.disconnect_device()#We will run a disconnect device to ensure that we fully disconnect all processes that may be running in our device
             print ("Device Failed Start")
@@ -339,7 +344,7 @@ class DragonMasterDeviceManager:
                 self.playerStationHashToParentDevicePath[deviceToAdd.playerStationHash] = deviceToAdd.deviceParentPath
 
             # print (deviceToAdd.deviceParentPath)
-            print (self.playerStationDictionary[deviceToAdd.deviceParentPath].to_string())
+            #print (self.playerStationDictionary[deviceToAdd.deviceParentPath].to_string())
 
             if previouslyConnectedDevice != None:
                 print ("Warning: There are two or more of the same devices connected to our our player station")
@@ -360,7 +365,7 @@ class DragonMasterDeviceManager:
             self.remove_device_from_player_station_dictionary(deviceToRemove)
             self.allConnectedDevices.remove(deviceToRemove)
             self.send_device_disconnected_event(deviceToRemove)
-            print (deviceToRemove.to_string() + " was successfully removed")
+            print (deviceToRemove.to_string() + " was successfully REMOVED")
         else:
             if not isinstance(deviceToRemove, DragonMasterSerialDevice.ReliancePrinterSerial):#reliance serial is the one excpetion where we don't remove it normally
                 print (deviceToRemove.to_string() + " was not found in our device list. Perhaps it was already removed")
@@ -1197,6 +1202,8 @@ def interpret_debug_command(commandToRead, deviceManager):
             return
         else:
             debug_bitdisable_drax(deviceManager)
+            debug_bitdisable_drax(deviceManager, 1)
+            debug_bitdisable_drax(deviceManager, 2)
             return
     elif command == "draxout":
         if len(commandSplit) >= 3:
