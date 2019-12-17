@@ -106,7 +106,7 @@ class DragonMasterDeviceManager:
     DEBUG_DISPLAY_JOY_AXIS = False #Mark this true to display all joystick axes values that are collected.
     DEBUG_SHOW_DRAX_BUTTONS = False
 
-    
+
     #endregion debug variables
 
 
@@ -127,6 +127,11 @@ class DragonMasterDeviceManager:
         deviceAddedThread = threading.Thread(target=self.device_connected_thread,)
         deviceAddedThread.daemon = True
         deviceAddedThread.start()
+
+        #This will periodically check that our Unity application is still running in the backgroud
+        # unityLockupThread = threading.Thread(target=self.periodically_check_that_unity_is_still_running,)
+        # unityLockupThread.daemon = True
+        # unityLockupThread.start()
 
         sleep(.3)
         self.search_for_devices()
