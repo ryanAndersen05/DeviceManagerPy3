@@ -786,6 +786,8 @@ class Draxboard(SerialDevice):
         try:
             outputBytes = bytePacket[3:7]
             self.draxOutputState = int.from_bytes(outputBytes, byteorder='little')
+            self.dragonMasterDeviceManager.add_event_to_send(DragonMasterDeviceManager.DragonMasterDeviceManager.DRAX_OUTPUT_EVENT, \
+                outputBytes, self.playerStationHash)
         except Exception as e:
             print("There was an error collecting our output event")
             print (e)

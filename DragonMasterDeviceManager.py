@@ -684,7 +684,7 @@ class DragonMasterDeviceManager:
             messageToSend += convert_value_to_byte_array(playerStationHash, numberOfBytes=4)
         messageToSend += eventData
         
-        
+        print (bytes(messageToSend).hex())
         
         self.tcpManager.add_event_to_send(messageToSend)
         return
@@ -941,7 +941,7 @@ class TCPManager:
                     while not self.tcpEventQueue.empty():
                         eventToAdd = self.tcpEventQueue.get()
                         eventToAdd.insert(0, len(eventToAdd))
-                        eventToAdd.append(self.calculate_checksum_of_packet(eventToAdd))
+                        # eventToAdd.append(self.calculate_checksum_of_packet(eventToAdd))
 
                         bytesToSend = bytesToSend + eventToAdd
                         
