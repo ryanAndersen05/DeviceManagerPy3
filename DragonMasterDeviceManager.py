@@ -1158,12 +1158,15 @@ def interpret_debug_command(commandToRead, deviceManager):
         return
     elif command == "msgin":
         DragonMasterDeviceManager.DEBUG_PRINT_EVENTS_RECEIVED_FROM_UNITY = not DragonMasterDeviceManager.DEBUG_PRINT_EVENTS_RECEIVED_FROM_UNITY
+        print ("DISPLAY TCP READ EVENTS: " + str(DragonMasterDeviceManager.DEBUG_PRINT_EVENTS_RECEIVED_FROM_UNITY))
         return
     elif command == "msgout":
         DragonMasterDeviceManager.DEBUG_PRINT_EVENTS_SENT_TO_UNITY = not DragonMasterDeviceManager.DEBUG_PRINT_EVENTS_SENT_TO_UNITY
+        print ("DISPLAY TCP SEND EVENTS: " + str(DragonMasterDeviceManager.DEBUG_PRINT_EVENTS_SENT_TO_UNITY))
         return
     elif command == "msgtrans":
         DragonMasterDeviceManager.DEBUG_TRANSLATE_PACKETS = not DragonMasterDeviceManager.DEBUG_TRANSLATE_PACKETS
+        print ("TRANSLATE TCP MESSAGES: " + str(DragonMasterDeviceManager.DEBUG_TRANSLATE_PACKETS))
         return
     #Joystick DEBUG
     elif command == "displayjoy":
