@@ -684,7 +684,6 @@ class DragonMasterDeviceManager:
             messageToSend += convert_value_to_byte_array(playerStationHash, numberOfBytes=4)
         messageToSend += eventData
         
-        print (bytes(messageToSend).hex())
         
         self.tcpManager.add_event_to_send(messageToSend)
         return
@@ -947,6 +946,7 @@ class TCPManager:
                         
                         if (DragonMasterDeviceManager.DEBUG_PRINT_EVENTS_SENT_TO_UNITY):
                             print ("MSGOUT: " + str(eventToAdd))
+                        eventToAdd.clear()
                         
                     convertedByteArrayToSend = bytearray(bytesToSend)#Converting our array into a byte array to send through our TCP socket
                     
