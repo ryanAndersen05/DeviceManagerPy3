@@ -982,7 +982,8 @@ class TCPManager:
 
                 buff = socketRead.recv(TCPManager.MAX_RECV_BUFFER)
                 fullResponse = buff
-                while buff:
+                while len(buff) > 0:
+                    print (buff)
                     buff = socketRead.recv(TCPManager.MAX_RECV_BUFFER)
                     if (buff):
                         fullResponse += buff
@@ -991,12 +992,12 @@ class TCPManager:
                 socketRead.shutdown(socket.SHUT_RDWR)
             except Exception as e:
                 # print ("Receive Error")
-                print (e)
+                # print (e)
                 if socketRead != None:
                     socketRead.close()
                 
                 # print (e)
-            sleep(.02)
+            sleep(1.0 / 60.0)
             totalCount += 1
             pass
 
