@@ -964,6 +964,7 @@ class TCPManager:
             # sleep(.01)
             totalCount += 1
             pass
+        socketSend.close()
         self.start_new_socket_send_thread()
         return
 
@@ -973,34 +974,32 @@ class TCPManager:
     """
     def socket_receive(self):
         totalCount = 0
-        
+        socketRead = socket.socket()
+        buff = None
         while (totalCount < TCPManager.MAX_THREADING_COUNT):
             try:
-                socketRead = socket.socket()
-                socketRead.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-                socketRead.connect((TCPManager.HOST_ADDRESS, TCPManager.RECEIVE_PORT))
+                fullResponse = bytearray()
+                socketRead.connect((self.HOST_ADDRESS, self.RECEIVE_PORT))
+                
+                buff = socketRead.recv(1024)
+                while buff:
+                    fullResponse += buff
+                    buff = socketRead.recv(1024)
 
-                buff = socketRead.recv(TCPManager.MAX_RECV_BUFFER)
-                fullResponse = buff
-                while len(buff) > 0:
-                    print (buff)
-                    buff = socketRead.recv(TCPManager.MAX_RECV_BUFFER)
-                    if (buff):
-                        fullResponse += buff
                 if (len(fullResponse) > 0):
+                    print (fullResponse)
                     self.deviceManager.execute_received_event(self.separate_events_received_into_list(fullResponse))
-                socketRead.shutdown(socket.SHUT_RDWR)
+                socketRead.detach()
             except Exception as e:
                 # print ("Receive Error")
                 # print (e)
-                if socketRead != None:
-                    socketRead.close()
+                socketRead.detach()
                 
-                # print (e)
             sleep(1.0 / 60.0)
             totalCount += 1
             pass
 
+        socketRead.close()
         self.start_new_socket_receive_thread()
         return
 
