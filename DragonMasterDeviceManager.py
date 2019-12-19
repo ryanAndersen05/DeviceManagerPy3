@@ -985,12 +985,13 @@ class TCPManager:
                 while buff:
                     buff = socketRead.recv(TCPManager.MAX_RECV_BUFFER)
                     if (buff):
-                        fullResponse = fullResponse + buff
+                        fullResponse += buff
                 if (len(fullResponse) > 0):
                     self.deviceManager.execute_received_event(self.separate_events_received_into_list(fullResponse))
                 socketRead.shutdown(socket.SHUT_RDWR)
             except Exception as e:
                 # print ("Receive Error")
+                print (e)
                 if socketRead != None:
                     socketRead.close()
                 
@@ -1009,7 +1010,7 @@ class TCPManager:
     """
     def separate_events_received_into_list(self, fullEventData):
         if (len(fullEventData) == 0):
-            return
+            return []
         eventMessages = []
         while (len(fullEventData) > 0):
             endOfMessage = 1 + fullEventData[0]
