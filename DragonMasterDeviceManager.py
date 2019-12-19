@@ -961,7 +961,7 @@ class TCPManager:
                 if socketSend != None:
                     socketSend.close()
 
-            sleep(.01)
+            # sleep(.01)
             totalCount += 1
             pass
         self.start_new_socket_send_thread()
