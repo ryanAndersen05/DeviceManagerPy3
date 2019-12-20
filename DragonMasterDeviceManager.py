@@ -987,12 +987,9 @@ class TCPManager:
                     buff = socketRead.recv(1024)
 
                 if (len(fullResponse) > 0):
-                    print (fullResponse)
                     self.deviceManager.execute_received_event(self.separate_events_received_into_list(fullResponse))
                 socketRead.detach()
             except Exception as e:
-                # print ("Receive Error")
-                # print (e)
                 socketRead.detach()
                 
             sleep(1.0 / 60.0)
@@ -1009,19 +1006,21 @@ class TCPManager:
     byte that shows the size of the packet. 
     """
     def separate_events_received_into_list(self, fullEventData):
-        if (len(fullEventData) == 0):
+        if fullEventData == None: 
             return []
-        eventMessages = []
-        while (len(fullEventData) > 0):
-            endOfMessage = 1 + fullEventData[0]
-            if (len(fullEventData) > endOfMessage):
-                endOfMessage = len(fullEventData)
-            eventMessages.append(fullEventData[1:endOfMessage])
-            fullEventData = fullEventData[endOfMessage - 1:]
         
-        for eventMessage in eventMessages:
-            self.deviceManager.interpret_event_from_unity(eventMessage)
-        return
+        eventList = []
+        startIndex = 0
+        endIndex = 0
+        sizeOfPacket = 0
+        while startIndex < len(fullEventData):
+            sizeOfPacket = fullEventData[startIndex] << 8
+            sizeOfPacket += fullEventData[startIndex + 1]
+            startIndex += 2
+            eventData = fullEventData[startIndex:endIndex]
+            eventList.append(eventData)
+            pass
+        return eventList
     pass
 
     """
