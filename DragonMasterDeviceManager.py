@@ -444,13 +444,15 @@ class DragonMasterDeviceManager:
         if DragonMasterDeviceManager.DEBUG_PRINT_EVENTS_RECEIVED_FROM_UNITY:
             print ("Message From Unity: " + eventMessage.hex())
 
-        if eventMessage == DragonMasterDeviceManager.RETRIEVE_CONNECTED_DEVICES:
+        eventCommandByte = eventMessage[0]#This is the byte that identifies what type of packet we are using
+
+        if eventCommandByte == DragonMasterDeviceManager.RETRIEVE_CONNECTED_DEVICES:
             self.on_retrieve_connected_devices()
             return
-        elif eventMessage == DragonMasterDeviceManager.STATUS_FROM_UNITY:
+        elif eventCommandByte == DragonMasterDeviceManager.STATUS_FROM_UNITY:
             self.on_status_from_unity()
             return
-        elif eventMessage == DragonMasterDeviceManager.OMNI_EVENT:
+        elif eventCommandByte == DragonMasterDeviceManager.OMNI_EVENT:
             self.on_omnidongle_event_received(eventMessage)
             return
         
@@ -460,54 +462,51 @@ class DragonMasterDeviceManager:
             return 
         playerStationHash = convert_byte_array_to_value(eventMessage[1:4])
         #General Event Messages
-        if eventMessage == DragonMasterDeviceManager.STATUS_FROM_UNITY:
-
-            return
-        elif eventMessage == DragonMasterDeviceManager.KILL_APPLICATION_EVENT:
+        if eventCommandByte == DragonMasterDeviceManager.KILL_APPLICATION_EVENT:
             DragonMasterDeviceManager.KILL_DEVICE_MANAGER_APPLICATION = True
             return
         #Drax Outputs
-        elif eventMessage == DragonMasterDeviceManager.DRAX_HARD_METER_EVENT:
+        elif eventCommandByte == DragonMasterDeviceManager.DRAX_HARD_METER_EVENT:
             self.on_drax_hard_meter_event(playerStationHash, eventMessage[5:])
             return
-        elif eventMessage == DragonMasterDeviceManager.DRAX_OUTPUT_EVENT:
+        elif eventCommandByte == DragonMasterDeviceManager.DRAX_OUTPUT_EVENT:
             self.on_drax_output_event(playerStationHash, eventMessage[5:])
             return
-        elif eventMessage == DragonMasterDeviceManager.DRAX_OUTPUT_BIT_ENABLE_EVENT:
+        elif eventCommandByte == DragonMasterDeviceManager.DRAX_OUTPUT_BIT_ENABLE_EVENT:
             self.on_drax_output_bit_enable_event(playerStationHash, eventMessage[5:])
             return
-        elif eventMessage == DragonMasterDeviceManager.DRAX_OUTPUT_BIT_DISABLE_EVENT:
+        elif eventCommandByte == DragonMasterDeviceManager.DRAX_OUTPUT_BIT_DISABLE_EVENT:
             self.on_drax_output_bit_disable_event(playerStationHash, eventMessage[5:])
             return
 
         #Printer Outputs
-        elif eventMessage == DragonMasterDeviceManager.PRINTER_CASHOUT_TICKET:
+        elif eventCommandByte == DragonMasterDeviceManager.PRINTER_CASHOUT_TICKET:
             self.on_print_cashout_ticket_event(playerStationHash, eventMessage[5:])
             return
-        elif eventMessage == DragonMasterDeviceManager.PRINTER_AUDIT_TICKET:
+        elif eventCommandByte == DragonMasterDeviceManager.PRINTER_AUDIT_TICKET:
             self.on_print_audit_ticket_event(playerStationHash, eventMessage[5:])
             return
-        elif eventMessage == DragonMasterDeviceManager.PRINTER_CODEX_TICKET:
+        elif eventCommandByte == DragonMasterDeviceManager.PRINTER_CODEX_TICKET:
             self.on_print_codex_ticket_event(playerStationHash, eventMessage[5:])
             return
-        elif eventMessage == DragonMasterDeviceManager.PRINTER_TEST_TICKET:
+        elif eventCommandByte == DragonMasterDeviceManager.PRINTER_TEST_TICKET:
             self.on_print_test_ticket_event(playerStationHash, eventMessage[5:])
             return
             
         #Bill Acceptor Outputs
-        elif eventMessage == DragonMasterDeviceManager.BA_IDLE_EVENT:
+        elif eventCommandByte == DragonMasterDeviceManager.BA_IDLE_EVENT:
             self.on_ba_idle_event(playerStationHash, eventMessage[5:])
             return
-        elif eventMessage == DragonMasterDeviceManager.BA_INHIBIT_EVENT:
+        elif eventCommandByte == DragonMasterDeviceManager.BA_INHIBIT_EVENT:
             self.on_ba_inhibit_event(playerStationHash, eventMessage[5:])
             return
-        elif eventMessage == DragonMasterDeviceManager.BA_RESET_EVENT:
+        elif eventCommandByte == DragonMasterDeviceManager.BA_RESET_EVENT:
             self.on_ba_reset_event(playerStationHash, eventMessage[5:])
             return
-        elif eventMessage == DragonMasterDeviceManager.BA_ACCEPT_BILL_EVENT:
+        elif eventCommandByte == DragonMasterDeviceManager.BA_ACCEPT_BILL_EVENT:
             self.on_ba_accept_bill_event(playerStationHash, eventMessage[5:])
             return
-        elif eventMessage == DragonMasterDeviceManager.BA_REJECT_BILL_EVENT:
+        elif eventCommandByte == DragonMasterDeviceManager.BA_REJECT_BILL_EVENT:
             self.on_ba_reject_bill_event(playerStationHash, eventMessage[5:])
             return
 
