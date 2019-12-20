@@ -441,6 +441,8 @@ class DragonMasterDeviceManager:
             print ("The event message that was passed in was empty...")
             return
 
+        if DragonMasterDeviceManager.DEBUG_PRINT_EVENTS_RECEIVED_FROM_UNITY:
+            print ("Message From Unity: " + eventMessage.hex())
 
         if eventMessage == DragonMasterDeviceManager.RETRIEVE_CONNECTED_DEVICES:
             self.on_retrieve_connected_devices()
@@ -1018,7 +1020,7 @@ class TCPManager:
             sizeOfPacket += fullEventData[startIndex + 1]
             startIndex += 2
             endIndex = startIndex + sizeOfPacket
-            
+
             eventData = fullEventData[startIndex:endIndex]
             eventList.append(eventData)
             startIndex = endIndex
