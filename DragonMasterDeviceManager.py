@@ -975,10 +975,11 @@ class TCPManager:
     """
     def socket_receive(self):
         totalCount = 0
-        socketRead = socket.socket()
         buff = None
         while (totalCount < TCPManager.MAX_THREADING_COUNT):
             try:
+                socketRead = socket.socket()
+
                 fullResponse = bytearray()
                 socketRead.connect((self.HOST_ADDRESS, self.RECEIVE_PORT))
                 
