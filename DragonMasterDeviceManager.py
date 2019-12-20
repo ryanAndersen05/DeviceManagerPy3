@@ -989,11 +989,11 @@ class TCPManager:
 
                 if (len(fullResponse) > 0):
                     self.deviceManager.execute_received_event(self.separate_events_received_into_list(fullResponse))
-                socketRead.detach()
+                socketRead.close()
             except Exception as e:
-                socketRead.detach()
+                socketRead.close()
                 
-            sleep(1.0 / 60.0)
+            sleep(1.0 / 30.0)
             totalCount += 1
             pass
 
