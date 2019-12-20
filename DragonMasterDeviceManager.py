@@ -1017,8 +1017,11 @@ class TCPManager:
             sizeOfPacket = fullEventData[startIndex] << 8
             sizeOfPacket += fullEventData[startIndex + 1]
             startIndex += 2
+            endIndex = startIndex + sizeOfPacket
+            
             eventData = fullEventData[startIndex:endIndex]
             eventList.append(eventData)
+            startIndex = endIndex
             pass
         return eventList
     pass
