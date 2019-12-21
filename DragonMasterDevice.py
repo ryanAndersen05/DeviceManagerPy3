@@ -3,6 +3,7 @@ import threading
 import os
 import time
 from time import sleep
+import datetime
 
 #external lib imports
 import evdev
@@ -249,18 +250,13 @@ In General When using print commands in our printer we will want to send it as a
 accurate way to do this
 """
 class Printer(DragonMasterDevice):
-    AUDIT_TICKET = 0x05
-    CODEX_TICKET = 0x04
-
-    REPRINT_TICKET = 0x02
-    TEST_TICKET = 0x01
-    VOUCHER_TICKET = 0x00
-
     #The path of our Cross fire png image
     CROSS_FIRE_PNG_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Cross-fire.png")
     #The file path to our dragon master logo png
     DRAGON_MASTER_PNG_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "DragonMaster.png")
+    #Static variable for the name of the machine. This will be printed on every ticket. Can be changed from our Unity application
     LOCATION_NAME = "PlaceHolder"
+    #The Machine number. Way for operators to differentiate which machine this came from. This can be changed from our Unity application
     MACHINE_NUMBER = "00001"
 
 
@@ -304,97 +300,102 @@ class Printer(DragonMasterDevice):
             sleep (.2)
 
     """
-    This method formats and prints out a cash-out ticket
+    This method will print out a voucher ticket. The general format should apply to all of our printer types
     """
-    def print_voucher_ticket(self, totalCreditsWon, timeTicketRedeemed, playerStation="0", validationNumber = "0", whiteSpaceUnderTicket = 10, ticketType = 0):
-        characterCount = 24
+    def print_voucher_ticket(self, totalCreditsWon, ticketType, playerStation = "0", validationNumber = "0", TerminalID = "000000", dateTimeOfPrint=None, whiteSpaceUnderTicket=1):
+
         try:
-            self.printerObject.set(align='center', font='b', height=12)
-            self.printerObject.textln('=' * characterCount)
-            self.printerObject.set(align='center')
+            if dateTimeOfPrint == None:#An older version of the game may not provide the datetime of the print. This probably won't be an issue, but just in case....
+                dateTimeOfPrint = datetime.datetime.now()
+                print ("Date Time was None, defaulting to the current time on our system clock")
+            self.config_text()
+            self.printerObject.set(align='center', font='b', height=12, bold=False)
+
+            if ticketType == DragonMasterDeviceManager.DragonMasterDeviceManager.PRINTER_REPRINT_TICKET:
+                self.printerObject.textln("***REPRINT***")
+
+            self.printerObject.textln("THANKS FOR PLAYING")
+            self.printerObject.textln("VALID ON DATE OF \nISSUE ONLY!")
+            self.printerObject.textln('========================')
+            self.printerObject.set(align='center')  # Align text
+
+            # Print text and image
             try:
-                self.printerObject.image(Printer.CROSS_FIRE_PNG_PATH, high_density_horizontal=True, high_density_vertical=True)
+                self.printerObject.image(Printer.CROSS_FIRE_PNG_PATH, high_density_horizontal=True, high_density_vertical=True)  # Cross Fire Image
             except Exception as e:
-                print("There was an error printing out the cross fire png")
-                print(e)
-                self.printerObject.textln("Cross-Fire")
-            self.printerObject.set(align='center', font='b', height=12)
-            self.printerObject.textln(Printer.LOCATION_NAME)
-            self.printerObject.set(align='center', font='b', height=12)
+                print ("There was an error reading the image 'Cross-fire.png'")
+                self.printerObject.textln("Cross Fire")#Instead of loading the image we use the actual text
 
-            if ticketType == Printer.REPRINT_TICKET:
-                self.printerObject.textln("REPRINT")
-            elif ticketType == Printer.TEST_TICKET:
-                self.printerObject.textln("TEST TICKET")
+            self.printerObject.set(align='center', font='b', height=12, bold=False)
+            # self.printerObject.textln(self.dragonMasterDeviceManager.DRAGON_MASTER_VERSION_NUMBER)
+            self.printerObject.textln("TID: " + TerminalID)
+            if ticketType == DragonMasterDeviceManager.DragonMasterDeviceManager.PRINTER_REPRINT_TICKET:
+                self.printerObject.textln("REPRINT TICKET")
+            elif ticketType == DragonMasterDeviceManager.DragonMasterDeviceManager.PRINTER_TEST_TICKET:
+                self.printerObject.textln('Test Ticket')
             else:
-                self.printerObject.textln("VOUCHER TICKET")
+                self.printerObject.textln('VOUCHER TICKET')
+            self.printerObject.textln(dateTimeOfPrint.strftime("%m/%d/%y, %I:%M:%S %p"))
+
+            if ticketType == DragonMasterDeviceManager.DragonMasterDeviceManager.PRINTER_REPRINT_TICKET:
+                self.printerObject.textln("***REPRINT***")
+
+            self.printerObject.set(align='center', font='b', height=24, bold=True)
+            self.printerObject.textln('=' * 24)
             
-            self.printerObject.textln("STATION " + playerStation)
+            self.printerObject.textln(Printer.LOCATION_NAME)
+            self.printerObject.set(align='center', font='b', height=12, bold=False)
+
+            self.printerObject.textln(DragonMasterDeviceManager.set_string_length_multiple("Machine", Printer.MACHINE_NUMBER, 24, ' ')) # Print Machine Number.
+            self.printerObject.textln(DragonMasterDeviceManager.set_string_length_multiple("Station", playerStation, 24, ' '))
+
+            if ticketType == DragonMasterDeviceManager.DragonMasterDeviceManager.PRINTER_REPRINT_TICKET:
+                self.printerObject.textln("***REPRINT***")
 
             self.printerObject.set(align='center', font='b', height=12)
-            self.printerObject.textln('------------------------')
-            self.printerObject.textln(DragonMasterDeviceManager.set_string_length_multiple("MACH", Printer.MACHINE_NUMBER, 24, ' ')) # Machine Number.
+            self.printerObject.textln(' ')
 
-            currentDateTime = time.strftime('%I:%M:%S %p     %x')   # Get the current date and time, this ticket was printed.
-            self.printerObject.set(align='center', font='b', height=12)
-            self.printerObject.textln(currentDateTime)
 
             self.printerObject.set(align='center', font='b', height=12, bold=True)
-            if ticketType == Printer.TEST_TICKET:
+            if ticketType == DragonMasterDeviceManager.DragonMasterDeviceManager.PRINTER_TEST_TICKET:
                 self.printerObject.textln('REDEEM             TEST')
             else:
                 self.printerObject.textln(DragonMasterDeviceManager.set_string_length_multiple('REDEEM', '$' + str(totalCreditsWon), 24)) # Print the amount to be redeemed.
 
-            # status = self.get_printer_state()  # The printer can hang in the qr code method. Check for any errors before attempting to print.
-            #if (status != "JAMMED" and status != "PAPER OBSTRUCTED" and status != "OUT OF PAPER"):
-            qrData = "$"+str(totalCreditsWon) + " " + time.strftime('%I:%M:%S %p  %x')
-            self.printerObject.set(align='center', font='b', height=12)
-            self.printerObject.qr(content=qrData, size=8)              # Print the QR code to be scanned. We need to figure out the content of these codes.
-            #else:
-            #    self.deviceManager.write_printer_state(self.parentPath)
-            #    print "Printer " + str(self.printerID) + " has errored while printing"
-            #    self.deviceManager.add_event_to_queue(self.deviceManager.PRINT_ERROR + "|" + self.parentPath)
-            #    return
+            if ticketType == DragonMasterDeviceManager.DragonMasterDeviceManager.PRINTER_REPRINT_TICKET:
+                self.printerObject.textln("***REPRINT***")
 
-            self.printerObject.set(align='center', font='a', height=1, width=1, bold=True, custom_size=True)
-            self.printerObject.textln('VALID ON DATE OF\nISSUE ONLY\n')# Validation warning.
-
+            qrData = "$"+str(totalCreditsWon) + " " + dateTimeOfPrint.strftime('%I:%M:%S %p  %x')
             self.printerObject.set(align='center', font='b', height=12)
-            
+            self.printerObject.qr(content=qrData, size=8) # Print the QR code to be scanned. We need to figure out the content of these codes.
+
+            self.printerObject.set(align='center', font='b', height=12, bold=False)
+
             self.printerObject.textln(DragonMasterDeviceManager.set_string_length_multiple("VALIDATION: ", validationNumber, 24))#Validation number.
 
-            self.printerObject.set(align='center', font='b', height=12)
-            self.printerObject.textln('------------------------')
-            #self.printerObject.textln('CFS 101.01 DM1  ' + u"\u00a9" + str(time.strftime('%Y')))   # I need to ask Chris what this means.
-            self.printerObject.textln(DragonMasterDeviceManager.set_string_length_multiple("VERSION NUMBER GOES HERE" ,u"\u00a9" + str(time.strftime('%Y')), 23))
-            self.printerObject.textln('------------------------')
             self.printerObject.ln(1)
-
-            #if (status != "JAMMED" and status != "PAPER OBSTRUCTED" and status != "OUT OF PAPER"):  # The printer can hang when printing an image. Check for any errors before attempting to print.
             try:
                 self.printerObject.image(Printer.DRAGON_MASTER_PNG_PATH, high_density_horizontal=True, high_density_vertical=True)  # Dragon Master Image.
             except Exception as e:
                 print ("There was an error when trying to read the image 'DragonMaster.png'")
                 print (e)
-                # self.deviceManager.add_event_to_queue(DragonMasterDeviceManager.PRINT_MEDIA_MISSING + "|" + self.parentPath)
-                self.printerObject.textln("Dragon Master")
+                # self.dragonMasterDeviceManager.add_event_to_send(DragonMasterDeviceManager.DragonMasterDeviceManager.PRINT_ERROR_EVENT, self.get_player_station_hash())
+                self.printerObject.textln("Dragon's Ascent")
+                self.printerObject.textln('=' * 24)
+            self.printerObject.textln(self.get_footer_string())
+
+            if ticketType == DragonMasterDeviceManager.DragonMasterDeviceManager.PRINTER_REPRINT_TICKET:
+                self.printerObject.textln("***REPRINT***")
+
             self.printerObject.ln(whiteSpaceUnderTicket)
-            #else:
-            #    self.deviceManager.write_printer_state(self.parentPath)
-            #    print "Printer " + str(self.printerID) + " has errored while printing"
-            #    self.deviceManager.add_event_to_queue(self.deviceManager.PRINT_ERROR + "|" + self.parentPath)
-            #    return
 
-            self.printerObject.cut(feed=True)                                      # Cut the page for removal.
+            self.printerObject.cut(feed=True)# Cut the page for removal.
 
-            #self.deviceManager.write_printer_state(self.parentPath)                # Send the updated state to application.
-            # self.deviceManager.add_event_to_queue(self.deviceManager.PRINT_SUCCESS + "|" + self.parentPath)
-
+            self.dragonMasterDeviceManager.add_event_to_send(DragonMasterDeviceManager.DragonMasterDeviceManager.PRINT_COMPLETE_EVENT, [], self.get_player_station_hash())
         except Exception as e:
-            print ("There was an error printing our Cash-Out Ticket")
-            print (e)
-
-        return
+            self.dragonMasterDeviceManager.add_event_to_send(DragonMasterDeviceManager.DragonMasterDeviceManager.PRINT_ERROR_EVENT, [], self.get_player_station_hash())
+            print ("Printer Exception: " +str(e))
+            return
 
 
 
@@ -465,7 +466,6 @@ class Printer(DragonMasterDevice):
             self.printerObject.textln(self.dragonMasterDeviceManager.DRAGON_MASTER_VERSION_NUMBER)
             self.printerObject.textln("TID: " + auditInfoString[55])
             self.printerObject.set(align = 'center', bold=True)
-            # self.printerObject.textln('Ver: ' + DragonMasterDeviceManager.DRAGON_MASTER_VERSION_NUMBER)
 
             if str(auditInfoString[2]) == '0':
                 self.printerObject.textln("MACHINE AUDIT")
@@ -553,12 +553,13 @@ class Printer(DragonMasterDevice):
 
             self.printerObject.textln('\n' * whiteSpaceUnderTicket)#Give a little bit of white space between tickets
 
+            self.dragonMasterDeviceManager.add_event_to_send(DragonMasterDeviceManager.DragonMasterDeviceManager.PRINT_COMPLETE_EVENT, [], self.get_player_station_hash())
             # self.deviceManager.add_event_to_queue(self.deviceManager.PRINT_SUCCESS + "|" + self.parentPath)
 
 
         except Exception as e:
             print ("There was an error printing an audit ticket:" + str(e))
-            # self.deviceManager.add_event_to_queue(self.deviceManager.PRINT_ERROR + "|" + self.parentPath)
+            self.dragonMasterDeviceManager.add_event_to_send(DragonMasterDeviceManager.DragonMasterDeviceManager.PRINT_ERROR_EVENT, [], self.get_player_station_hash())
 
         return
 
@@ -601,6 +602,9 @@ class Printer(DragonMasterDevice):
             print (e)
             return None 
     pass
+
+    def config_text(self):
+        return
 
 """
 Extension of our printer object. This handles special properties for our Custom TG02 printer
@@ -792,14 +796,16 @@ class ReliancePrinter(Printer):
 
 
     #region override printer methods
-    def audit_ticket(self, auditInfoString):
+    def print_audit_ticket(self, auditInfoString):
         self.associatedRelianceSerial.retract()
-        Printer.audit_ticket(self, auditInfoString, 29, 0)
+        Printer.print_audit_ticket(self, auditInfoString, 29, 0)
         self.associatedRelianceSerial.cut()
+        return
 
-    def print_voucher_ticket(self, totalCreditsWon, timeTicketRedeemed, playerStation='0', validationNumber='0', whiteSpaceUnderTicket=1, ticketType=0):
+
+    def print_voucher_ticket(self, totalCreditsWon, ticketType, playerStation = "0", validationNumber = "0", terminalID = "000000" , dateTimeOfPrint=None, whiteSpaceUnderTicket=1):
         self.associatedRelianceSerial.retract()
-        super().print_voucher_ticket(totalCreditsWon, timeTicketRedeemed, playerStation, validationNumber, whiteSpaceUnderTicket, ticketType)
+        super().print_voucher_ticket(totalCreditsWon, ticketType, playerStation, validationNumber, terminalID, dateTimeOfPrint, whiteSpaceUnderTicket)
         self.associatedRelianceSerial.cut()
 
     def print_codex_ticket(self, codexTicketInfo, line_length =29):

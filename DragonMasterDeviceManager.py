@@ -1107,9 +1107,7 @@ def set_string_length_multiple(string1, string2, lengthOfString = 60, spacingCha
 
 
 #region debug methods
-#region debug commands
 
-#endregion debug commands
 
 
 """
@@ -1237,8 +1235,7 @@ def interpret_debug_command(commandToRead, deviceManager):
             return
 
     #PRINT DEBUG
-    elif command == "print":
-        print ("Valid Command. Not Implemented")
+    elif command == "vprint":
         if len(commandSplit) >= 2:
             debug_print_voucher_ticket(deviceManager, int(commandSplit[1]))
         else:
@@ -1249,28 +1246,28 @@ def interpret_debug_command(commandToRead, deviceManager):
             debug_print_reprint_ticket(deviceManager, int(commandSplit[1]))
         else:
             debug_print_reprint_ticket(deviceManager)
-        print ("Valid Command. Not Implemented")
         return
     elif command == 'tprint':
         if len(commandSplit) >= 2:
             debug_print_test_ticket(deviceManager, int(commandSplit[1]))
         else:
             debug_print_test_ticket(deviceManager)
-        print ("Valid Command. Not Implemented")
         return
     elif command == 'cprint':
+        print ("Command Not Implemented")
+        return
         if len(commandSplit) >= 2:
             debug_print_codex_ticket(deviceManager, int(commandSplit[1]))
         else:
             debug_print_codex_ticket(deviceManager)
-        print ("Valid Command. Not Implemented")
         return
     elif command == 'aprint':
+        print ("Command Not Implemented")
+        return
         if len(commandSplit) >= 2:
             debug_print_audit_ticket(deviceManager, int(commandSplit[1]))
         else:
             debug_print_audit_ticket(deviceManager)
-        print ("Valid Command. Not Implemented")
         return
     #BILL ACCEPTOR DEBUG
     elif command == "reset":
@@ -1390,7 +1387,7 @@ def debug_help_message():
     print ("    NOTE: 'displayjoy' can get very spammy. simply type display joy even if its not all on one line and it will register")
     print ('-' * 60)
     print ("**Printer Commands**")
-    print ("'print' - Prints a sample voucher ticket (data=[])")
+    print ("'vprint' - Prints a sample voucher ticket (data=[])")
     print ("'rprint' - Prints a sample reprint ticket (data=[])")
     print ("'tprint' - Prints a test ticket as it would be displayed from our Unity Application (data=[])")
     print ("'cprint' - Prints a sample Codex Ticket (data=[])")
@@ -1688,7 +1685,7 @@ def debug_print_voucher_ticket(deviceManager, playerStationHash = -1):
     if playerStationHash < 0:
         for pStation in deviceManager.playerStationDictionary.values():
             if pStation.connectedPrinter != None:
-                pStation.connectedPrinter.print_voucher_ticket()
+                pStation.connectedPrinter.print_voucher_ticket("0", DragonMasterDeviceManager.PRINTER_CASHOUT_TICKET)
 
         return
     if playerStationHash not in deviceManager.playerStationHashToParentDevicePath:
@@ -1696,7 +1693,7 @@ def debug_print_voucher_ticket(deviceManager, playerStationHash = -1):
         return
     pStationKey = deviceManager.playerStationHashToParentDevicePath[playerStationHash]
     if deviceManager.playerStationDictionary[pStationKey].connectedPrinter != None:
-        deviceManager.playerStationDictionary[pStationKey].connectedPrinter.print_voucher_ticket
+        deviceManager.playerStationDictionary[pStationKey].connectedPrinter.print_voucher_ticket("0", DragonMasterDeviceManager.PRINTER_CASHOUT_TICKET)
     else:
         print ("Player Station Found but there was no associted printer connected")
 
@@ -1711,7 +1708,7 @@ def debug_print_reprint_ticket(deviceManager, playerStationHash = -1):
     if playerStationHash < 0:
         for pStation in deviceManager.playerStationDictionary.values():
             if pStation.connectedPrinter != None:
-                pStation.connectedPrinter.print_voucher_ticket()
+                pStation.connectedPrinter.print_voucher_ticket("0", DragonMasterDeviceManager.PRINTER_REPRINT_TICKET)
 
         return
     if playerStationHash not in deviceManager.playerStationHashToParentDevicePath:
@@ -1719,7 +1716,7 @@ def debug_print_reprint_ticket(deviceManager, playerStationHash = -1):
         return
     pStationKey = deviceManager.playerStationHashToParentDevicePath[playerStationHash]
     if deviceManager.playerStationDictionary[pStationKey].connectedPrinter != None:
-        deviceManager.playerStationDictionary[pStationKey].connectedPrinter.print_voucher_ticket
+        deviceManager.playerStationDictionary[pStationKey].connectedPrinter.print_voucher_ticket("0", DragonMasterDeviceManager.PRINTER_REPRINT_TICKET)
     else:
         print ("Player Station Found but there was no associted printer connected")
 
@@ -1734,7 +1731,7 @@ def debug_print_test_ticket(deviceManager, playerStationHash = -1):
     if playerStationHash < 0:
         for pStation in deviceManager.playerStationDictionary.values():
             if pStation.connectedPrinter != None:
-                pStation.connectedPrinter.print_voucher_ticket()
+                pStation.connectedPrinter.print_voucher_ticket("0", DragonMasterDeviceManager.PRINTER_TEST_TICKET)
 
         return
     if playerStationHash not in deviceManager.playerStationHashToParentDevicePath:
@@ -1742,7 +1739,7 @@ def debug_print_test_ticket(deviceManager, playerStationHash = -1):
         return
     pStationKey = deviceManager.playerStationHashToParentDevicePath[playerStationHash]
     if deviceManager.playerStationDictionary[pStationKey].connectedPrinter != None:
-        deviceManager.playerStationDictionary[pStationKey].connectedPrinter.print_voucher_ticket
+        deviceManager.playerStationDictionary[pStationKey].connectedPrinter.print_voucher_ticket("0", DragonMasterDeviceManager.PRINTER_TEST_TICKET)
     else:
         print ("Player Station Found but there was no associted printer connected")
 
