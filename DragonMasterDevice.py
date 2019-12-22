@@ -327,7 +327,7 @@ class Printer(DragonMasterDevice):
                 self.printerObject.textln("Cross Fire")#Instead of loading the image we use the actual text
 
             self.printerObject.set(align='center', font='b', height=12, bold=False)
-            # self.printerObject.textln(self.dragonMasterDeviceManager.DRAGON_MASTER_VERSION_NUMBER)
+            self.printerObject.textln(self.dragonMasterDeviceManager.DRAGON_MASTER_VERSION_NUMBER)
             self.printerObject.textln("TID: " + TerminalID)
             if ticketType == DragonMasterDeviceManager.DragonMasterDeviceManager.PRINTER_REPRINT_TICKET:
                 self.printerObject.textln("REPRINT TICKET")
@@ -363,6 +363,7 @@ class Printer(DragonMasterDevice):
                 self.printerObject.textln(DragonMasterDeviceManager.set_string_length_multiple('REDEEM', '$' + str(totalCreditsWon), 24)) # Print the amount to be redeemed.
 
             if ticketType == DragonMasterDeviceManager.DragonMasterDeviceManager.PRINTER_REPRINT_TICKET:
+                self.printerObject.set(align='center', font='b', height=12, bold=False)
                 self.printerObject.textln("***REPRINT***")
 
             qrData = "$"+str(totalCreditsWon) + " " + dateTimeOfPrint.strftime('%I:%M:%S %p  %x')
@@ -385,6 +386,7 @@ class Printer(DragonMasterDevice):
             self.printerObject.textln(self.get_footer_string())
 
             if ticketType == DragonMasterDeviceManager.DragonMasterDeviceManager.PRINTER_REPRINT_TICKET:
+                self.printerObject.set(align='center', font='b', height=12, bold=False)
                 self.printerObject.textln("***REPRINT***")
 
             self.printerObject.ln(whiteSpaceUnderTicket)
@@ -394,7 +396,7 @@ class Printer(DragonMasterDevice):
             self.dragonMasterDeviceManager.add_event_to_send(DragonMasterDeviceManager.DragonMasterDeviceManager.PRINT_COMPLETE_EVENT, [], self.get_player_station_hash())
         except Exception as e:
             self.dragonMasterDeviceManager.add_event_to_send(DragonMasterDeviceManager.DragonMasterDeviceManager.PRINT_ERROR_EVENT, [], self.get_player_station_hash())
-            print ("Printer Exception: " +str(e))
+            print ("Printer Exception: " + str(e))
             return
 
 
@@ -405,43 +407,41 @@ class Printer(DragonMasterDevice):
     TODO: Update this to match the current voucher ticket from our Python2.7 application
     """
     def print_audit_ticket(self, auditTicketData, line_length = 32, whiteSpaceUnderTicket=7):
-
         '''
         auditInfoString parameter list / order (ex. auditInfoString[1] = parentDeviceKey)
         0: Player station ( 0 = Machine wide Audit, 1-8 = Player station specific)
         1: Security Level (1-5) (If security level < 5, we will not print the archive values)
-        2-4: List Clear Date (Archive, Weekly, Daily)
-        5-7: List Clear Time (Archive, Weekly, Daily)
-        8-10: Credit In (Archive, Weekly, Daily)
-        11-13: Wins Out (Archive, Weekly, Daily)
-        14-16: I-O Hold (Archive, Weekly, Daily)
-        17-19: Hold % (Archive, Weekly, Daily)
-        20-22: Points Played (Archive, Weekly, Daily)
-        23-25: Points Won (Archive, Weekly, Daily)
-        26-28: P-W Earned (Archive, Weekly, Daily)
-        29-31: Return % (Archive, Weekly, Daily)
-        32-34: Games Played (Archive, Weekly, Daily)
-        35-37: Games Won (Archive, Weekly, Daily)
-        38-40: Hit % (Archive, Weekly, Daily)
-        41-43: Coupon Sale (Archive, Weekly, Daily)
-        44-46: Free Entry (Archive, Weekly, Daily)
-        47: Current Terminal Balance
-        48: Fill Time Remaining
-        49: Period that will be printed
-        50: Audit JSON string (Convert this to QR code)
-        51: large progressive reward value
-        52: small progressive reward value
+        2: List Clear Date (Archive, Weekly, Daily)
+        3: List Clear Time (Archive, Weekly, Daily)
+        4: Credit In (Archive, Weekly, Daily)
+        5: Wins Out (Archive, Weekly, Daily)
+        6: I-O Hold (Archive, Weekly, Daily)
+        7: Hold % (Archive, Weekly, Daily)
+        8: Points Played (Archive, Weekly, Daily)
+        9: Points Won (Archive, Weekly, Daily)
+        10: P-W Earned (Archive, Weekly, Daily)
+        11: Return % (Archive, Weekly, Daily)
+        12: Games Played (Archive, Weekly, Daily)
+        13: Games Won (Archive, Weekly, Daily)
+        14: Hit % (Archive, Weekly, Daily)
+        15: Coupon Sale (Archive, Weekly, Daily)
+        16: Free Entry (Archive, Weekly, Daily)
+        17: Current Terminal Balance
+        18: Fill Time Remaining
+        19: Period that will be printed
+        20: Audit JSON string (Convert this to QR code)
+        21: large progressive reward value
+        22: small progressive reward value
+        23: TerminalID
         '''
 
-        
-
         try:
-            auditTicketString = auditTicketData.decode("utf-8")
-            auditInfoString = auditTicketString.split('|')
+            auditTicketDataString = str(auditTicketData, 'utf-8')
+            auditInfoString = auditTicketDataString.split('|')
 
             self.config_text()
             #Period refers to archive/weekly/daily history and will be represented as 0,1,2 respectively
-            periodType = int(auditInfoString[51])
+            periodType = int(auditInfoString[19])
             periodName = ""
             if periodType == 0:
                 periodName = 'ARCHIVE'
@@ -451,7 +451,7 @@ class Printer(DragonMasterDevice):
                 periodName = 'DAILY'
 
 
-            self.printerObject.set(align='center', width=1, height=1, font='b')
+            self.printerObject.set(align='center', font='b', height=1, bold=False)
             self.printerObject.textln('=' * line_length)
             self.printerObject.set(align='center', font='b', height=14, bold=True)
             self.printerObject.textln("Dragon's Ascent")
@@ -461,100 +461,83 @@ class Printer(DragonMasterDevice):
             self.printerObject.set(align='center', font='b')
             self.printerObject.textln('=' * line_length)
 
-            self.printerObject.set(align='center', bold=True)
-            #self.printerObject.textln('SKL503.07CPN     BANK1')
-            self.printerObject.textln(self.dragonMasterDeviceManager.DRAGON_MASTER_VERSION_NUMBER)
-            self.printerObject.textln("TID: " + auditInfoString[55])
-            self.printerObject.set(align = 'center', bold=True)
+            self.printerObject.set(align='center', font='b', height=1, bold=False)
+            self.printerObject.textln(DragonMasterDeviceManager.DragonMasterDeviceManager.DRAGON_MASTER_VERSION_NUMBER)
+            self.printerObject.textln("TID: " + auditInfoString[23])
+            # self.printerObject.textln('Ver: ' + DragonMasterDeviceManager.DRAGON_MASTER_VERSION_NUMBER)
 
             if str(auditInfoString[2]) == '0':
-                self.printerObject.textln("MACHINE AUDIT")
+                self.printerObject.textln("MACHINE AUDIT (" + periodName + ")")
             else:
-                self.printerObject.textln("PLAYER STATION #" +str(auditInfoString[2]))
-            
-            self.printerObject.set(align='center', font='b')
+                print (auditTicketDataString + "             " + auditInfoString[0])
+                self.printerObject.textln("PLAYER AUDIT " + auditInfoString[0] + " (" + periodName+ ")")
+
+            currentDateTime = time.strftime('%x %I:%M:%S %p')
             self.printerObject.textln('=' * line_length)
 
-
-            self.printerObject.set(align='center', font='a', height=1, bold=True)
-            currentDateTime = time.strftime('%x %I:%M:%S %p')
             self.printerObject.textln(currentDateTime)
-            self.printerObject.textln("ARCHIVE (LEVEL " + str(auditInfoString[3]) + ")")
 
-            if str(auditInfoString[3]) != '5':  # If the security level is not 5, we want to print "N/A" for the archive values.
+            if str(auditInfoString[1]) != '5':  # If the security level is not 5, we want to print "N/A" for the archive values.
                 for x in range(4, 46, 3):  # Archive values start at 4, and are present every 3rd value. (ex. 4,7,10)
                     pass
-            
 
-            
+
+
             self.printerObject.set(align='center', height=1, width=1, custom_size=False, font='b')
 
             self.printerObject.textln(DragonMasterDeviceManager.set_string_length_multiple('DESCRIPT', periodName, lengthOfString=line_length, spacingChar=' '))
             self.printerObject.set(align='center', height=1, width=1, custom_size=False, font='b')
             self.printerObject.textln('=' * line_length)
             self.printerObject.line_spacing(spacing=0, divisor=360)
+
+
+            self.printerObject.textln(DragonMasterDeviceManager.set_string_length_multiple('LSTCLRDATE', auditInfoString[2], lengthOfString=line_length, spacingChar=' '))
+            self.printerObject.textln(DragonMasterDeviceManager.set_string_length_multiple('LSTCLRTIME', auditInfoString[3], lengthOfString=line_length, spacingChar=' '))
+            self.printerObject.textln(DragonMasterDeviceManager.set_string_length_multiple('CRDT IN', '$' + auditInfoString[4], lengthOfString=line_length, spacingChar=' '))
+            self.printerObject.textln(DragonMasterDeviceManager.set_string_length_multiple('CRDT OUT', '$' + auditInfoString[5], lengthOfString=line_length, spacingChar=' '))
+            self.printerObject.textln(DragonMasterDeviceManager.set_string_length_multiple('I-O HOLD', '$' + auditInfoString[6], lengthOfString=line_length, spacingChar=' '))
+            self.printerObject.textln(DragonMasterDeviceManager.set_string_length_multiple('HOLD%', auditInfoString[7] + '%', lengthOfString=line_length, spacingChar=' '))
+            self.printerObject.textln(DragonMasterDeviceManager.set_string_length_multiple('PTS PLAYED', '$' + auditInfoString[8], lengthOfString=line_length, spacingChar=' '))
+            self.printerObject.textln(DragonMasterDeviceManager.set_string_length_multiple('POINTS WON', '$' + auditInfoString[9], lengthOfString=line_length, spacingChar=' '))
+            self.printerObject.textln(DragonMasterDeviceManager.set_string_length_multiple('P-W EARNED', '$' + auditInfoString[10], lengthOfString=line_length, spacingChar=' '))
+            self.printerObject.textln(DragonMasterDeviceManager.set_string_length_multiple('RETURN%', auditInfoString[11] + '%', lengthOfString=line_length, spacingChar=' '))
+
+            self.printerObject.set(align='center', font='b')
+            self.printerObject.textln('=' * line_length)
+
+            self.printerObject.textln(DragonMasterDeviceManager.set_string_length_multiple('GAMES PLYD', auditInfoString[12], lengthOfString=line_length, spacingChar=' '))
+            self.printerObject.textln(DragonMasterDeviceManager.set_string_length_multiple('GAMES WON', auditInfoString[13], lengthOfString=line_length, spacingChar=' '))
+            self.printerObject.textln(DragonMasterDeviceManager.set_string_length_multiple('HIT%', auditInfoString[14] + '%', lengthOfString=line_length, spacingChar=' '))
             
-            self.printerObject.textln(DragonMasterDeviceManager.set_string_length_multiple('LSTCLRDATE', auditInfoString[4 + periodType], lengthOfString=line_length, spacingChar=' '))
-            self.printerObject.textln(DragonMasterDeviceManager.set_string_length_multiple('LSTCLRTIME', auditInfoString[7 + periodType], lengthOfString=line_length, spacingChar=' '))
-            self.printerObject.textln(DragonMasterDeviceManager.set_string_length_multiple('CRDT IN', '$' + auditInfoString[10 + periodType], lengthOfString=line_length, spacingChar=' '))
-            self.printerObject.textln(DragonMasterDeviceManager.set_string_length_multiple('CRDT OUT', '$' + auditInfoString[13 + periodType], lengthOfString=line_length, spacingChar=' '))
-            self.printerObject.textln(DragonMasterDeviceManager.set_string_length_multiple('I-O HOLD', '$' + auditInfoString[16 + periodType], lengthOfString=line_length, spacingChar=' '))
-            self.printerObject.textln(DragonMasterDeviceManager.set_string_length_multiple('HOLD%', auditInfoString[19 + periodType] + '%', lengthOfString=line_length, spacingChar=' '))
-            self.printerObject.textln(DragonMasterDeviceManager.set_string_length_multiple('PTS PLAYED', '$' + auditInfoString[22 + periodType], lengthOfString=line_length, spacingChar=' '))
-            self.printerObject.textln(DragonMasterDeviceManager.set_string_length_multiple('POINTS WON', '$' + auditInfoString[25 + periodType], lengthOfString=line_length, spacingChar=' '))
-            self.printerObject.textln(DragonMasterDeviceManager.set_string_length_multiple('P-W EARNED', '$' + auditInfoString[28 + periodType], lengthOfString=line_length, spacingChar=' '))
-            self.printerObject.textln(DragonMasterDeviceManager.set_string_length_multiple('RETURN%', auditInfoString[31 + periodType] + '%', lengthOfString=line_length, spacingChar=' '))
+            self.printerObject.set(align='center', font='b')
+            self.printerObject.textln('=' * line_length)
+            self.printerObject.textln(DragonMasterDeviceManager.set_string_length_multiple('LG PRG', '$' + auditInfoString[21], lengthOfString=line_length, spacingChar=' '))
+            self.printerObject.textln(DragonMasterDeviceManager.set_string_length_multiple('SM PRG', '$' + auditInfoString[22], lengthOfString=line_length, spacingChar=' '))
 
             self.printerObject.set(align='center', font='b')
             self.printerObject.textln('=' * line_length)
 
-            self.printerObject.textln(DragonMasterDeviceManager.set_string_length_multiple('GAMES PLYD', auditInfoString[34 + periodType], lengthOfString=line_length, spacingChar=' '))
-            self.printerObject.textln(DragonMasterDeviceManager.set_string_length_multiple('GAMES WON', auditInfoString[37 + periodType], lengthOfString=line_length, spacingChar=' '))
-            self.printerObject.textln(DragonMasterDeviceManager.set_string_length_multiple('HIT%', auditInfoString[40 + periodType] + '%', lengthOfString=line_length, spacingChar=' '))
-            #self.printerObject.textln('GAMES PLYD ' + str(auditInfoString[34]) + ' ' + str(auditInfoString[35]) + '   ' + str(auditInfoString[36]))
-            #self.printerObject.textln('GAMES PLYD ' + str(auditInfoString[37]) + ' ' + str(auditInfoString[38]) + '        ' + str(auditInfoString[39]))
-            #self.printerObject.textln('HIT%       ' + str(auditInfoString[40]) + ' ' + str(auditInfoString[41]) + '%    ' + str( auditInfoString[42]) + '%')
-            self.printerObject.set(align='center', font='b')
-            self.printerObject.textln('=' * line_length)
-            self.printerObject.textln(DragonMasterDeviceManager.set_string_length_multiple('LG PRG', '$' + auditInfoString[53], lengthOfString=line_length, spacingChar=' '))
-            self.printerObject.textln(DragonMasterDeviceManager.set_string_length_multiple('SM PRG', '$' + auditInfoString[54], lengthOfString=line_length, spacingChar=' '))
-
-            self.printerObject.set(align='center', font='b')
-            self.printerObject.textln('=' * line_length)
-
-            # self.printerObject.textln(set_string_length_multiple('COUPONSALE', '$' + auditInfoString[43], lengthOfString=line_length, spacingChar=' '))
-            # self.printerObject.textln(set_string_length_multiple('FREE ENTRY', '$' + auditInfoString[46], lengthOfString=line_length, spacingChar=' '))
-            #self.printerObject.textln('COUPONSALE ' + str(auditInfoString[43]) + ' $' + str(auditInfoString[44]) + '    $' + str(auditInfoString[45]))
-            #self.printerObject.textln('FREE ENTRY ' + str(auditInfoString[46]) + ' $' + str(auditInfoString[47]) + '   $' + str(auditInfoString[48]))
-
-            self.printerObject.set(align='center', font='b')
-            self.printerObject.textln('=' * line_length)
-
-            self.printerObject.textln('CRNT TRMNL BAL: $' + str(auditInfoString[49]))
+            self.printerObject.textln('CRNT TRMNL BAL: $' + str(auditInfoString[17]))
 
             self.printerObject.set(align='center', font='b')
             self.printerObject.textln('=' * line_length)
 
             self.printerObject.set(align='center', font='b', height=12)
-            self.printerObject.qr(content=auditInfoString[52], size=4)    
+            self.printerObject.qr(content=auditInfoString[20], size=4)
 
             self.printerObject.set(align='center')
             self.printerObject.textln('FILL/TIME REMAINING')
-            self.printerObject.textln(str(auditInfoString[50]))
+            self.printerObject.textln(str(auditInfoString[18]))
 
             self.printerObject.set(align='center', font='b')
             self.printerObject.textln('=' * line_length)
 
-            self.printerObject.set(align='center')
-            self.printerObject.textln('VOID IF MUTILATED')
-            self.printerObject.textln('VAL# ' + str(1522789371186))
-            self.printerObject.textln(DragonMasterDeviceManager.set_string_length(self.dragonMasterDeviceManager.DRAGON_MASTER_VERSION_NUMBER, 21, '-'))
-            self.printerObject.textln(u"\u00a9" + '2017-2019 ALL RIGHTS\nRESERVED')
+            self.printerObject.set(align='center', font='b', height=12, bold=False)
+            self.printerObject.textln(self.get_footer_string())
 
             self.printerObject.textln('\n' * whiteSpaceUnderTicket)#Give a little bit of white space between tickets
 
             self.dragonMasterDeviceManager.add_event_to_send(DragonMasterDeviceManager.DragonMasterDeviceManager.PRINT_COMPLETE_EVENT, [], self.get_player_station_hash())
-            # self.deviceManager.add_event_to_queue(self.deviceManager.PRINT_SUCCESS + "|" + self.parentPath)
 
 
         except Exception as e:
@@ -566,9 +549,108 @@ class Printer(DragonMasterDevice):
     """
     Prints and formats a code exchange ticket
     """
-    def print_codex_ticket(self, codexTicketData, whiteSpaceUnderTicket=6):
+    def print_codex_ticket(self, codexTicketData, lineLength=32, whiteSpaceUnderTicket=6):
+        """
+        0: TID
+        1: LICENSE
+        2: PRODUCT
+        3: VERSION
+        4: BUILD
+        5: REGION
+        6: FILL PERCENT
+        7: FILL-COUNT
+        8: SEED-A
+        9: SEED-B
+        10: SEED-C
+        11: GROUP-1
+        12: GROUP-2
+        13: GROUP-3
+        14: GROUP-4
+        15: GROUP-5
+        16: GROUP-6
+        17: QR JSON
+        """
+        try:
+            codexTicketDataString = str(codexTicketData, 'utf-8')
+            codexTicketArray = codexTicketDataString.split('|')
 
-        return
+            self.config_text()
+            self.printerObject.set(align='center', font='b', height=14, bold=True)
+            self.printerObject.textln("Dragon's Ascent")
+            self.printerObject.set(align='center', bold=False, width=1, height=1, custom_size=True)
+            self.printerObject.textln('A Game of Skill\n and Strategy')
+            self.printerObject.set(align='center', height=1, width=1, custom_size=False, font='b')
+            self.printerObject.textln('=' * lineLength)
+
+            self.printerObject.set(align='center', bold=True)
+            #self.printerObject.textln('SKL503.07CPN     BANK1')
+            self.printerObject.textln(DragonMasterDeviceManager.DragonMasterDeviceManager.DRAGON_MASTER_VERSION_NUMBER)
+
+            self.printerObject.set(align = 'center', bold=True)
+            self.printerObject.textln("TID: " + codexTicketArray[0])
+            self.printerObject.textln("CODE EXCHANGE")
+
+            self.printerObject.textln(time.strftime("%m/%d/%y, %I:%M:%S %p"))
+
+            self.printerObject.set(align='center', height=1, width=1, bold=False, custom_size=True, font='b')
+            self.printerObject.textln('=' * lineLength)
+
+            spaceCount = int((lineLength - 12) / 3)
+            spaceChar = ' ' * spaceCount
+            lblLine = "PRD" + spaceChar + "VER" + spaceChar + "BLD" + spaceChar + "REG"
+            self.printerObject.textln(lblLine)
+            self.printerObject.set(align='center', height=1, width=1, bold=True, custom_size=True, font='b')
+            self.printerObject.textln(codexTicketArray[2] + spaceChar + codexTicketArray[3] + spaceChar + codexTicketArray[4] + spaceChar + codexTicketArray[5])
+
+            self.printerObject.set(align='center', height=1, width=1, bold=False, custom_size=True, font='b')
+            self.printerObject.textln('=' * lineLength)
+
+            spaceCount = int((lineLength - 9) / 2)
+            self.printerObject.textln("FILL-CNT" + (' ' * (spaceCount - 5)) + "TID" + (' ' * spaceCount) + "LIC")
+            spaceCount = int((lineLength - 18) / 2)
+            self.printerObject.set(align='center', height=1, width=1, bold=True, custom_size=True, font='b')
+            self.printerObject.textln(DragonMasterDeviceManager.set_string_length_multiple(codexTicketArray[7], codexTicketArray[0], lineLength - 6 - spaceCount) + (' ' * spaceCount) + codexTicketArray[1])
+
+            self.printerObject.set(align='center', height=1, width=1, bold=False, custom_size=True, font='b')
+            self.printerObject.textln('=' * lineLength)
+
+            spaceCount = int((lineLength - 18) / 2)
+            spaceChar = ' ' * spaceCount
+
+            self.printerObject.textln("SEED-A" + spaceChar + "SEED-B" + spaceChar + "SEED-C")
+            spaceCount = int((lineLength - 15) / 2)
+            spaceChar = ' ' * spaceCount
+            self.printerObject.set(align='center', height=1, width=1, bold=True, custom_size=True, font='b')
+            self.printerObject.textln(" " + codexTicketArray[8] + " " + spaceChar + " " + codexTicketArray[9] + " " + spaceChar + " " + codexTicketArray[10] + " ")
+            self.printerObject.set(align='center', height=1, width=1, bold=False, custom_size=True, font='b')
+            self.printerObject.textln('=' * lineLength)
+            
+            self.printerObject.textln("GRP-1" + spaceChar + "GRP-2" + spaceChar + "GRP-3")
+            self.printerObject.set(align='center', height=1, width=1, bold=True, custom_size=True, font='b')
+            self.printerObject.textln(" " + codexTicketArray[11] + " " + spaceChar + " " + codexTicketArray[12] + " " + spaceChar + " " + codexTicketArray[13] + " ")
+
+            self.printerObject.set(align='center', height=1, width=1, bold=False, custom_size=True, font='b')
+            self.printerObject.textln('=' * lineLength)
+
+            self.printerObject.textln("GRP-4" + spaceChar + "GRP-5" + spaceChar + "GRP-6")
+            self.printerObject.set(align='center', height=1, width=1, bold=True, custom_size=True, font='b')
+            self.printerObject.textln(" " + codexTicketArray[14] + " " + spaceChar + " " + codexTicketArray[15] + " " + spaceChar + " " + codexTicketArray[16] + " ")
+
+            self.printerObject.set(align='center', font='b', height=12)
+            self.printerObject.qr(content=codexTicketArray[17], size=4)
+
+            self.printerObject.textln('=' * lineLength)
+            self.printerObject.set(align='center', font='b', height=12, bold=False)
+            self.printerObject.textln(self.get_footer_string())
+            self.printerObject.textln('\n' * whiteSpaceUnderTicket)
+
+            self.dragonMasterDeviceManager.add_event_to_send(DragonMasterDeviceManager.DragonMasterDeviceManager.PRINT_COMPLETE_EVENT, [], self.get_player_station_hash())
+        except Exception as e:
+            print ("There was an error printing our codex ticket")
+            print (e)
+            self.dragonMasterDeviceManager.add_event_to_send(DragonMasterDeviceManager.DragonMasterDeviceManager.PRINT_ERROR_EVENT, [], self.get_player_station_hash())
+
+            return
 
     
 
@@ -605,6 +687,9 @@ class Printer(DragonMasterDevice):
 
     def config_text(self):
         return
+
+    def get_footer_string(self):
+        return "VOID IF MUTILATED\nVAL# 1522789371186\n_" + DragonMasterDeviceManager.DragonMasterDeviceManager.DRAGON_MASTER_VERSION_NUMBER + "_\n2017-2019 ALL RIGHTS RESERVED"
 
 """
 Extension of our printer object. This handles special properties for our Custom TG02 printer
@@ -808,9 +893,9 @@ class ReliancePrinter(Printer):
         super().print_voucher_ticket(totalCreditsWon, ticketType, playerStation, validationNumber, terminalID, dateTimeOfPrint, whiteSpaceUnderTicket)
         self.associatedRelianceSerial.cut()
 
-    def print_codex_ticket(self, codexTicketInfo, line_length =29):
+    def print_codex_ticket(self, codexTicketInfo, lineLength=29, whiteSpaceUnderTicket=0):
         self.associatedRelianceSerial.retract()
-        Printer.print_codex_ticket(self, codexTicketInfo, line_length, 0)
+        Printer.print_codex_ticket(self, codexTicketInfo, lineLength, whiteSpaceUnderTicket)
         self.associatedRelianceSerial.cut()
     #endregion override printer methods
     pass

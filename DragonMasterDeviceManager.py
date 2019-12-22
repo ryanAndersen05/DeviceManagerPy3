@@ -11,6 +11,7 @@ from time import sleep
 import pytz
 import os
 import time
+import datetime
 
 #internal project imports
 import DragonMasterSerialDevice
@@ -28,7 +29,7 @@ It will manages messages between our Unity Application and assign commands to th
 class DragonMasterDeviceManager:
     VERSION = "2.1.0"
     KILL_DEVICE_MANAGER_APPLICATION = False #Setting this value to true will kill the main thread of our Device Manager application effectively closing all other threads
-
+    DRAGON_MASTER_VERSION_NUMBER = "CFS101 0000"
     #region TCP Device Commands
     #This command will be sent as a single byte event simply to inform python that we are still connected to the our Unity application
     STATUS_FROM_UNITY = 0x00 #Periodic update that we should receive from Unity to enusre the game is still running. We will close the application if we have not received a message in 60+ seconds
@@ -1254,16 +1255,12 @@ def interpret_debug_command(commandToRead, deviceManager):
             debug_print_test_ticket(deviceManager)
         return
     elif command == 'cprint':
-        print ("Command Not Implemented")
-        return
         if len(commandSplit) >= 2:
             debug_print_codex_ticket(deviceManager, int(commandSplit[1]))
         else:
             debug_print_codex_ticket(deviceManager)
         return
     elif command == 'aprint':
-        print ("Command Not Implemented")
-        return
         if len(commandSplit) >= 2:
             debug_print_audit_ticket(deviceManager, int(commandSplit[1]))
         else:
@@ -1680,7 +1677,6 @@ def debug_status_dbv(deviceManager, playerStationHash = -1):
 Prints a voucher ticket as it would appear with 0 credits
 """
 def debug_print_voucher_ticket(deviceManager, playerStationHash = -1):
-    testvoucherBytePacket = bytes([])
 
     if playerStationHash < 0:
         for pStation in deviceManager.playerStationDictionary.values():
@@ -1703,7 +1699,6 @@ def debug_print_voucher_ticket(deviceManager, playerStationHash = -1):
 Prints a reprint voucher ticket as it would appear with 0 credits
 """
 def debug_print_reprint_ticket(deviceManager, playerStationHash = -1):
-    testvoucherBytePacket = bytes([])
 
     if playerStationHash < 0:
         for pStation in deviceManager.playerStationDictionary.values():
@@ -1726,7 +1721,6 @@ def debug_print_reprint_ticket(deviceManager, playerStationHash = -1):
 Prints a test ticket as it would appear called from our Unity Application
 """
 def debug_print_test_ticket(deviceManager, playerStationHash = -1):
-    testvoucherBytePacket = bytes([])
 
     if playerStationHash < 0:
         for pStation in deviceManager.playerStationDictionary.values():
@@ -1750,20 +1744,37 @@ def debug_print_test_ticket(deviceManager, playerStationHash = -1):
 Prints a codes ticket with all values set to 0
 """
 def debug_print_codex_ticket(deviceManager, playerStationHash = -1):
-    testvoucherBytePacket = bytes([])
+    printDataBytesString = "123456|"
+    printDataBytesString += "111111|"
+    printDataBytesString += "CFS|"
+    printDataBytesString += "102|"
+    printDataBytesString += "02|"
+    printDataBytesString += "DM1|"
+    printDataBytesString += "90|"
+    printDataBytesString += "1.5|"
+    printDataBytesString += "987|"
+    printDataBytesString += "654|"
+    printDataBytesString += "321|"
+    printDataBytesString += "111|"
+    printDataBytesString += "222|"
+    printDataBytesString += "333|"
+    printDataBytesString += "444|"
+    printDataBytesString += "555|"
+    printDataBytesString += "666|"
+    printDataBytesString += "This is a JSON EXAMPLE"
 
     if playerStationHash < 0:
         for pStation in deviceManager.playerStationDictionary.values():
             if pStation.connectedPrinter != None:
-                pStation.connectedPrinter.print_voucher_ticket()
-
+                pStation.connectedPrinter.print_codex_ticket(bytes(printDataBytesString, 'utf-8'))
         return
+
     if playerStationHash not in deviceManager.playerStationHashToParentDevicePath:
         print ("The player station hash that was passed in was not valid")
         return
     pStationKey = deviceManager.playerStationHashToParentDevicePath[playerStationHash]
     if deviceManager.playerStationDictionary[pStationKey].connectedPrinter != None:
-        deviceManager.playerStationDictionary[pStationKey].connectedPrinter.print_voucher_ticket
+        deviceManager.playerStationDictionary[pStationKey].connectedPrinter.print_codex_ticket(bytes(printDataBytesString, 'utf-8'))
     else:
         print ("Player Station Found but there was no associted printer connected")
 
@@ -1773,12 +1784,38 @@ def debug_print_codex_ticket(deviceManager, playerStationHash = -1):
 Prints an audit ticket with all values set to 0
 """
 def debug_print_audit_ticket(deviceManager, playerStationHash = -1):
-    testvoucherBytePacket = bytes([])
+    debugLastArchiveClear = datetime.datetime(1999, 1, 1, 11, 11, 11)
+
+    printDataByteString = "0|"#0
+    printDataByteString += "0|"#1
+    printDataByteString += debugLastArchiveClear.strftime("%m/%d/%Y") + "|"#2
+    printDataByteString += debugLastArchiveClear.strftime("%H:%M:%S") + "|"#3
+    printDataByteString += "100|"#4
+    printDataByteString += "200|"#5
+    printDataByteString += "-100|"#6
+    printDataByteString += "-100|"#7
+    printDataByteString += "400|"#8
+    printDataByteString += "500|"#9
+    printDataByteString += "-100|"#10
+    printDataByteString += "-25|"#11
+    printDataByteString += "1001|"#12
+    printDataByteString += "100|"#13
+    printDataByteString += "100|"#14
+    printDataByteString += "0|"#15
+    printDataByteString += "0|"#16
+    printDataByteString += "10|"#17
+    printDataByteString += "99|"#18
+    printDataByteString += "2|"#19
+    printDataByteString += "This is a JSON string|"#20
+    printDataByteString += "1000000|"#21
+    printDataByteString += "10000|"#22
+    printDataByteString += "123456|"#23
+
 
     if playerStationHash < 0:
         for pStation in deviceManager.playerStationDictionary.values():
             if pStation.connectedPrinter != None:
-                pStation.connectedPrinter.print_voucher_ticket()
+                pStation.connectedPrinter.print_audit_ticket(bytes(printDataByteString, 'utf-8'))
 
         return
     if playerStationHash not in deviceManager.playerStationHashToParentDevicePath:
@@ -1786,7 +1823,7 @@ def debug_print_audit_ticket(deviceManager, playerStationHash = -1):
         return
     pStationKey = deviceManager.playerStationHashToParentDevicePath[playerStationHash]
     if deviceManager.playerStationDictionary[pStationKey].connectedPrinter != None:
-        deviceManager.playerStationDictionary[pStationKey].connectedPrinter.print_voucher_ticket
+        deviceManager.playerStationDictionary[pStationKey].connectedPrinter.print_audit_ticket(bytes(printDataByteString, 'utf-8'))
     else:
         print ("Player Station Found but there was no associted printer connected")
 
