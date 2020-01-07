@@ -185,7 +185,6 @@ class DBV400(SerialDevice):
     IDLE_ACK = bytearray([0x12, 0x09, 0x00, 0x10, 0x01, 0x83, 0x01, 0x11, 0x06])
     ESCROW_ACK = bytearray([0x12, 0x09, 0x00, 0x10, 0x01, 0x85, 0x02, 0x11, 0x06])
     BILL_REJECT = bytearray([0x12, 0x09, 0x00, 0x10, 0x02, 0x80, 0x04, 0x11, 0x06])
-    ERROR_ACK = bytearray([0x12, 0x09, 0x00, 0x10, 0x00, 0x80, 0x01, 0x12, 0x06])
     STACK_INHIBIT = bytearray([0x12, 0x08, 0x00, 0x10, 0x02, 0x00, 0x14, 0x10])
     VEND_VALID_ACK = bytearray([0x12, 0x09, 0x00, 0x10, 0x02, 0x86, 0x03, 0x11, 0x06])
     ERROR_ACK = bytearray([0x12, 0x09, 0x00, 0x10, 0x00, 0x80, 0x01, 0x12, 0x06])
@@ -241,6 +240,7 @@ class DBV400(SerialDevice):
         self.isReading = False
         return
 
+
     #region on data received
     """ Handles all byte strings sent from the DBV to the host"""
     def on_data_received_event(self, firstByteOfPacket):
@@ -261,7 +261,7 @@ class DBV400(SerialDevice):
             self.isReading = False
             return
 
-        print (str(self.get_player_station_hash()) + " READ: " + str(read))
+        print (str(self.get_player_station_hash()) + " MSG RECEIVE: " + str(read.hex()))
 
         length = len(read)
         messages = []
@@ -292,7 +292,7 @@ class DBV400(SerialDevice):
                 self.on_vend_valid(read)
             elif read[6] == 0x01 and read[7] == 0x13:
                 self.on_note_stay_received(read)
-            elif read[6] == 0x01 and read[7] == 0x12:
+            elif read[6] == 0x01 and (read[7] == 0x12):
                 self.on_operation_error(read)
             elif read[6] == 0x00 and read[7] == 0x12:
                 self.on_operation_error_clear(read)
@@ -352,11 +352,11 @@ class DBV400(SerialDevice):
             self.State = DBV400.ACTIVE_STATE
 
         self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT,self.State)
-        print("New State: " + str(self.State))
+        # print("New State: " + str(self.State))
     
     """ We have received a message that the DBV has started (or restarted) and needs to be acknowledged """
     def on_power_up_nack_received(self,message):
-        print("power up nack received")
+        # print("power up nack received")
         powerUpAck = DBV400.POWER_ACK
         powerUpAck[5] = message[5]
         self.UidSet = False
@@ -368,7 +368,7 @@ class DBV400(SerialDevice):
     
     """ Same as above, but the DBV has started with a bill that is waiting to be stacked """
     def on_power_up_acceptor_nack_received(self, message):
-        print("power up acceptor nack received")
+        # print("power up acceptor nack received")
         self.UidSet = False
         powerUpAck = DBV400.POWER_ACCEPTOR_ACK
         powerUpAck[5] = message[5]
@@ -379,14 +379,14 @@ class DBV400(SerialDevice):
 
     """ DBV has successfully received a power up acknowledgement and is ready to proceed with the power up process """
     def on_power_up_success(self):
-        print("power up success")
+        # print("power up success")
         self.State = DBV400.POWER_UP_STATE
         self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT,self.State)
         self.power_up_dbv()
     
     """ The last message sent to the DBV contained the incorrect UID """
     def on_unsupported_received(self,message):
-        print("unsupported received")
+        # print("unsupported received")
         self.State = DBV400.UNSUPPORTED_STATE
         self.UID = message[4]
         self.UidSet = True
@@ -402,7 +402,7 @@ class DBV400(SerialDevice):
 
     """ Reset message was successfully received by the DBV """
     def on_reset_request_received(self):
-        print ("Reset Request Received")
+        # print ("Reset Request Received")
         self.AmountStored = 0
         self.State = DBV400.WAITING_STATE
         pass
@@ -419,7 +419,7 @@ class DBV400(SerialDevice):
         inhibitMessage[5] = message[5]
         # print ("Inhibit Success: " + str(self.get_player_station_hash()))
         self.send_dbv_message(inhibitMessage)
-        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT,self.State)
+        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT, self.State)
         self.State = DBV400.INHIBIT_STATE
 
     """ Idle request successfully received by the DBV """
@@ -434,7 +434,7 @@ class DBV400(SerialDevice):
         idleMessage[5] = message[5]
         # print ("Idle success received: " + str(self.get_player_station_hash()))
         self.send_dbv_message(idleMessage)
-        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT,self.State)
+        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT, self.State)
         self.State = DBV400.IDLE_STATE
 
     """ A DBV has been inserted into DBV. We need to send an escrow message to confirm this """
@@ -443,13 +443,13 @@ class DBV400(SerialDevice):
         escrowMessage = DBV400.ESCROW_ACK
         escrowMessage[5] = message[5]
         self.send_dbv_message(escrowMessage)
-        print("Bill inserted: " + str(message[11]))
+        # print("Bill inserted: " + str(message[11]))
         self.AmountStored = message[11]
         if self.AutoReject:
             self.send_dbv_message(DBV400.REJECT_COMMAND)
         else :
             self.send_dbv_message(DBV400.HOLD_BILL)
-        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_INSERTED_EVENT,self.AmountStored)
+        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_INSERTED_EVENT, self.AmountStored)
     
     """ A bil inserted to the DBV was rejected due to an error (invalid bill, invalid state, etc.) """
     def on_bill_rejected(self, message):
@@ -469,18 +469,18 @@ class DBV400(SerialDevice):
 
     """ A bill was successfully held in the bill acceptor from a command """
     def on_bill_held(self):
-        print ("Bill Held")
+        # print ("Bill Held")
         pass
 
     """ A stack command was successfully processed by the DBV. The bill inserted will now be stacked """
     def on_stack_inhibit_success(self):
-        print ("Stack inhibit success")
+        # print ("Stack inhibit success")
         pass
     
     """ The bill stacked in the bill acceptor was succesfully processed and stacked """
     def on_vend_valid(self, message):
         # pass
-        print ("Vend Valid")
+        # print ("Vend Valid")
         vendValidAck = DBV400.VEND_VALID_ACK
         vendValidAck[5] = message[5]
         self.send_dbv_message(vendValidAck)
@@ -513,6 +513,7 @@ class DBV400(SerialDevice):
         clearAck[5] = message[5]
         self.send_dbv_message(clearAck)
         self.State = DBV400.CLEAR_STATE
+        self.reset_dbv()
         self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT,self.State)
     
     """ Process this error message to determine the specific error state """
@@ -542,7 +543,7 @@ class DBV400(SerialDevice):
             message[4] = self.UID
         else:
             message[4] = 0x00
-        print(str(self.get_player_station_hash()) + " Sending: " + str(message))
+        print(str(self.get_player_station_hash()) + " MSG SEND: " + str(message.hex()))
         self.write_to_serial(message)
 
     """ Set the UID of this class. After the UID of the DBV is set, every subsequent packet sent must include it in its 4th index """
@@ -590,7 +591,7 @@ class DBV400(SerialDevice):
     def send_event_message(self, eventType, messageContent):
         message = [messageContent]
         playerStationHash = self.get_player_station_hash()
-        self.dragonMasterDeviceManager.add_event_to_send(eventType,message,playerStationHash)
+        self.dragonMasterDeviceManager.add_event_to_send(eventType, message, playerStationHash)
 
     #endregion
 
@@ -602,7 +603,7 @@ class DBV400(SerialDevice):
         super().start_device(deviceElement)
         self.serialObject.flush()
         self.UidSet = False
-        sleep(.5)
+        # sleep(.5)
         self.get_dbv_state()
         return True
     

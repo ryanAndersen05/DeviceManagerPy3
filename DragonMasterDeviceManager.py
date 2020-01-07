@@ -208,9 +208,7 @@ class DragonMasterDeviceManager:
             allConnectedDraxboards = DragonMasterSerialDevice.get_all_connected_draxboard_elements()
             allConnectedCustomTG02Printers = DragonMasterDevice.get_all_connected_custom_tg02_printer_elements()
             allConnectedReliancePrinters = DragonMasterDevice.get_all_connected_reliance_printer_elements()
-
             allConnectedDBV400Elements = DragonMasterSerialDevice.get_all_connected_dbv400_comports()
-            
             self.deviceContext = pyudev.Context() #we set our device context
             if self.CONNECTED_OMNIDONGLE == None:
                 omnidongleElement = DragonMasterSerialDevice.get_omnidongle_comports()
@@ -225,6 +223,10 @@ class DragonMasterDeviceManager:
                 if (joystick != None and not self.device_manager_contains_joystick(joystick)):
                     self.add_new_device(DragonMasterDevice.Joystick(self), joystick)
 
+            for joystick in allBaoLianJoysticks:
+                if joystick != None and not self.device_manager_contains_joystick(joystick):
+                    self.add_new_device(DragonMasterDevice.BaoLianJoystick(self), joystick)
+
             for printer in allConnectedCustomTG02Printers:
                 if (printer != None and not self.device_manager_contains_printer(printer)):
                     self.add_new_device(DragonMasterDevice.CustomTG02(self), printer)
@@ -236,6 +238,7 @@ class DragonMasterDeviceManager:
             for dbv in allConnectedDBV400Elements:
                 if dbv and not self.device_manager_contains_dbv400(dbv):
                     self.add_new_device(DragonMasterSerialDevice.DBV400(self), dbv)
+            
         except Exception as e:
             print ("There was an error while searching for devices.")
             print (e)
