@@ -267,15 +267,9 @@ class DBV400(SerialDevice):
         messages = []
         index = 0
 
-        # while length > 0:
-        #     currentLength = read[index + 1]
-        #     messages.append(read[index: index + currentLength])
-        #     index = index + currentLength
-        #     length -= currentLength
-
         # print (messages)
         self.isReading = False
-        # for message in messages:
+
         if length == lengthOfMessage:
             self.process_data_received_message(read)
         
@@ -292,9 +286,9 @@ class DBV400(SerialDevice):
                 self.on_vend_valid(read)
             elif read[6] == 0x01 and read[7] == 0x13:
                 self.on_note_stay_received(read)
-            elif read[6] == 0x01 and (read[7] == 0x12):
+            elif read[6] == 0x01 and (read[7] == 0x12 or read[7] == 0x02):
                 self.on_operation_error(read)
-            elif read[6] == 0x00 and read[7] == 0x12:
+            elif read[6] == 0x00 and (read[7] == 0x12 or read[7] == 0x02):
                 self.on_operation_error_clear(read)
         elif (length <= 9):
             if read[6] == 0x11 and read[7] == 0x00 and read[8] == 0x06:
@@ -415,12 +409,14 @@ class DBV400(SerialDevice):
     
     """ DBV was successfully set to inhibit state. Send ACK to DBV to confirm state """
     def on_inhibit_success(self,message):
+        print ("INHIBIT")
         inhibitMessage = DBV400.INHIBIT_ACK
         inhibitMessage[5] = message[5]
+        self.State = DBV400.INHIBIT_STATE
         # print ("Inhibit Success: " + str(self.get_player_station_hash()))
         self.send_dbv_message(inhibitMessage)
         self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT, self.State)
-        self.State = DBV400.INHIBIT_STATE
+        
 
     """ Idle request successfully received by the DBV """
     def on_idle_request_received(self):
@@ -501,16 +497,19 @@ class DBV400(SerialDevice):
     
     """ The DBV has reported an error. Ack this message and wait for the error clear message """
     def on_operation_error(self, message):
-        opErrorAck = DBV400.ERROR_ACK
+        opErrorAck = DBV400.ERROR_ACK[:]
         opErrorAck[5] = message[5]
+        opErrorAck[7] = message[7]
         self.send_dbv_message(opErrorAck)
         self.State = DBV400.ERROR_STATE
         self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT,self.State)
     
     """ A DBV error was cleared and the system is ready to be reset to resume normal operation """
     def on_operation_error_clear(self, message):
-        clearAck = DBV400.CLEAR_ACK
+        clearAck = DBV400.CLEAR_ACK[:]
         clearAck[5] = message[5]
+        clearAck[7] = message[7]
+        clearAck
         self.send_dbv_message(clearAck)
         self.State = DBV400.CLEAR_STATE
         self.reset_dbv()

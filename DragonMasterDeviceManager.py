@@ -209,7 +209,9 @@ class DragonMasterDeviceManager:
             allConnectedCustomTG02Printers = DragonMasterDevice.get_all_connected_custom_tg02_printer_elements()
             allConnectedReliancePrinters = DragonMasterDevice.get_all_connected_reliance_printer_elements()
             allConnectedDBV400Elements = DragonMasterSerialDevice.get_all_connected_dbv400_comports()
-            self.deviceContext = pyudev.Context() #we set our device context
+
+            self.deviceContext = pyudev.Context() #we set our device context primarily to find the most up to date usb device paths
+
             if self.CONNECTED_OMNIDONGLE == None:
                 omnidongleElement = DragonMasterSerialDevice.get_omnidongle_comports()
                 if omnidongleElement:
@@ -219,22 +221,27 @@ class DragonMasterDeviceManager:
                 if draxElement and not self.device_manager_contains_draxboard(draxElement):
                     self.add_new_device(DragonMasterSerialDevice.Draxboard(self), draxElement)
 
+            #Add our Ultimarc joysticks here
             for joystick in allConnectedJoysticks:
                 if (joystick != None and not self.device_manager_contains_joystick(joystick)):
                     self.add_new_device(DragonMasterDevice.Joystick(self), joystick)
 
+            #Add our Bao Lian Joysticks here
             for joystick in allBaoLianJoysticks:
                 if joystick != None and not self.device_manager_contains_joystick(joystick):
                     self.add_new_device(DragonMasterDevice.BaoLianJoystick(self), joystick)
 
+            #Custom TG02 printers will be added here
             for printer in allConnectedCustomTG02Printers:
                 if (printer != None and not self.device_manager_contains_printer(printer)):
                     self.add_new_device(DragonMasterDevice.CustomTG02(self), printer)
 
+            #Reliance printers will be added here
             for printer in allConnectedReliancePrinters:
                 if printer != None and not self.device_manager_contains_printer(printer):
                     self.add_new_device(DragonMasterDevice.ReliancePrinter(self), printer)
 
+            #Add our DBV 400 Bill Acceptors here
             for dbv in allConnectedDBV400Elements:
                 if dbv and not self.device_manager_contains_dbv400(dbv):
                     self.add_new_device(DragonMasterSerialDevice.DBV400(self), dbv)
