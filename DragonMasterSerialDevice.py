@@ -161,12 +161,23 @@ class SerialDevice(DragonMasterDevice.DragonMasterDevice):
     #End Universal Serial Methods
     pass
 
+
+class BillAcceptor(SerialDevice):
+    DBV_DESCRIPTION = ""
+
+    """
+    Returns a byte code that represents the type of the bill acceptor that is being used
+    """
+    def get_ba_type(self):
+        return 0
+    pass
+
 """
 @author Aaron Thurston, EQ Games/Kaneva, Phone#: 404-680-2119
 
 A class that handles all our Bill Acceptor Actions
 """
-class DBV400(SerialDevice):
+class DBV400(BillAcceptor):
     #region Constants
     DBV_DESCRIPTION = "DBV-400"
     DBV_BAUDRATE = 9600
@@ -615,6 +626,9 @@ class DBV400(SerialDevice):
 
     def to_string(self):
         return "DBV-400 " + self.comport
+
+    def get_ba_type(self):
+        return DragonMasterDeviceManager.DragonMasterDeviceManager.BA_DBV_400
     #endregion
 
     pass
@@ -627,6 +641,8 @@ class Draxboard(SerialDevice):
     #region command byte arrays
     REQUEST_STATUS = bytearray([0x01, 0x00, 0x01, 0x02])
     SET_OUTPUT_STATE = bytearray([0x04, 0x02, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00])
+    DRAX_OUTPUT_ENABLE = bytearray([])
+    DRAX_OUTPUT_DISABLE = bytearray([])
     DRAXBOARD_OUTPUT_ENABLE = bytearray([0x02, 0x05, 0x09, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x12])
     METER_INCREMENT = bytearray([0x09, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00])
     READ_PENDING_METER = bytearray([0x0a, 0x00, 0x02, 0x01, 0x0d])
@@ -651,6 +667,8 @@ class Draxboard(SerialDevice):
     REQUEST_STATUS_SIZE = 16
     OUTPUT_EVENT_ID = 0x04
     OUTPUT_EVENT_SIZE = 8
+    OUTPUT_ENABLE_ID = 0x06
+    OUTPUT_DISABLE_ID = 0x07
     METER_INCREMENT_ID = 0x09
     METER_INCREMENT_SIZE = 7
     PENDING_METER_ID = 0x0a
@@ -668,9 +686,13 @@ class Draxboard(SerialDevice):
 
     def __init__(self, deviceManager):
         super().__init__(deviceManager)
+        #High version byte
         self.versionNumberHigh = 0
+        #Low version byte
         self.versionNumberLow = 0
+        #ushort value that represents the current draxboard output state
         self.draxOutputState = 0
+        #
         self.playerStationNumber = 0
         self.meterTicksRemaining = 0
         self.playerStationHash = 0#The player station hash is a value assigned only to our Draxboard. It is a value derived from the usb path to our draxboard
@@ -762,6 +784,12 @@ class Draxboard(SerialDevice):
             print (e)
 
     #region message received events
+    """
+    Retrieves the status of the our Draxboard. This will typically retrieved on startup.
+
+    This will contain initialized information of the draxboard such as Version number and the player station number
+    if the draxboard version supports it
+    """
     def on_request_status_received(self, bytePacket):
         requestStatus = bytePacket
         

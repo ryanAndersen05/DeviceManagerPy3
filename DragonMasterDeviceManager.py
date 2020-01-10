@@ -90,7 +90,7 @@ class DragonMasterDeviceManager:
     BA_BILL_RETURNED_EVENT = 0x84 #Bill was returned event
     BA_BILL_STATE_UPDATE_EVENT = 0x85 #Event to Send the status of the bill acceptor
     #Bill Acceptor type
-    DBV_400 = 0x01
+    BA_DBV_400 = 0x01
 
     #Receive Events
     BA_ACCEPT_BILL_EVENT = 0X86 #Command to accept the bill that is currently in escrow
@@ -303,6 +303,7 @@ class DragonMasterDeviceManager:
             pass
         elif isinstance(deviceThatWasAdded, DragonMasterSerialDevice.DBV400):
             deviceData.append(DragonMasterDeviceManager.BILL_ACCEPTOR_ID)#DeviceTypeID
+            deviceData.append(deviceThatWasAdded.get_ba_type())#The Bill Acceptor Type. In the future, we plan on adding new types of Bill Acceptors
             pass
         elif isinstance(deviceThatWasAdded, DragonMasterSerialDevice.Omnidongle):
             deviceData.append(DragonMasterDeviceManager.OMNI_EVENT)#DeviceTypeID
