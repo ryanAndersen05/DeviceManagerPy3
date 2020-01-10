@@ -111,14 +111,12 @@ class DragonMasterDevice:
         return
 
     
-
+#region joystick classes
 
 """
 Joystick class. Sends events to our Unity application of the current state of the joystick
-
 """
 class Joystick(DragonMasterDevice):
-    JOYSTICK_DEVICE_NAME = "Ultimarc UltraStik Ultimarc Ultra-Stik Player 1"
 
     def __init__(self, dragonMasterDeviceManager):
         super().__init__(dragonMasterDeviceManager)
@@ -159,23 +157,6 @@ class Joystick(DragonMasterDevice):
         else:
             return "Joystick (Missing)"
 
-    """
-    Returns the device parent path of our joystick device
-    """
-    def fetch_parent_path(self, deviceElement):
-        usbKey  = ''
-        physSplit = deviceElement.phys.split('-')
-        if len(physSplit) > 1:
-            usbKey = physSplit[len(physSplit) - 1]
-            usbKey = usbKey.split('/')[0]
-
-        for dev in self.dragonMasterDeviceManager.deviceContext.list_devices():
-            if "js" in dev.sys_name and usbKey in dev.device_path:
-                return dev.parent.parent.parent.parent.parent.device_path
-        return
-        
-        
-
     #endregion override methods
 
     """
@@ -215,11 +196,51 @@ class Joystick(DragonMasterDevice):
             self.lastSentAxes = self.currentAxes
     pass
 
+    """
+    Returns a value of 0 for our joystick, which should indicate an invalid joystick type. The Joystick class should probably be set to abstract in the future so that this does not happen
+    """
+    @staticmethod
+    def get_joystick_id():
+        print ("No Joystick ID has been properly set. Be sure to add a get_joystick_id() method to your Joystick class.")
+        return 0
+    pass
+
+
+"""
+Extension of Joystick class, with values specific to our Ulrimarc Ultra-Stik Joystick device
+"""
+class UltimarcJoystick(Joystick):
+    JOYSTICK_DEVICE_NAME = "Ultimarc UltraStik Ultimarc Ultra-Stik Player 1"
+
+    """
+    Returns the device parent path of our joystick device
+    """
+    def fetch_parent_path(self, deviceElement):
+        usbKey  = ''
+        physSplit = deviceElement.phys.split('-')
+        if len(physSplit) > 1:
+            usbKey = physSplit[len(physSplit) - 1]
+            usbKey = usbKey.split('/')[0]
+
+        for dev in self.dragonMasterDeviceManager.deviceContext.list_devices():
+            if "js" in dev.sys_name and usbKey in dev.device_path:
+                return dev.parent.parent.parent.parent.parent.device_path
+        return
+
+    def to_string(self):
+        return "Ultimarc Joystick"
+
+    @staticmethod
+    def get_joystick_id():
+        return DragonMasterDeviceManager.DragonMasterDeviceManager.ULTIMARC_JOYSTICK
+    pass
+
 """
 This class is an extension of our Joystick class. All functions remain the same, but the parent device path has changed as well
 as the product name of the joystick
 """
 class BaoLianJoystick(Joystick):
+    
     JOYSTICK_DEVICE_NAME = "HID d209:0513"
 
 
@@ -238,9 +259,16 @@ class BaoLianJoystick(Joystick):
                 return dev.parent.parent.parent.parent.parent.parent.device_path
         return 
 
-pass
+    def to_string(self):
+        return "Bao Lian Joystick"
 
+    @staticmethod
+    def get_joystick_id():
+        return DragonMasterDeviceManager.DragonMasterDeviceManager.BAOLIAN_JOYSTICK
 
+    pass
+
+#endregion joystick classes
 
 """
 Printer device handles printer events. Sends the status of the printer to Unity
@@ -914,7 +942,7 @@ def get_all_connected_joystick_devices():
     listOfBoaLianJoysticks = []
 
     for dev in allJoystickDevices:
-        if (dev.name == Joystick.JOYSTICK_DEVICE_NAME and "input0" in dev.phys):
+        if (dev.name == UltimarcJoystick.JOYSTICK_DEVICE_NAME and "input0" in dev.phys):
             listOfUltramarkJoysticks.append(dev)
         if (dev.name == BaoLianJoystick.JOYSTICK_DEVICE_NAME and "input0" in dev.phys):
             listOfBoaLianJoysticks.append(dev)

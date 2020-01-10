@@ -55,6 +55,9 @@ class DragonMasterDeviceManager:
     ##JOYSTICK COMMANDS
     JOYSTICK_ID = 0X20
     JOYSTICK_INPUT_EVENT = 0X21#Input event from the joystick. Sends the x and y values that are currently set on the joystick
+    #Joystick Type
+    ULTIMARC_JOYSTICK = 0x01
+    BAOLIAN_JOYSTICK = 0x02
 
     ##PRINTER COMMANDS
     PRINTER_ID = 0X40
@@ -224,7 +227,7 @@ class DragonMasterDeviceManager:
             #Add our Ultimarc joysticks here
             for joystick in allConnectedJoysticks:
                 if (joystick != None and not self.device_manager_contains_joystick(joystick)):
-                    self.add_new_device(DragonMasterDevice.Joystick(self), joystick)
+                    self.add_new_device(DragonMasterDevice.UltimarcJoystick(self), joystick)
 
             #Add our Bao Lian Joysticks here
             for joystick in allBaoLianJoysticks:
@@ -278,27 +281,37 @@ class DragonMasterDeviceManager:
 
 
     """
-    If a device was connected this method should be called to notify our Unity application of which device was connected
+    If a device was connected this method should be called to notify our Unity application of which device was connected.
+    An event from this method can include things that should be known about the device on start.
+    
+    For example, if a draxboard is connected, the Version number of the draxboard can be included in the device connected packet. The first byte of data should always be the device ID though.
+    This just clarifies what type of device we are connecting (i.e. Draxboard, Joystick, BA, etc... the more general idea of the device)
     """
     def send_device_connected_event(self, deviceThatWasAdded):
-        deviceTypeID = 0x00
+        deviceData = []
         if isinstance(deviceThatWasAdded, DragonMasterDevice.Joystick):
             deviceTypeID = DragonMasterDeviceManager.JOYSTICK_ID
+            deviceData.append(deviceTypeID)
+            deviceData.append(deviceThatWasAdded.get_joystick_id())#Byte that identifies the type of joystick that is connected for our Unity application
             pass
         if isinstance(deviceThatWasAdded, DragonMasterDevice.Printer):
             deviceTypeID = DragonMasterDeviceManager.PRINTER_ID
+            deviceData.append(deviceTypeID)
             pass
         if isinstance(deviceThatWasAdded, DragonMasterSerialDevice.Draxboard):
             deviceTypeID = DragonMasterDeviceManager.DRAX_ID
+            deviceData.append(deviceTypeID)
             pass
         if isinstance(deviceThatWasAdded, DragonMasterSerialDevice.DBV400):
             deviceTypeID = DragonMasterDeviceManager.BILL_ACCEPTOR_ID
+            deviceData.append(deviceTypeID)
             pass
         if isinstance(deviceThatWasAdded, DragonMasterSerialDevice.Omnidongle):
             deviceTypeID = DragonMasterDeviceManager.OMNI_EVENT
+            deviceData.append(deviceTypeID)
             pass
         
-        self.add_event_to_send(DragonMasterDeviceManager.DEVICE_CONNECTED, [deviceTypeID], self.get_player_station_hash_for_device(deviceThatWasAdded))
+        self.add_event_to_send(DragonMasterDeviceManager.DEVICE_CONNECTED, deviceData, self.get_player_station_hash_for_device(deviceThatWasAdded))
         return
         # print ("Device Added ID: " + str(deviceTypeID))
 
