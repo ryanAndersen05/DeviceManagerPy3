@@ -686,7 +686,7 @@ class Draxboard(SerialDevice):
         self.serialObject.flush()
         super().start_device(deviceElement)#This will begin the polling thread to read inputs returned by the draxboard
 
-        self.write_to_serial(self.REQUEST_STATUS)
+        self.send_request_status()
         self.write_to_serial(self.DRAXBOARD_OUTPUT_ENABLE)#Turns on all outputs that need to be on
         
         self.toggle_output_state_of_drax(0x180f)
@@ -706,7 +706,12 @@ class Draxboard(SerialDevice):
         
         return devToReturn
 
-    
+    """
+    Sends a request status packet which will return the version number as well as other initialization values.
+    Send this when you first connect the or when our unity application wants to know what devices are currently connected
+    """
+    def send_request_status(self):
+        self.write_to_serial(self.REQUEST_STATUS)
 
     """
     This method will return
@@ -753,13 +758,10 @@ class Draxboard(SerialDevice):
             return
         
         requestStatus = bytePacket
-        if requestStatus == None:
-            print ("Request Status Was None")
-            return False
         
         if len(requestStatus) < Draxboard.REQUEST_STATUS_SIZE or requestStatus[0] != Draxboard.REQUEST_STATUS_ID:
             print ("Reqeust Status length was too short or invalid: " + str(requestStatus))
-            return False
+            return
 
 
         self.versionNumberHigh = requestStatus[15]

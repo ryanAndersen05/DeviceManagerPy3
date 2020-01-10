@@ -27,7 +27,7 @@ Our device manager class that will find and hold all of our connected devices an
 It will manages messages between our Unity Application and assign commands to the correct devices.
 """
 class DragonMasterDeviceManager:
-    VERSION = "2.1.0"
+    VERSION = "2.2.0"
     KILL_DEVICE_MANAGER_APPLICATION = False #Setting this value to true will kill the main thread of our Device Manager application effectively closing all other threads
     DRAGON_MASTER_VERSION_NUMBER = "CFS101 0000"
     #region TCP Device Commands
@@ -51,6 +51,7 @@ class DragonMasterDeviceManager:
     DRAX_OUTPUT_BIT_DISABLE_EVENT = 0x14 #Disables the bits that are passed in. Can be multiple bits at once
     DRAX_HARD_METER_EVENT = 0X15 #Event to Increment our hard meters taht are attached to our draxboards
     DRAX_METER_ERROR = 0X16 #This message will be sent if there is an error attempting to increment
+    DRAX_STATUS_EVENT = 0x17#This method should be sent whenever we receive a status event from our Draxboard which essentially tells us the version number and player station number (if valid)
 
     ##JOYSTICK COMMANDS
     JOYSTICK_ID = 0X20
@@ -131,11 +132,6 @@ class DragonMasterDeviceManager:
         deviceAddedThread = threading.Thread(target=self.device_connected_thread,)
         deviceAddedThread.daemon = True
         deviceAddedThread.start()
-
-        #This will periodically check that our Unity application is still running in the backgroud
-        # unityLockupThread = threading.Thread(target=self.periodically_check_that_unity_is_still_running,)
-        # unityLockupThread.daemon = True
-        # unityLockupThread.start()
 
         sleep(.3)
         print()
@@ -290,25 +286,24 @@ class DragonMasterDeviceManager:
     def send_device_connected_event(self, deviceThatWasAdded):
         deviceData = []
         if isinstance(deviceThatWasAdded, DragonMasterDevice.Joystick):
-            deviceTypeID = DragonMasterDeviceManager.JOYSTICK_ID
-            deviceData.append(deviceTypeID)
+            deviceData.append(DragonMasterDeviceManager.JOYSTICK_ID)#DeviceTypeID
             deviceData.append(deviceThatWasAdded.get_joystick_id())#Byte that identifies the type of joystick that is connected for our Unity application
             pass
-        if isinstance(deviceThatWasAdded, DragonMasterDevice.Printer):
-            deviceTypeID = DragonMasterDeviceManager.PRINTER_ID
-            deviceData.append(deviceTypeID)
+        elif isinstance(deviceThatWasAdded, DragonMasterDevice.Printer):
+            deviceData.append(DragonMasterDeviceManager.PRINTER_ID)#DeviceTypeID
             pass
-        if isinstance(deviceThatWasAdded, DragonMasterSerialDevice.Draxboard):
-            deviceTypeID = DragonMasterDeviceManager.DRAX_ID
-            deviceData.append(deviceTypeID)
+        elif isinstance(deviceThatWasAdded, DragonMasterSerialDevice.Draxboard):
+            deviceData.append(DragonMasterDeviceManager.DRAX_ID)#DeviceTypeID
+            #TODO: Think about how these values below can be guaranteed to be collected before we get to this point
+            deviceData.append(deviceThatWasAdded.versionNumberHigh)
+            deviceData.append(deviceThatWasAdded.versionNumberLow)
+            deviceData.append(deviceThatWasAdded.playerStationNumber)
             pass
-        if isinstance(deviceThatWasAdded, DragonMasterSerialDevice.DBV400):
-            deviceTypeID = DragonMasterDeviceManager.BILL_ACCEPTOR_ID
-            deviceData.append(deviceTypeID)
+        elif isinstance(deviceThatWasAdded, DragonMasterSerialDevice.DBV400):
+            deviceData.append(DragonMasterDeviceManager.BILL_ACCEPTOR_ID)#DeviceTypeID
             pass
-        if isinstance(deviceThatWasAdded, DragonMasterSerialDevice.Omnidongle):
-            deviceTypeID = DragonMasterDeviceManager.OMNI_EVENT
-            deviceData.append(deviceTypeID)
+        elif isinstance(deviceThatWasAdded, DragonMasterSerialDevice.Omnidongle):
+            deviceData.append(DragonMasterDeviceManager.OMNI_EVENT)#DeviceTypeID
             pass
         
         self.add_event_to_send(DragonMasterDeviceManager.DEVICE_CONNECTED, deviceData, self.get_player_station_hash_for_device(deviceThatWasAdded))
