@@ -75,7 +75,7 @@ class DragonMasterDeviceManager:
     PRINT_ERROR_EVENT = 0x47 #If there was an error at some point in the print job, we will send this message instead
     PRINTER_STATE_EVENT = 0x48 #Returns the state of the printer
 
-    #Printer Types
+    #Printer Types (Returning a type of 0 represents an invalid printer type)
     CUSTOM_TG02 = 0X01 
     RELIANCE_PRINTER = 0X02
     PYRAMID_PRINTER = 0X03
@@ -89,6 +89,8 @@ class DragonMasterDeviceManager:
     BA_BILL_REJECTED_EVENT = 0X83 #Bill was rejected event
     BA_BILL_RETURNED_EVENT = 0x84 #Bill was returned event
     BA_BILL_STATE_UPDATE_EVENT = 0x85 #Event to Send the status of the bill acceptor
+    #Bill Acceptor type
+    DBV_400 = 0x01
 
     #Receive Events
     BA_ACCEPT_BILL_EVENT = 0X86 #Command to accept the bill that is currently in escrow

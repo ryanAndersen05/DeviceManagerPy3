@@ -648,7 +648,7 @@ class Draxboard(SerialDevice):
 
     #Command Events
     REQUEST_STATUS_ID = 0x01
-    REQUEST_STATUS_SIZE = 18
+    REQUEST_STATUS_SIZE = 16
     OUTPUT_EVENT_ID = 0x04
     OUTPUT_EVENT_SIZE = 8
     METER_INCREMENT_ID = 0x09
@@ -681,12 +681,18 @@ class Draxboard(SerialDevice):
     def start_device(self, deviceElement):
 
         self.serialObject = self.open_serial_device(deviceElement.device, Draxboard.DRAX_BAUDRATE, 5, 5)
+        self.send_request_status()#We want to send a request status to our Draxboard as the very first command to ensure that it is functioning properly as well as gather important info
+        firstByteOfRequestStatus = self.serialObject.read(1)
+        if firstByteOfRequestStatus == None:
+            return False
+
+        self.on_data_received_event(firstByteOfPacket=firstByteOfRequestStatus)
+
         if self.serialObject == None:
             return False
         self.serialObject.flush()
         super().start_device(deviceElement)#This will begin the polling thread to read inputs returned by the draxboard
 
-        self.send_request_status()
         self.write_to_serial(self.DRAXBOARD_OUTPUT_ENABLE)#Turns on all outputs that need to be on
         
         self.toggle_output_state_of_drax(0x180f)
@@ -720,6 +726,9 @@ class Draxboard(SerialDevice):
     that we do not miss any packets
     """
     def on_data_received_event(self, firstByteOfPacket):
+        if (firstByteOfPacket == None):
+            print ("The first byte was None. This should not have gotten this far")
+            return
         if len(firstByteOfPacket) < 1:
             return
         read = firstByteOfPacket + self.serialObject.read(2)
@@ -754,15 +763,11 @@ class Draxboard(SerialDevice):
 
     #region message received events
     def on_request_status_received(self, bytePacket):
-        if bytePacket != None or len(bytePacket) < Draxboard.REQUEST_STATUS_SIZE:
-            return
-        
         requestStatus = bytePacket
         
-        if len(requestStatus) < Draxboard.REQUEST_STATUS_SIZE or requestStatus[0] != Draxboard.REQUEST_STATUS_ID:
+        if len(requestStatus) < Draxboard.REQUEST_STATUS_SIZE:
             print ("Reqeust Status length was too short or invalid: " + str(requestStatus))
             return
-
 
         self.versionNumberHigh = requestStatus[15]
         self.versionNumberLow = requestStatus[16]
