@@ -617,6 +617,9 @@ class DBV400(BillAcceptor):
     def begin_firmware_download_process(self):
         # print (str (self.get_player_station_hash()) + " Beginning Firmware Update")
         # print (DBV400.FIRMWARE_UPDATE_FILE_PATH)
+        if (self.State != DBV400.INHIBIT_STATE):
+            print ("Please be sure that the DBV is in the inhibit state before running firmware update")
+            return
         binFile = open(DBV400.FIRMWARE_UPDATE_FILE_PATH, 'rb')
         data = []
         readLine = binFile.read()
