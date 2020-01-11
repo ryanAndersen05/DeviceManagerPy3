@@ -240,6 +240,10 @@ class DBV400(BillAcceptor):
     NOTE_STAY_STATE = 13 # A bill has been left in the acceptor slot of the DBV. When removed, the DBV will proceed as normal.
     ACTIVE_STATE = 14 # DBV is actively holding or accepting bill.
     WAITING_STATE = 15
+    DOWNLOAD_IDLE = 0x0401
+    DOWNLOAD_WRITE = 0x0402
+    ABNORMAL = 0x02d1
+    FIRMWARE_MISMATCH = 0x03d2
 
     #endregion
     #region variables
@@ -267,7 +271,6 @@ class DBV400(BillAcceptor):
         if len(read) >= 2:
             read += self.serialObject.read(read[1] - 2)
             lengthOfMessage = read[1]
-            
         else:
             read = firstByteOfPacket + self.serialObject.read(self.serialObject.in_waiting)
 
@@ -304,6 +307,8 @@ class DBV400(BillAcceptor):
                 self.on_operation_error(read)
             elif read[6] == 0x00 and (read[7] == 0x12 or read[7] == 0x02):
                 self.on_operation_error_clear(read)
+            elif read[6] == 0x01 and read[7] == 0x04:
+                self.on_downlaod_idle_received(read)
         elif (length <= 9):
             if read[6] == 0x11 and read[7] == 0x00 and read[8] == 0x06:
                 self.on_reset_request_received()
@@ -325,9 +330,13 @@ class DBV400(BillAcceptor):
                 self.on_bill_held()
             elif read[6] == 0x15 and read[7] == 0x10:
                 self.on_bill_reject_request_received()
+            elif read[5] == 0x00 and read[6] == 0xd1:
+                self.on_download_request_received(read)
         elif (length >= 10):
             if read[7] == 0x00 and read[8] == 0x06 and read[9] == 0x04:
                 self.on_status_update_received(read)
+            elif read[5] == 0x10 and read[6] == 0xd5:
+                self.on_download_info_received(read)
             elif read[6] == 0x00 and read[7] == 0x00:
                 self.on_power_up_nack_received(read)
             elif read[6] == 0x01 and read[7] == 0x00:
@@ -611,6 +620,10 @@ class DBV400(BillAcceptor):
     #endregion
 
     #region updating dbv firmware
+    INDEX_IN_LOAD_BUFFER = 0
+    DOWN_PACKET_DATA = []
+    MAX_DOWNLOAD_BYTE_SIZE = 0
+
     """
     Runs a process to update the firmware in our DBV devices if needed
     """
@@ -620,10 +633,32 @@ class DBV400(BillAcceptor):
         if (self.State != DBV400.INHIBIT_STATE):
             print ("Please be sure that the DBV is in the inhibit state before running firmware update")
             return
+        
         binFile = open(DBV400.FIRMWARE_UPDATE_FILE_PATH, 'rb')
-        data = []
-        readLine = binFile.read()
-        # print (len(readLine))
+        self.DOWN_PACKET_DATA = binFile.read()
+        self.INDEX_IN_LOAD_BUFFER = 0
+
+        return
+
+    def on_downlaod_idle_received(self, packetData):
+
+        return
+
+    def on_download_writing_received(self, packetData):
+
+        return
+
+    def on_download_request_received(self, packetData):
+
+        return
+
+    def on_download_info_received(self, packetData):
+
+        return
+
+    def on_downlaod_completion_received(self, packetData):
+
+        return
 
     #endregion updating dbv firmware
 
