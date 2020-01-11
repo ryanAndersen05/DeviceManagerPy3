@@ -1328,12 +1328,18 @@ def interpret_debug_command(commandToRead, deviceManager):
         elif len(commandSplit) >=1:
             debug_toggle_dbv_idle(deviceManager)
         return
-   
     elif command == "state":
         if len(commandSplit) >= 2:
             debug_status_dbv(deviceManager, commandSplit[1])
         else:
-            debug_status_dbv(deviceManager)    
+            debug_status_dbv(deviceManager)
+        return
+    elif command == "firmwareupdate":
+        if len(commandSplit) >= 2:
+            debug_firmware_updated_dbv(deviceManager, commandSplit[1])
+        else:
+            debug_firmware_updated_dbv(deviceManager)
+        return
     elif command == "fuck":
         print ("I'm sorry you're having a rough time. Please don't be so hard on yourself. I'm sure you'll get through it!")
     else:
@@ -1418,6 +1424,7 @@ def debug_help_message():
     print ("'stack' - sends a command to stack a bill if it is currently held in escrow")
     print ("'reject' - sends a command to reject a bill that is currently in escrow")
     print ("'toggleidle' - sends a command to toggle back and forth between idle and inhibit (data=[#ofToggles, secondsBetwenToggles]")
+    print ("'firmwareupdate' - runs a command to update the firmware of the connected bill acceptor")
     print ('-' * 60)
 
     return
@@ -1674,8 +1681,24 @@ def debug_toggle_dbv_idle(deviceManager, numberOfToggles = 5, secondsBetweenTogg
         sleep(secondsBetweenToggles / 2)
         toggleToIdle = not toggleToIdle
     print ("Completed Toggle Process")
-    
     return
+
+def debug_firmware_updated_dbv(deviceManager, playerStationHash=-1):
+    if playerStationHash < 0: 
+        for pStation in deviceManager.playerStationDictionary.values():
+            if pStation.connectedBillAcceptor != None:
+                pStation.connectedBillAcceptor.begin_firmware_download_process()
+        return
+    
+    if playerStationHash not in deviceManager.playerStationHashToParentDevicePath:
+        print ("The player station hash was not found. Perhaps there is no draxboard connected for that station")
+        return
+    pStationKey = deviceManager.playerStationHashToParentDevicePath[playerStationHash]
+    if deviceManager.playerStationDictionary[pStationKey].connectedBillAcceptor != None:
+        deviceManager.playerStationDictionary[pStationKey].connectedBillAcceptor.begin_firmware_download_process()
+    return
+
+
 def debug_status_dbv(deviceManager, playerStationHash = -1):
     if playerStationHash < 0: 
         for pStation in deviceManager.playerStationDictionary.values():

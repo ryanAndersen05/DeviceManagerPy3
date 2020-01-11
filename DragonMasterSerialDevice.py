@@ -4,6 +4,7 @@ from time import time
 from time import sleep
 import re
 import queue
+import os
 
 #external imports
 import serial
@@ -178,6 +179,8 @@ class BillAcceptor(SerialDevice):
 A class that handles all our Bill Acceptor Actions
 """
 class DBV400(BillAcceptor):
+    FIRMWARE_UPDATE_FILE_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "DBV-400(USA)-SU ID-008 V001-00.bin")
+
     #region Constants
     DBV_DESCRIPTION = "DBV-400"
     DBV_BAUDRATE = 9600
@@ -486,7 +489,6 @@ class DBV400(BillAcceptor):
     
     """ The bill stacked in the bill acceptor was succesfully processed and stacked """
     def on_vend_valid(self, message):
-        # pass
         # print ("Vend Valid")
         vendValidAck = DBV400.VEND_VALID_ACK
         vendValidAck[5] = message[5]
@@ -496,6 +498,7 @@ class DBV400(BillAcceptor):
 
     """ A reject bill command was successfully processed """
     def on_bill_reject_request_received(self):
+        # print ("BILL REJECT REQUEST")
         pass
     
     """ A returned/rejected bill was left at the mouth of the DBV and needs to be removed """
@@ -508,6 +511,7 @@ class DBV400(BillAcceptor):
     
     """ The DBV has reported an error. Ack this message and wait for the error clear message """
     def on_operation_error(self, message):
+        # print ("Operation Error")
         opErrorAck = DBV400.ERROR_ACK[:]
         opErrorAck[5] = message[5]
         opErrorAck[7] = message[7]
@@ -517,6 +521,7 @@ class DBV400(BillAcceptor):
     
     """ A DBV error was cleared and the system is ready to be reset to resume normal operation """
     def on_operation_error_clear(self, message):
+        # print ("Operation Error Cleared")
         clearAck = DBV400.CLEAR_ACK[:]
         clearAck[5] = message[5]
         clearAck[7] = message[7]
@@ -604,6 +609,20 @@ class DBV400(BillAcceptor):
         self.dragonMasterDeviceManager.add_event_to_send(eventType, message, playerStationHash)
 
     #endregion
+
+    #region updating dbv firmware
+    """
+    Runs a process to update the firmware in our DBV devices if needed
+    """
+    def begin_firmware_download_process(self):
+        # print (str (self.get_player_station_hash()) + " Beginning Firmware Update")
+        # print (DBV400.FIRMWARE_UPDATE_FILE_PATH)
+        binFile = open(DBV400.FIRMWARE_UPDATE_FILE_PATH, 'rb')
+        data = []
+        readLine = binFile.read()
+        # print (len(readLine))
+
+    #endregion updating dbv firmware
 
     #region Override Methods
     def start_device(self, deviceElement):
