@@ -1557,13 +1557,13 @@ def debug_meter_increment(deviceManager, meterID=0, incrementValue=1, playerStat
             
 #region debug DBV commands
 """
-
+Debug test function whether the idle function works as expected in our Bill Acceptors
 """
 def debug_idle_dbv(deviceManager, playerStationHash = -1):
     if playerStationHash < 0: 
-        for pStation in deviceManager.playerStationDictionary.values():
-            if pStation.connectedBillAcceptor != None:
-                pStation.connectedBillAcceptor.idle_dbv()
+        for dev in deviceManager.allConnectedDevices:
+            if isinstance(dev, DragonMasterSerialDevice.BillAcceptor):
+                dev.idle_dbv()
         return
 
     if playerStationHash not in deviceManager.playerStationHashToParentDevicePath:
@@ -1579,9 +1579,9 @@ Debug method that will set our dbv to the inhibit state based on the dbv comport
 """
 def debug_inhibit_dbv(deviceManager, playerStationHash = -1):
     if playerStationHash < 0: 
-        for pStation in deviceManager.playerStationDictionary.values():
-            if pStation.connectedBillAcceptor != None:
-                pStation.connectedBillAcceptor.inhibit_dbv()
+        for dev in deviceManager.allConnectedDevices:
+            if isinstance(dev, DragonMasterSerialDevice.BillAcceptor):
+                dev.inhibit_dbv()
         return
 
     if playerStationHash not in deviceManager.playerStationHashToParentDevicePath:
@@ -1598,9 +1598,9 @@ Debug method that will reset our DBV based on the comport
 """
 def debug_reset_dbv(deviceManager, playerStationHash = -1):
     if playerStationHash < 0: 
-        for pStation in deviceManager.playerStationDictionary.values():
-            if pStation.connectedBillAcceptor != None:
-                pStation.connectedBillAcceptor.reset_dbv()
+        for dev in deviceManager.allConnectedDevices:
+            if isinstance(dev, DragonMasterSerialDevice.BillAcceptor):
+                dev.reset_dbv()
         return
 
     if playerStationHash not in deviceManager.playerStationHashToParentDevicePath:
@@ -1616,9 +1616,9 @@ Debug method to accept a bill that is in escrow
 """
 def debug_accept_bill_dbv(deviceManager, playerStationHash = -1):
     if playerStationHash < 0: 
-        for pStation in deviceManager.playerStationDictionary.values():
-            if pStation.connectedBillAcceptor != None:
-                pStation.connectedBillAcceptor.stack_bill()
+        for dev in deviceManager.allConnectedDevices:
+            if isinstance(dev, DragonMasterSerialDevice.BillAcceptor):
+                dev.stack_bill()
         return
 
     if playerStationHash not in deviceManager.playerStationHashToParentDevicePath:
@@ -1634,9 +1634,9 @@ Debug method to reject a bill that is in escrow
 """
 def debug_reject_bill_dbv(deviceManager, playerStationHash = -1):
     if playerStationHash < 0: 
-        for pStation in deviceManager.playerStationDictionary.values():
-            if pStation.connectedBillAcceptor != None:
-                pStation.connectedBillAcceptor.reject_bill()
+        for dev in deviceManager.allConnectedDevices:
+            if isinstance(dev, DragonMasterSerialDevice.BillAcceptor):
+                dev.reject_bill()
         return
 
     if playerStationHash not in deviceManager.playerStationHashToParentDevicePath:
@@ -1662,12 +1662,12 @@ def debug_toggle_dbv_idle(deviceManager, numberOfToggles = 5, secondsBetweenTogg
     for i in range((numberOfToggles * 2)):
         #print ("Toggle: " + str(toggleToIdle))
         if playerStationHash < 0: 
-            for pStation in deviceManager.playerStationDictionary.values():
-                if pStation.connectedBillAcceptor != None:
+            for dev in deviceManager.allConnectedDevices:
+                if isinstance(dev, DragonMasterSerialDevice.BillAcceptor):
                     if toggleToIdle:
-                        pStation.connectedBillAcceptor.idle_dbv()
+                        dev.idle_dbv()
                     else:
-                        pStation.connectedBillAcceptor.inhibit_dbv()
+                        dev.inhibit_dbv()
         else:
             if playerStationHash not in deviceManager.playerStationHashToParentDevicePath:
                 print ("The player station hash was not found. Perhaps there is no draxboard connected for that station")
@@ -1685,9 +1685,9 @@ def debug_toggle_dbv_idle(deviceManager, numberOfToggles = 5, secondsBetweenTogg
 
 def debug_firmware_updated_dbv(deviceManager, playerStationHash=-1):
     if playerStationHash < 0: 
-        for pStation in deviceManager.playerStationDictionary.values():
-            if pStation.connectedBillAcceptor != None:
-                pStation.connectedBillAcceptor.begin_firmware_download_process()
+        for dev in deviceManager.allConnectedDevices:
+            if isinstance(dev, DragonMasterSerialDevice.BillAcceptor):
+                dev.begin_firmware_download_process()
         return
     
     if playerStationHash not in deviceManager.playerStationHashToParentDevicePath:
@@ -1699,11 +1699,15 @@ def debug_firmware_updated_dbv(deviceManager, playerStationHash=-1):
     return
 
 
+"""
+Updates the state of all bill acceptors. This will return a
+"""
 def debug_status_dbv(deviceManager, playerStationHash = -1):
     if playerStationHash < 0: 
-        for pStation in deviceManager.playerStationDictionary.values():
-            if pStation.connectedBillAcceptor != None:
-                pStation.connectedBillAcceptor.get_dbv_state()
+        for dev in deviceManager.allConnectedDevices:
+            if isinstance(dev, DragonMasterSerialDevice.BillAcceptor):
+                print (dev.State)
+                dev.get_dbv_state()
         return
     
     if playerStationHash not in deviceManager.playerStationHashToParentDevicePath:
@@ -1711,7 +1715,8 @@ def debug_status_dbv(deviceManager, playerStationHash = -1):
         return
     pStationKey = deviceManager.playerStationHashToParentDevicePath[playerStationHash]
     if deviceManager.playerStationDictionary[pStationKey].connectedBillAcceptor != None:
-        deviceManager.playerStationDictionary[pStationKey].connectedBillAcceptor.reject_bill()
+        print (deviceManager.playerStationDictionary[pStationKey].connectedBillAcceptor.State)
+        deviceManager.playerStationDictionary[pStationKey].connectedBillAcceptor.get_dbv_state()
     return
 
 #endregion debug DBV commands

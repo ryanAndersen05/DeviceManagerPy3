@@ -45,7 +45,6 @@ class SerialDevice(DragonMasterDevice.DragonMasterDevice):
     """
     def start_device(self, deviceElement):
         DragonMasterDevice.DragonMasterDevice.start_device(self, deviceElement)
-        self.comport = deviceElement.device
 
         pollingThread = threading.Thread(target=self.poll_serial_thread)
         pollingThread.daemon = True
@@ -79,6 +78,7 @@ class SerialDevice(DragonMasterDevice.DragonMasterDevice):
     Method used to safely open our serial device
     """
     def open_serial_device(self, comport, baudrate, readTimeout=5, writeTimeout=5):
+        self.comport = comport
         try:
             serialObject = serial.Serial(
                 port=comport,
@@ -255,15 +255,13 @@ class DBV400(BillAcceptor):
 
     def __init__(self, deviceManager):
         super().__init__(deviceManager)
-        self.isReading = False
+        
         return
 
 
     #region on data received
     """ Handles all byte strings sent from the DBV to the host"""
     def on_data_received_event(self, firstByteOfPacket):
-        self.isReading = True
-
         read = firstByteOfPacket
         lengthOfMessage = 0
         if read[0] == 0x12:
@@ -275,17 +273,17 @@ class DBV400(BillAcceptor):
             read = firstByteOfPacket + self.serialObject.read(self.serialObject.in_waiting)
 
         if read == None or len(read) < 2:
-            self.isReading = False
+            print ("Invalid Message: " + read)
             return
 
-        print (str(self.get_player_station_hash()) + " MSG RECEIVE: " + str(read.hex()))
+        # print (self.to_string() + " RECEIVE: " + str(read.hex()))
 
         length = len(read)
         messages = []
         index = 0
 
         # print (messages)
-        self.isReading = False
+        
 
         if length == lengthOfMessage:
             self.process_data_received_message(read)
@@ -297,58 +295,82 @@ class DBV400(BillAcceptor):
         if (length <= 8):
             if read[6] == 0x00 and read[7] == 0x01:
                 self.on_inhibit_success(read)
+                return
             elif read[6] == 0x01 and read[7] == 0x11:
                 self.on_idle_success(read)
+                return
             elif read[6] == 0x03 and read[7] == 0x11:
                 self.on_vend_valid(read)
+                return
             elif read[6] == 0x01 and read[7] == 0x13:
                 self.on_note_stay_received(read)
+                return
             elif read[6] == 0x01 and (read[7] == 0x12 or read[7] == 0x02):
                 self.on_operation_error(read)
+                return
             elif read[6] == 0x00 and (read[7] == 0x12 or read[7] == 0x02):
                 self.on_operation_error_clear(read)
+                return
             elif read[6] == 0x01 and read[7] == 0x04:
                 self.on_downlaod_idle_received(read)
+                return
         elif (length <= 9):
             if read[6] == 0x11 and read[7] == 0x00 and read[8] == 0x06:
                 self.on_reset_request_received()
+                return
             elif read[8] == 0xe2:
                 self.on_unsupported_received(read)
+                return
             elif read[5] == 0x20 and read[6] == 0x01 and read[7] == 0x00:
                 self.on_uid_success()
+                return
             elif read[6] == 0x12 and read[7] == 0x00:
                 self.on_inhibit_request_received()
+                return
             elif read[6] == 0x13 and read[7] == 0x10:
                 self.on_idle_request_received()
+                return
             elif read[6] == 0x14 and read[7] == 0x10:
                 self.on_stack_inhibit_success()
+                return
             elif read[6] == 0x04 and read[7] == 0x11:
                 self.on_bill_rejected(read)
+                return
             elif read[6] == 0x05 and read[7] == 0x11:
                 self.on_bill_returned(read)
+                return
             elif read[6] == 0x16 and read[7] == 0x10:
                 self.on_bill_held()
+                return
             elif read[6] == 0x15 and read[7] == 0x10:
                 self.on_bill_reject_request_received()
+                return
             elif read[5] == 0x00 and read[6] == 0xd1:
                 self.on_download_request_received(read)
+                return
         elif (length >= 10):
             if read[7] == 0x00 and read[8] == 0x06 and read[9] == 0x04:
                 self.on_status_update_received(read)
+                return
             elif read[5] == 0x10 and read[6] == 0xd5:
                 self.on_download_info_received(read)
+                return
             elif read[6] == 0x00 and read[7] == 0x00:
                 self.on_power_up_nack_received(read)
+                return
             elif read[6] == 0x01 and read[7] == 0x00:
                 self.on_power_up_acceptor_nack_received(read)
+                return
             elif read[6] == 0x02 and read[7] == 0x11:
                 self.on_bill_inserted(read)
+                return
     #endregion
 
     #region on read methods
     
     """ Process status request message sent from DBV to host """
     def on_status_update_received(self, message):
+        self.State = DBV400.UNSUPPORTED_STATE
         if (message[10] == 0x00 or message[10] == 0x01) and message[11] == 0x00:
             self.on_power_up_success()
         if message[10] == 0x00 and message[11] == 0x01:
@@ -368,6 +390,7 @@ class DBV400(BillAcceptor):
         if message[10] == 0x03 and message[11] == 0x11:
             self.State = DBV400.ACTIVE_STATE
 
+        print ("Updated State: " + str(self.State))
         self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT,self.State)
         # print("New State: " + str(self.State))
     
@@ -380,7 +403,6 @@ class DBV400(BillAcceptor):
         self.State = DBV400.POWER_UP_NACK_STATE
         self.send_dbv_message(powerUpAck)
         self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT,self.State)
-        sleep(.3)
         self.get_dbv_state()
     
     """ Same as above, but the DBV has started with a bill that is waiting to be stacked """
@@ -400,6 +422,7 @@ class DBV400(BillAcceptor):
         self.State = DBV400.POWER_UP_STATE
         self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT,self.State)
         self.power_up_dbv()
+        return
     
     """ The last message sent to the DBV contained the incorrect UID """
     def on_unsupported_received(self,message):
@@ -409,6 +432,7 @@ class DBV400(BillAcceptor):
         self.UidSet = True
         self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT,self.State)
         self.get_dbv_state()
+        return
 
 
     """ The DBV was successfully set during power up. We can now reset the DBV """
@@ -416,6 +440,7 @@ class DBV400(BillAcceptor):
         print("UID set success")
         self.UidSet = True
         self.reset_dbv()
+        return
 
     """ Reset message was successfully received by the DBV """
     def on_reset_request_received(self):
@@ -432,7 +457,6 @@ class DBV400(BillAcceptor):
     
     """ DBV was successfully set to inhibit state. Send ACK to DBV to confirm state """
     def on_inhibit_success(self,message):
-        print ("INHIBIT")
         inhibitMessage = DBV400.INHIBIT_ACK
         inhibitMessage[5] = message[5]
         self.State = DBV400.INHIBIT_STATE
@@ -517,6 +541,7 @@ class DBV400(BillAcceptor):
         self.send_dbv_message(noteStayAck)
         self.State = DBV400.NOTE_STAY_STATE
         self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT,self.State)
+        pass
     
     """ The DBV has reported an error. Ack this message and wait for the error clear message """
     def on_operation_error(self, message):
@@ -527,6 +552,7 @@ class DBV400(BillAcceptor):
         self.send_dbv_message(opErrorAck)
         self.State = DBV400.ERROR_STATE
         self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT,self.State)
+        pass
     
     """ A DBV error was cleared and the system is ready to be reset to resume normal operation """
     def on_operation_error_clear(self, message):
@@ -534,11 +560,11 @@ class DBV400(BillAcceptor):
         clearAck = DBV400.CLEAR_ACK[:]
         clearAck[5] = message[5]
         clearAck[7] = message[7]
-        clearAck
         self.send_dbv_message(clearAck)
         self.State = DBV400.CLEAR_STATE
         self.reset_dbv()
         self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT,self.State)
+        pass
     
     """ Process this error message to determine the specific error state """
     def on_error_state_received(self, message):
@@ -554,68 +580,90 @@ class DBV400(BillAcceptor):
                 self.State = DBV400.ERROR_STATE
                 # let the operator reset from this error
             self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT,self.State)
+        pass
 
-    #endregion
+    
+    """ Process a message from our DBV to determine the version we are in """
+    def on_version_message_received():
+
+        return
+    #endregion on read methods
 
     #region Command Methods
 
     """ Send the DBV a message, formatting the message with the UID if neccessary """
     def send_dbv_message(self, message):
-        if self.isReading:
-            return
-        if self.UidSet == True:
+        
+        if self.UidSet:
             message[4] = self.UID
         else:
             message[4] = 0x00
-        print(str(self.get_player_station_hash()) + " MSG SEND: " + str(message.hex()))
+
+        # print(self.to_string() + " SEND: " + str(message.hex()))
         self.write_to_serial(message)
+        return
 
     """ Set the UID of this class. After the UID of the DBV is set, every subsequent packet sent must include it in its 4th index """
     def set_uid(self):
         uidMessage = DBV400.SET_UID
         uidMessage[8] = self.UID
         self.write_to_serial(uidMessage)
+        return
 
     """ Set the DBV to idle if in inhibit """
     def idle_dbv(self):
         if self.State != DBV400.INHIBIT_STATE:
             return
         self.send_dbv_message(DBV400.IDLE_REQUEST)
+        return
     
     """ Inhibit the DBV to stop accepting bills """
     def inhibit_dbv(self):
         if self.State != DBV400.IDLE_STATE:
             return
         self.send_dbv_message(DBV400.INHIBIT_REQUEST)
+        return
     
     """ Power up method. Set the UID of the DBV and reset """
     def power_up_dbv(self):
         self.set_uid()
+        return
     
     """ Reset the DBV """
     def reset_dbv(self):
         if (self.State == DBV400.ERROR_STATE_BOX_REMOVED or self.State == DBV400.ERROR_STATE_ACCEPTOR_JAM or self.State == DBV400.WAITING_STATE):
             return
         self.send_dbv_message(DBV400.RESET_REQUEST)
+        return
     
     """ Query the current DBV state """
     def get_dbv_state(self):
         message = DBV400.STATUS_REQUEST
         self.send_dbv_message(message)
+        return
     
     """ Stack the current bill in the acceptor """
     def stack_bill(self):
         self.send_dbv_message(DBV400.STACK_INHIBIT)
+        return
     
     """ Reject the current bill in the acceptor """
     def reject_bill(self):
         self.send_dbv_message(DBV400.REJECT_COMMAND)
+        return
 
     """ Send event message to Unity """
     def send_event_message(self, eventType, messageContent):
         message = [messageContent]
         playerStationHash = self.get_player_station_hash()
         self.dragonMasterDeviceManager.add_event_to_send(eventType, message, playerStationHash)
+        return
+
+    """ Send event message to request the version of the DBV that that we are running """
+    def send_dbv_version_request(self):
+
+
+        return
 
     #endregion
 
@@ -635,7 +683,7 @@ class DBV400(BillAcceptor):
             return
         
         binFile = open(DBV400.FIRMWARE_UPDATE_FILE_PATH, 'rb')
-        self.DOWN_PACKET_DATA = binFile.read()
+        DBV400.DOWN_PACKET_DATA = binFile.read()
         self.INDEX_IN_LOAD_BUFFER = 0
 
         return
@@ -664,13 +712,36 @@ class DBV400(BillAcceptor):
 
     #region Override Methods
     def start_device(self, deviceElement):
+        self.UidSet = False
+
         self.serialObject = self.open_serial_device(deviceElement.device, DBV400.DBV_BAUDRATE, None, None)
+
         if self.serialObject == None:
             return False
+
+        self.serialObject.reset_input_buffer()
+        self.serialObject.reset_output_buffer()
+        
+        numberOfAttempts = 0
+        receivedMessage = False
+        while numberOfAttempts < 5 and not receivedMessage:
+            numberOfAttempts += 1
+            
+            self.serialObject.timeout = 1
+            self.get_dbv_state()
+            firstByte = self.serialObject.read(1)
+            if firstByte:
+                self.on_data_received_event(firstByte)
+                receivedMessage = True
+            print ("Attempts: " + str(numberOfAttempts))
+            
+        self.serialObject.timeout = None
+
+        if not receivedMessage:
+            return False
+
         super().start_device(deviceElement)
-        self.serialObject.flush()
-        self.UidSet = False
-        # sleep(.5)
+        
         self.get_dbv_state()
         return True
     
@@ -698,11 +769,11 @@ class Draxboard(SerialDevice):
     #region command byte arrays
     REQUEST_STATUS = bytearray([0x01, 0x00, 0x01, 0x02])
     SET_OUTPUT_STATE = bytearray([0x04, 0x02, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00])
-    DRAX_OUTPUT_ENABLE = bytearray([])
-    DRAX_OUTPUT_DISABLE = bytearray([])
-    DRAXBOARD_OUTPUT_ENABLE = bytearray([0x02, 0x05, 0x09, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x12])
-    METER_INCREMENT = bytearray([0x09, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00])
-    READ_PENDING_METER = bytearray([0x0a, 0x00, 0x02, 0x01, 0x0d])
+    DRAX_OUTPUT_ENABLE = bytearray([]) #Sends a message to the draxboard to only toggle specific output bits on
+    DRAX_OUTPUT_DISABLE = bytearray([]) #Sends a message to the draxboard to only toggle specific output bits off
+    DRAXBOARD_OUTPUT_ENABLE = bytearray([0x02, 0x05, 0x09, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x12]) #This will set the output state. Unlike output_enable/output_disable, this sets the entire state of the output for our draxboards
+    METER_INCREMENT = bytearray([0x09, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00]) #Message to increment our hard meters attached to our draxboard devices
+    READ_PENDING_METER = bytearray([0x0a, 0x00, 0x02, 0x01, 0x0d]) #region 
     #endregion command byte arrays
 
     #region const varialbes
