@@ -1340,6 +1340,12 @@ def interpret_debug_command(commandToRead, deviceManager):
         else:
             debug_firmware_updated_dbv(deviceManager)
         return
+    elif command == "dbvversion":
+        if len(commandSplit) >= 2:
+            debug_print_dbv_version(deviceManager, commandSplit[1])
+        else:
+            debug_print_dbv_version(deviceManager)
+        return
     elif command == "fuck":
         print ("I'm sorry you're having a rough time. Please don't be so hard on yourself. I'm sure you'll get through it!")
     else:
@@ -1425,8 +1431,8 @@ def debug_help_message():
     print ("'reject' - sends a command to reject a bill that is currently in escrow")
     print ("'toggleidle' - sends a command to toggle back and forth between idle and inhibit (data=[#ofToggles, secondsBetwenToggles]")
     print ("'firmwareupdate' - runs a command to update the firmware of the connected bill acceptor")
+    print ("'dbvversion' - runs a command to print the dbv version that is read in from the device")
     print ('-' * 60)
-
     return
 
 #region debug drax functions
@@ -1718,6 +1724,25 @@ def debug_status_dbv(deviceManager, playerStationHash = -1):
         print (deviceManager.playerStationDictionary[pStationKey].connectedBillAcceptor.State)
         deviceManager.playerStationDictionary[pStationKey].connectedBillAcceptor.get_dbv_state()
     return
+
+"""
+Prints the version of the DBV device that is passed through
+"""
+def debug_print_dbv_version(deviceManager, playerStationHash = -1):
+    if playerStationHash < 0: 
+        for dev in deviceManager.allConnectedDevices:
+            if isinstance(dev, DragonMasterSerialDevice.BillAcceptor):
+                print (str(dev.get_player_station_hash()) + " DBV Version: " + dev.dbvVersion)
+        return
+    
+    if playerStationHash not in deviceManager.playerStationHashToParentDevicePath:
+        print ("The player station hash was not found. Perhaps there is no draxboard connected for that station")
+        return
+    pStationKey = deviceManager.playerStationHashToParentDevicePath[playerStationHash]
+    if deviceManager.playerStationDictionary[pStationKey].connectedBillAcceptor != None:
+        print (str(dev.get_player_station_hash()) + " DBV Version: " + dev.dbvVersion)
+    return
+
 
 #endregion debug DBV commands
 

@@ -189,6 +189,7 @@ class DBV400(BillAcceptor):
     #region Commands
 
     STATUS_REQUEST = bytearray([0x12, 0x08, 0x00, 0x10, 0x00, 0x10, 0x10, 0x00])
+    VERSION_REQUEST = bytearray([0x12, 0x08, 0x00, 0x10, 0x01, 0x10, 0x03, 0x00])
     POWER_ACK = bytearray([0x12, 0x09, 0x00, 0x10, 0x00, 0x81, 0x00, 0x00, 0x06])
     POWER_ACCEPTOR_ACK = bytearray([0x12, 0x09, 0x00, 0x10, 0x00, 0x81, 0x01, 0x00, 0x06])
     SET_UID = bytearray([0x12, 0x09, 0x00, 0x10, 0x00, 0x20, 0x01, 0x00, 0x01])
@@ -255,7 +256,7 @@ class DBV400(BillAcceptor):
 
     def __init__(self, deviceManager):
         super().__init__(deviceManager)
-        
+        self.dbvVersion = "No Version Set..."
         return
 
 
@@ -276,11 +277,9 @@ class DBV400(BillAcceptor):
             print ("Invalid Message: " + read)
             return
 
-        # print (self.to_string() + " RECEIVE: " + str(read.hex()))
+        print (str(read))
 
-        length = len(read)
-        messages = []
-        index = 0
+        length = len(read)#really just a way to double check that we received a valid message
 
         # print (messages)
         
@@ -390,7 +389,6 @@ class DBV400(BillAcceptor):
         if message[10] == 0x03 and message[11] == 0x11:
             self.State = DBV400.ACTIVE_STATE
 
-        print ("Updated State: " + str(self.State))
         self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT,self.State)
         # print("New State: " + str(self.State))
     
@@ -661,8 +659,7 @@ class DBV400(BillAcceptor):
 
     """ Send event message to request the version of the DBV that that we are running """
     def send_dbv_version_request(self):
-
-
+        self.send_dbv_message(DBV400.VERSION_REQUEST)
         return
 
     #endregion
@@ -733,12 +730,18 @@ class DBV400(BillAcceptor):
             if firstByte:
                 self.on_data_received_event(firstByte)
                 receivedMessage = True
-            print ("Attempts: " + str(numberOfAttempts))
             
-        self.serialObject.timeout = None
 
         if not receivedMessage:
             return False
+
+        self.send_dbv_version_request()
+        firstByte = self.serialObject.read(1)
+        if firstByte:
+            self.on_data_received_event(firstByte)
+        else:
+            return False
+        self.serialObject.timeout = None
 
         super().start_device(deviceElement)
         
