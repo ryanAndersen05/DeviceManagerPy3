@@ -111,7 +111,9 @@ class DragonMasterDeviceManager:
     DEBUG_PRINT_EVENTS_RECEIVED_FROM_UNITY = False #Mark this true to show events that we have received from Unity
     DEBUG_TRANSLATE_PACKETS = False #Mark this true if you would like the packet names to be shown in English rather that Raw byte commands
     DEBUG_DISPLAY_JOY_AXIS = False #Mark this true to display all joystick axes values that are collected.
-    DEBUG_SHOW_DRAX_BUTTONS = False
+    DEBUG_SHOW_DRAX_BUTTONS = False #Displays the buttons that are pressed on each 
+    DEBUG_LOG_DRAX = False #This will log the byte packets that we send and receive from our draxboard devices
+    DEBUG_LOG_OMNIDONGLE = False #This will log the byte packets that we send and receive from our omnidongle device
 
 
     #endregion debug variables
@@ -1194,7 +1196,7 @@ def interpret_debug_command(commandToRead, deviceManager):
         print ("TRANSLATE TCP MESSAGES: " + str(DragonMasterDeviceManager.DEBUG_TRANSLATE_PACKETS))
         return
     #Joystick DEBUG
-    elif command == "displayjoy":
+    elif command == "logjoystick":
         DragonMasterDeviceManager.DEBUG_DISPLAY_JOY_AXIS = not DragonMasterDeviceManager.DEBUG_DISPLAY_JOY_AXIS
         return
     #DRAX DEBUG
@@ -1204,6 +1206,9 @@ def interpret_debug_command(commandToRead, deviceManager):
             print ("Printing Drax Buttons: ON")
         else:
             print ("Printing Drax Buttons: OFF")
+        return
+    elif command == "logdrax":
+        
         return
     elif command == "flashdrax":
         if len(commandSplit) >= 2:
@@ -1334,7 +1339,7 @@ def interpret_debug_command(commandToRead, deviceManager):
         else:
             debug_status_dbv(deviceManager)
         return
-    elif command == "firmwareupdate":
+    elif command == "dbvdownload":
         if len(commandSplit) >= 2:
             debug_firmware_updated_dbv(deviceManager, commandSplit[1])
         else:
@@ -1413,8 +1418,8 @@ def debug_help_message():
     print ("'flashdrax' - This will trigger the ticket light to turn on and off and display which station it is applied to (data=[])")
     print ('-' * 60)
     print ("**JOYSTICK COMMANDS**")
-    print ("'displayjoy' - This will print out all joystick values that are gathered. To turn off reenter the command (data=[])")
-    print ("    NOTE: 'displayjoy' can get very spammy. simply type display joy even if its not all on one line and it will register")
+    print ("'logjoystick' - This will print out all joystick values that are gathered. To turn off reenter the command (data=[])")
+    print ("    NOTE: 'logjoystick' can get very spammy. simply type display joy even if its not all on one line and it will register")
     print ('-' * 60)
     print ("**Printer Commands**")
     print ("'vprint' - Prints a sample voucher ticket (data=[])")
@@ -1430,7 +1435,7 @@ def debug_help_message():
     print ("'stack' - sends a command to stack a bill if it is currently held in escrow")
     print ("'reject' - sends a command to reject a bill that is currently in escrow")
     print ("'toggleidle' - sends a command to toggle back and forth between idle and inhibit (data=[#ofToggles, secondsBetwenToggles]")
-    print ("'firmwareupdate' - runs a command to update the firmware of the connected bill acceptor")
+    print ("'dbvdownload' - runs a command to update the firmware of the connected bill acceptor")
     print ("'dbvversion' - runs a command to print the dbv version that is read in from the device")
     print ('-' * 60)
     return

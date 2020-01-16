@@ -676,10 +676,10 @@ class DBV400(BillAcceptor):
 
     """
     Runs a process to update the firmware in our DBV devices if needed
+
+    NOTE: The bill acceptor needs to be in the Inhibit state before we run this process. We may need to delay the download process to set our 
     """
     def begin_firmware_download_process(self):
-        # print (str (self.get_player_station_hash()) + " Beginning Firmware Update")
-        # print (DBV400.FIRMWARE_UPDATE_FILE_PATH)
         if (self.State != DBV400.INHIBIT_STATE):
             print ("Please be sure that the DBV is in the inhibit state before running firmware update")
             return
@@ -687,6 +687,31 @@ class DBV400(BillAcceptor):
         binFile = open(DBV400.FIRMWARE_UPDATE_FILE_PATH, 'rb')
         DBV400.DOWN_PACKET_DATA = binFile.read()
         self.INDEX_IN_LOAD_BUFFER = 0
+        
+        return
+
+    """
+    Sends a request to begin the download process for our DBV
+    """
+    def send_download_request(self):
+
+        return
+
+    """
+    Sends a packet to request the download info. This should include the max size of our packet that we are able to send to our dbv
+    """
+    def send_download_info_request(self):
+
+        return
+
+    """
+    This should be called upon receiving a dbv idle message. If you have not received download info, you should request that first before calling this
+    """
+    def send_download_bytes_to_dbv(self):
+
+        return
+
+    def send_download_complete_message(self):
 
         return
 
