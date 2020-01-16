@@ -40,7 +40,7 @@ class SerialDevice(DragonMasterDevice.DragonMasterDevice):
         return
 
     """
-    The start device method in our serial device begins the polling process to search for 
+    The start device method in our serial device begins the polling process to search for
     packets to the read in from our serial device
     """
     def start_device(self, deviceElement):
@@ -60,7 +60,7 @@ class SerialDevice(DragonMasterDevice.DragonMasterDevice):
         self.serialState = SerialDevice.SERIAL_NOT_POLLING
         return
 
-        
+
     #Universal Serial Methods
     """
     All serial classes will be running a thread to see if there are any events ready to be received. This event will trigger upon one byte being read in. You must read the rest
@@ -69,7 +69,7 @@ class SerialDevice(DragonMasterDevice.DragonMasterDevice):
     firstByteOfPacket will be of type bytes()
     """
     def on_data_received_event(self, firstByteOfPacket):
-        
+
         return
 
 
@@ -101,7 +101,7 @@ class SerialDevice(DragonMasterDevice.DragonMasterDevice):
     def close_serial_device(self):
         if (self.serialObject == None):
             return
-        
+
         if (self.serialObject.isOpen):
             try:
                 self.serialObject.close()
@@ -122,14 +122,14 @@ class SerialDevice(DragonMasterDevice.DragonMasterDevice):
                 firstReadByte = self.serialObject.read(1)
                 if firstReadByte != None and len(firstReadByte) > 0:
                     self.on_data_received_event(firstReadByte)
-                    
+
         except Exception as e:
             print ("There was an error polling device " + str(self.get_player_station_hash()) + ", Error: " + self.to_string())
             print (e)
             self.on_poll_serial_errored()
             self.pollingDevice = False  # Thread will end if there is an error polling for a device
 
-            
+
 
         print (self.to_string() + " no longer polling for events")#Just want this for testing. want to remove later
         return
@@ -143,11 +143,11 @@ class SerialDevice(DragonMasterDevice.DragonMasterDevice):
         self.dragonMasterDeviceManager.remove_device(self)
 
     #READ/WRITE Methods
-   
+
 
     """
     Safely writes a message to our serial object
-    
+
     NOTE: Please be sure that the message is of the type 'bytearray'
     """
     def write_to_serial(self, messageToSend):
@@ -189,6 +189,7 @@ class DBV400(BillAcceptor):
     #region Commands
 
     STATUS_REQUEST = bytearray([0x12, 0x08, 0x00, 0x10, 0x00, 0x10, 0x10, 0x00])
+    VERSION_REQUEST = bytearray([0x12, 0x08, 0x00, 0x10, 0x01, 0x10, 0x03, 0x00])
     POWER_ACK = bytearray([0x12, 0x09, 0x00, 0x10, 0x00, 0x81, 0x00, 0x00, 0x06])
     POWER_ACCEPTOR_ACK = bytearray([0x12, 0x09, 0x00, 0x10, 0x00, 0x81, 0x01, 0x00, 0x06])
     SET_UID = bytearray([0x12, 0x09, 0x00, 0x10, 0x00, 0x20, 0x01, 0x00, 0x01])
@@ -247,15 +248,15 @@ class DBV400(BillAcceptor):
 
     #endregion
     #region variables
-    UidSet = False # UID of this device has been set. If this is true, 
+    UidSet = False # UID of this device has been set. If this is true,
     State = NOT_INIT_STATE # Current state of the DBV
     AutoReject = False # If set to true, immediately reject any bills inserted into the DBV.
-    AmountStored = 0 # Current amount stored the 
+    AmountStored = 0 # Current amount stored the
     #endregion
 
     def __init__(self, deviceManager):
         super().__init__(deviceManager)
-        
+        self.dbvVersion = None
         return
 
 
@@ -275,20 +276,14 @@ class DBV400(BillAcceptor):
         if read == None or len(read) < 2:
             print ("Invalid Message: " + read)
             return
-
-        # print (self.to_string() + " RECEIVE: " + str(read.hex()))
-
-        length = len(read)
-        messages = []
-        index = 0
-
-        # print (messages)
-        
-
+        length = len(read)#really just a way to double check that we received a valid message
         if length == lengthOfMessage:
             self.process_data_received_message(read)
-        
+        return
 
+    """
+    Takes in the packet that is received by our DBV-400 and selects the method most appropriate to process the data
+    """
     def process_data_received_message(self, read):
         # print ("DBV Path: " + str(self.get_player_station_hash()) + ", Message:" + read.hex())
         length = read[1]
@@ -320,6 +315,9 @@ class DBV400(BillAcceptor):
                 return
             elif read[8] == 0xe2:
                 self.on_unsupported_received(read)
+                return
+            elif read[8] == 0xe4:
+                print ("Error: Unavailable. DBV is not ready to receive more than likely")
                 return
             elif read[5] == 0x20 and read[6] == 0x01 and read[7] == 0x00:
                 self.on_uid_success()
@@ -364,10 +362,15 @@ class DBV400(BillAcceptor):
             elif read[6] == 0x02 and read[7] == 0x11:
                 self.on_bill_inserted(read)
                 return
+            elif read[6] == 0x03 and read[7] == 0x00 and read[8] == 0x06:
+                self.on_version_message_received(read)
+                return
+        print ("I didn't process anything for this packet: " + read.hex())
+        return
     #endregion
 
     #region on read methods
-    
+
     """ Process status request message sent from DBV to host """
     def on_status_update_received(self, message):
         self.State = DBV400.UNSUPPORTED_STATE
@@ -390,24 +393,24 @@ class DBV400(BillAcceptor):
         if message[10] == 0x03 and message[11] == 0x11:
             self.State = DBV400.ACTIVE_STATE
 
-        print ("Updated State: " + str(self.State))
-        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT,self.State)
+        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT,self.State)#Sends a state update to our unity application
         # print("New State: " + str(self.State))
-    
+
     """ We have received a message that the DBV has started (or restarted) and needs to be acknowledged """
     def on_power_up_nack_received(self,message):
-        # print("power up nack received")
+        print("power up nack received")
         powerUpAck = DBV400.POWER_ACK
         powerUpAck[5] = message[5]
         self.UidSet = False
         self.State = DBV400.POWER_UP_NACK_STATE
         self.send_dbv_message(powerUpAck)
-        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT,self.State)
+        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT, self.State)
         self.get_dbv_state()
-    
+
     """ Same as above, but the DBV has started with a bill that is waiting to be stacked """
     def on_power_up_acceptor_nack_received(self, message):
         # print("power up acceptor nack received")
+        print ("Power UP")
         self.UidSet = False
         powerUpAck = DBV400.POWER_ACCEPTOR_ACK
         powerUpAck[5] = message[5]
@@ -423,23 +426,22 @@ class DBV400(BillAcceptor):
         self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT,self.State)
         self.power_up_dbv()
         return
-    
+
     """ The last message sent to the DBV contained the incorrect UID """
     def on_unsupported_received(self,message):
         # print("unsupported received")
         self.State = DBV400.UNSUPPORTED_STATE
         self.UID = message[4]
         self.UidSet = True
-        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT,self.State)
-        self.get_dbv_state()
+        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT, self.State)
         return
 
 
     """ The DBV was successfully set during power up. We can now reset the DBV """
     def on_uid_success(self):
-        print("UID set success")
+        # print("UID set success")
         self.UidSet = True
-        self.reset_dbv()
+        # self.reset_dbv()
         return
 
     """ Reset message was successfully received by the DBV """
@@ -449,12 +451,12 @@ class DBV400(BillAcceptor):
         self.State = DBV400.WAITING_STATE
         pass
 
-    """ Inhibit message was successfuly received by the DBV """ 
+    """ Inhibit message was successfuly received by the DBV """
     def on_inhibit_request_received(self):
         # print ("Inhibit Request Recieved: " +str(self.get_player_station_hash()))
         self.State = DBV400.WAITING_STATE
         pass
-    
+
     """ DBV was successfully set to inhibit state. Send ACK to DBV to confirm state """
     def on_inhibit_success(self,message):
         inhibitMessage = DBV400.INHIBIT_ACK
@@ -463,14 +465,14 @@ class DBV400(BillAcceptor):
         # print ("Inhibit Success: " + str(self.get_player_station_hash()))
         self.send_dbv_message(inhibitMessage)
         self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT, self.State)
-        
+
 
     """ Idle request successfully received by the DBV """
     def on_idle_request_received(self):
         # print ("Idle request received: " + str(self.get_player_station_hash()))
         self.State = DBV400.WAITING_STATE
         pass
-    
+
     """ DBV was successfully set to idle state. Send ACK to DBV to confirm state """
     def on_idle_success(self,message):
         idleMessage = DBV400.IDLE_ACK
@@ -493,7 +495,7 @@ class DBV400(BillAcceptor):
         else :
             self.send_dbv_message(DBV400.HOLD_BILL)
         self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_INSERTED_EVENT, self.AmountStored)
-    
+
     """ A bil inserted to the DBV was rejected due to an error (invalid bill, invalid state, etc.) """
     def on_bill_rejected(self, message):
         rejectAck = DBV400.REJECT_ACK
@@ -501,7 +503,7 @@ class DBV400(BillAcceptor):
         self.send_dbv_message(rejectAck)
         self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_REJECTED_EVENT,self.AmountStored)
         self.AmountStored = 0
-    
+
     """ A bill was returned by the DBV due to a reject command or powering up with a bill inserted """
     def on_bill_returned(self, message):
         returnAck = DBV400.RETURN_ACK
@@ -519,7 +521,7 @@ class DBV400(BillAcceptor):
     def on_stack_inhibit_success(self):
         # print ("Stack inhibit success")
         pass
-    
+
     """ The bill stacked in the bill acceptor was succesfully processed and stacked """
     def on_vend_valid(self, message):
         # print ("Vend Valid")
@@ -533,7 +535,7 @@ class DBV400(BillAcceptor):
     def on_bill_reject_request_received(self):
         # print ("BILL REJECT REQUEST")
         pass
-    
+
     """ A returned/rejected bill was left at the mouth of the DBV and needs to be removed """
     def on_note_stay_received(self, message):
         noteStayAck = DBV400.NOTE_STAY_ACK
@@ -542,7 +544,7 @@ class DBV400(BillAcceptor):
         self.State = DBV400.NOTE_STAY_STATE
         self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT,self.State)
         pass
-    
+
     """ The DBV has reported an error. Ack this message and wait for the error clear message """
     def on_operation_error(self, message):
         # print ("Operation Error")
@@ -553,7 +555,7 @@ class DBV400(BillAcceptor):
         self.State = DBV400.ERROR_STATE
         self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT,self.State)
         pass
-    
+
     """ A DBV error was cleared and the system is ready to be reset to resume normal operation """
     def on_operation_error_clear(self, message):
         # print ("Operation Error Cleared")
@@ -565,7 +567,7 @@ class DBV400(BillAcceptor):
         self.reset_dbv()
         self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT,self.State)
         pass
-    
+
     """ Process this error message to determine the specific error state """
     def on_error_state_received(self, message):
         if len(message) >= 13:
@@ -582,10 +584,12 @@ class DBV400(BillAcceptor):
             self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT,self.State)
         pass
 
-    
-    """ Process a message from our DBV to determine the version we are in """
-    def on_version_message_received():
 
+    """ Process a message from our DBV to determine the version we are in """
+    def on_version_message_received(self, message):
+        sizeOfVersion = 9
+        self.dbvVersion = message[9:].decode('utf-8')
+        print ("VersionSet: " + self.dbvVersion)
         return
     #endregion on read methods
 
@@ -593,7 +597,6 @@ class DBV400(BillAcceptor):
 
     """ Send the DBV a message, formatting the message with the UID if neccessary """
     def send_dbv_message(self, message):
-        
         if self.UidSet:
             message[4] = self.UID
         else:
@@ -616,37 +619,37 @@ class DBV400(BillAcceptor):
             return
         self.send_dbv_message(DBV400.IDLE_REQUEST)
         return
-    
+
     """ Inhibit the DBV to stop accepting bills """
     def inhibit_dbv(self):
         if self.State != DBV400.IDLE_STATE:
             return
         self.send_dbv_message(DBV400.INHIBIT_REQUEST)
         return
-    
+
     """ Power up method. Set the UID of the DBV and reset """
     def power_up_dbv(self):
         self.set_uid()
         return
-    
+
     """ Reset the DBV """
     def reset_dbv(self):
         if (self.State == DBV400.ERROR_STATE_BOX_REMOVED or self.State == DBV400.ERROR_STATE_ACCEPTOR_JAM or self.State == DBV400.WAITING_STATE):
             return
         self.send_dbv_message(DBV400.RESET_REQUEST)
         return
-    
+
     """ Query the current DBV state """
     def get_dbv_state(self):
         message = DBV400.STATUS_REQUEST
         self.send_dbv_message(message)
         return
-    
+
     """ Stack the current bill in the acceptor """
     def stack_bill(self):
         self.send_dbv_message(DBV400.STACK_INHIBIT)
         return
-    
+
     """ Reject the current bill in the acceptor """
     def reject_bill(self):
         self.send_dbv_message(DBV400.REJECT_COMMAND)
@@ -661,8 +664,7 @@ class DBV400(BillAcceptor):
 
     """ Send event message to request the version of the DBV that that we are running """
     def send_dbv_version_request(self):
-
-
+        self.send_dbv_message(DBV400.VERSION_REQUEST)
         return
 
     #endregion
@@ -681,29 +683,46 @@ class DBV400(BillAcceptor):
         if (self.State != DBV400.INHIBIT_STATE):
             print ("Please be sure that the DBV is in the inhibit state before running firmware update")
             return
-        
+
         binFile = open(DBV400.FIRMWARE_UPDATE_FILE_PATH, 'rb')
         DBV400.DOWN_PACKET_DATA = binFile.read()
         self.INDEX_IN_LOAD_BUFFER = 0
 
         return
 
+    """
+    Message indicating that the write process of our packet data has been processed and that we are able to send the next set of data
+    """
     def on_downlaod_idle_received(self, packetData):
 
         return
 
+    """
+    Simply confirms that the DBV is in the process of writing the data that we have sent to it
+    """
     def on_download_writing_received(self, packetData):
 
         return
 
+    """
+    This response indicates that the DBV has received a download request and should now be entering download mode
+    """
     def on_download_request_received(self, packetData):
 
         return
 
+    """
+    This packet will contain information about the packet size that we can send to our DBV as well as other information about
+    our Download request
+    """
     def on_download_info_received(self, packetData):
 
         return
 
+    """
+    After we send a packet that indicates the download process has completed we should receive this packet.
+    This is simply a response that our download proecess is completed
+    """
     def on_downlaod_completion_received(self, packetData):
 
         return
@@ -715,36 +734,88 @@ class DBV400(BillAcceptor):
         self.UidSet = False
 
         self.serialObject = self.open_serial_device(deviceElement.device, DBV400.DBV_BAUDRATE, None, None)
+        self.serialObject.read(self.serialObject.in_waiting)
 
         if self.serialObject == None:
             return False
 
-        self.serialObject.reset_input_buffer()
-        self.serialObject.reset_output_buffer()
+        if not self.process_current_state_on_startup():
+            return False
         
+        super().start_device(deviceElement)
+        if self.State == DBV400.NOT_INIT_STATE:
+            return False
+
+        if self.State == DBV400.IDLE_STATE:
+            self.inhibit_dbv()
+        elif self.State == DBV400.UNSUPPORTED_STATE:
+            self.reset_dbv()
+        elif self.State != DBV400.INHIBIT_STATE:
+            self.reset_dbv()
+
+        self.get_dbv_state()
+        return True
+
+    """
+    This will run a check to ensure that we are in a power up state before running our normal startup sequence
+    """
+    def process_current_state_on_startup(self):
+        self.serialObject.timeout = .1
+        self.serialObject.writeTimeout = 1
         numberOfAttempts = 0
-        receivedMessage = False
-        while numberOfAttempts < 5 and not receivedMessage:
+        self.get_dbv_state()
+        while numberOfAttempts < 5 and self.State == DBV400.NOT_INIT_STATE:
             numberOfAttempts += 1
+            firstByte = self.serialObject.read(1)
+            if firstByte:
+                self.on_data_received_event(firstByte)#This will ignore process. This is to ensure that we are able to communicate witht the DBV
+            else:
+                self.get_dbv_state()
             
-            self.serialObject.timeout = 1
-            self.get_dbv_state()
+            
+        if self.State == DBV400.NOT_INIT_STATE:
+            return False
+
+        numberOfAttempts = 0
+        self.set_uid()
+
+        while numberOfAttempts < 5 and not self.UidSet:
+            numberOfAttempts += 1
             firstByte = self.serialObject.read(1)
             if firstByte:
                 self.on_data_received_event(firstByte)
-                receivedMessage = True
-            print ("Attempts: " + str(numberOfAttempts))
-            
-        self.serialObject.timeout = None
-
-        if not receivedMessage:
+            else:
+                self.set_uid()
+        if not self.UidSet:
             return False
+        self.send_dbv_version_request()
+        numberOfAttempts = 0
+        while numberOfAttempts < 5 and self.dbvVersion == None:
+            numberOfAttempts += 1
+            firstByte = self.serialObject.read(1)
+            if firstByte:
+                self.on_data_received_event(firstByte)
+            else:
+                self.send_dbv_version_request()
+        if self.dbvVersion == None:
+            return False
+        self.get_dbv_state
+        numberOfAttempts = 0
+        while numberOfAttempts < 2 and self.State == DBV400.UNSUPPORTED_STATE:
+            numberOfAttempts += 1
+            firstByte = self.serialObject.read(1)
+            if firstByte:
+                self.on_data_received_event(firstByte)
+            else:
+                self.get_dbv_state()
 
-        super().start_device(deviceElement)
-        
-        self.get_dbv_state()
+        if self.dbvVersion == None:
+            return False
+        self.serialObject.timeout = None
+        self.serialObject.writeTimeout = None
         return True
-    
+
+
     def fetch_parent_path(self, deviceElement):
         devToReturn = None
         for dev in self.dragonMasterDeviceManager.deviceContext.list_devices():
@@ -773,11 +844,11 @@ class Draxboard(SerialDevice):
     DRAX_OUTPUT_DISABLE = bytearray([]) #Sends a message to the draxboard to only toggle specific output bits off
     DRAXBOARD_OUTPUT_ENABLE = bytearray([0x02, 0x05, 0x09, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x12]) #This will set the output state. Unlike output_enable/output_disable, this sets the entire state of the output for our draxboards
     METER_INCREMENT = bytearray([0x09, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00]) #Message to increment our hard meters attached to our draxboard devices
-    READ_PENDING_METER = bytearray([0x0a, 0x00, 0x02, 0x01, 0x0d]) #region 
+    READ_PENDING_METER = bytearray([0x0a, 0x00, 0x02, 0x01, 0x0d]) #region
     #endregion command byte arrays
 
     #region const varialbes
-    ##METER INDEX 
+    ##METER INDEX
     IN_METER = 0x00
     OUT_METER = 0x01
     IN_METER_MACHINE = 0x02#In some cases our draxboard will have 4 meters. 3 and 4 are meant to represent the machine money in/out
@@ -844,7 +915,7 @@ class Draxboard(SerialDevice):
         super().start_device(deviceElement)#This will begin the polling thread to read inputs returned by the draxboard
 
         self.write_to_serial(self.DRAXBOARD_OUTPUT_ENABLE)#Turns on all outputs that need to be on
-        
+
         self.toggle_output_state_of_drax(0x180f)
         self.playerStationHash = self.get_draxboard_device_path_hash(deviceElement)
 
@@ -859,7 +930,7 @@ class Draxboard(SerialDevice):
             if dev.device_path.__contains__(deviceElement.location) and dev.device_path.__contains__(deviceElement.name):
                 devToReturn = dev.parent.parent.parent.device_path
 
-        
+
         return devToReturn
 
     """
@@ -885,7 +956,7 @@ class Draxboard(SerialDevice):
         lengthOfPacket = read[2]
         read += self.serialObject.read(lengthOfPacket)
         try:
-            
+
             #Dynamic Packets: Packets that can be received at any point regardless of whether they were requested or not
             if firstByteOfPacket[0] == Draxboard.INPUT_EVENT_ID:
                 self.add_input_event_to_tcp_queue(read)
@@ -906,7 +977,7 @@ class Draxboard(SerialDevice):
             elif firstByteOfPacket[0] == Draxboard.PENDING_METER_ID:
                 self.on_pending_meter_packet_received(read)
                 return
-            
+
         except Exception as e:
             print ("There was an error processing a data event from our draxboard")
             print (e)
@@ -920,7 +991,7 @@ class Draxboard(SerialDevice):
     """
     def on_request_status_received(self, bytePacket):
         requestStatus = bytePacket
-        
+
         if len(requestStatus) < Draxboard.REQUEST_STATUS_SIZE:
             print ("Reqeust Status length was too short or invalid: " + str(requestStatus))
             return
@@ -973,11 +1044,11 @@ class Draxboard(SerialDevice):
         print ("Pending Meter: " + str(bytePacket))
         return
 
-    
+
     #endregion message received events
 
 
-        
+
 
     """
     To string displays the comport of the drax device
@@ -988,7 +1059,7 @@ class Draxboard(SerialDevice):
         else:
             return "Draxboard (Missing)"
 
-            
+
     #endregion Override Methods
     """
     This method returns a hash value that is a derivation of the physical path our draxboard device.
@@ -1021,7 +1092,7 @@ class Draxboard(SerialDevice):
         try:
             if ticksToSend == 0:
                 return
-            
+
             incrementMeterCommand = self.METER_INCREMENT
             incrementMeterCommand[3] = meterIDToIncrement
 
@@ -1035,7 +1106,7 @@ class Draxboard(SerialDevice):
             self.write_to_serial(incrementMeterCommand)
 
             readPendingMeterCommand = self.READ_PENDING_METER[:]
-            
+
             readPendingMeterCommand[3] = meterIDToIncrement
             readPendingMeterCommand[4] = 0#need to reset the checksum
             readPendingMeterCommand[4] = self.calculate_checksum(readPendingMeterCommand)
@@ -1062,7 +1133,7 @@ class Draxboard(SerialDevice):
     Sets up and adds an input packet to our TCP queue, so that it can be sent at the next availability
     """
     def add_input_event_to_tcp_queue(self, inputPacket):
-        
+
         if inputPacket == None or len(inputPacket) < Draxboard.INPUT_EVENT_SIZE or inputPacket[0] != Draxboard.INPUT_EVENT_ID:
             print ("Invalid Input Event Packet. Please Be sure you are correctly interpreting our input packets")
             return
@@ -1112,8 +1183,8 @@ class Draxboard(SerialDevice):
         self.write_to_serial(outputMessageArray)
         self.draxOutputState = outputToggleu32
         return
-        
-    
+
+
     """
     Sends a packet to our TCP Manager that contains the output state of the draxboard
     """
@@ -1122,7 +1193,7 @@ class Draxboard(SerialDevice):
         self.dragonMasterDeviceManager.add_event_to_send(DragonMasterDeviceManager.DragonMasterDeviceManager.DRAX_OUTPUT_EVENT, packetToSend, self.playerStationHash)
         return
 
-        
+
     """
     This method verifies that there is an input event packet that can be read in. This method will also send
     an input method to the tcp queue if there is a valid input found when searching
@@ -1136,7 +1207,7 @@ class Draxboard(SerialDevice):
         return False
     pass
 
-    
+
 
     """
     Returns the checksum of the packet that we are going to send to our Draxboard serail
@@ -1164,7 +1235,7 @@ class ReliancePrinterSerial(SerialDevice):
     def __init__(self, deviceManager, associatedReliancePrinter):
         super().__init__(deviceManager)
         self.associatedReliancePrinter = associatedReliancePrinter
-        
+
         return
 
 
@@ -1193,14 +1264,14 @@ class ReliancePrinterSerial(SerialDevice):
                 if self.serialObject.in_waiting:#This is strictly just here to throw an exception if the device is ever disconnected. That way we can properly remove from the device manager
                     pass
                 sleep(.1)#Polls around 10 times per second to ensure that the dongle is still connected
-                    
+
         except Exception as e:
             print ("There was an error polling device " + self.to_string())
             print (e)
             self.on_poll_serial_errored()
             self.pollingDevice = False  # Thread will end if there is an error polling for a device
 
-            
+
 
         print (self.to_string() + " no longer polling for events")#Just want this for testing. want to remove later
         return
@@ -1220,7 +1291,7 @@ class ReliancePrinterSerial(SerialDevice):
         self.dragonMasterDeviceManager.remove_device(self.associatedReliancePrinter)
 
     """
-    Disconnects both our serial 
+    Disconnects both our serial
     """
     def disconnect_device(self):
         if not self.pollingDevice:
@@ -1290,7 +1361,7 @@ class Omnidongle(SerialDevice):
             self.dragonMasterDeviceManager.CONNECTED_OMNIDONGLE = self
             self.serialObject.flush()
             SerialDevice.start_device(self, deviceElement)
-            
+
         except Exception as e:
             print ("There was an error flushing out the Omnidongle")
             print (e)
@@ -1310,18 +1381,18 @@ class Omnidongle(SerialDevice):
                 if self.serialObject.in_waiting:#This is strictly just here to throw an exception if the device is ever disconnected. That way we can properly remove from the device manager
                     pass
                 sleep(.1)#Polls around 10 times per second to ensure that the dongle is still connected
-                    
+
         except Exception as e:
             print ("There was an error polling device " + self.to_string())
             print (e)
             self.on_poll_serial_errored()
             self.pollingDevice = False  # Thread will end if there is an error polling for a device
 
-            
+
 
         print (self.to_string() + " no longer polling for events")#Just want this for testing. want to remove later
         return
-        
+
 
     """
     The parent path for our Omnidongle is not important as it is not assigned to any
@@ -1335,13 +1406,13 @@ class Omnidongle(SerialDevice):
     to None
     """
     def disconnect_device(self):
-        
+
         SerialDevice.disconnect_device(self)
         if (self.dragonMasterDeviceManager.CONNECTED_OMNIDONGLE == self):
             self.dragonMasterDeviceManager.CONNECTED_OMNIDONGLE = None
         return
-        
-        
+
+
     """
     Sends a packet to our omnidongle. After we have sent a message to our omnidongle we will wait for a response to return to our unity application
     If we do not receive a message we should probably throw an error of some kind here. The dongle should always return something
@@ -1353,13 +1424,13 @@ class Omnidongle(SerialDevice):
         if (len(packetToSend) <= 1):
             print ("Our packet length was too short")
             return
-        
+
         self.write_to_serial(packetToSend)
         firstByteOfPacket = self.serialObject.read(1)
         if firstByteOfPacket == None:
             print ("OMNIERROR: No packet was returned after a timeout")
             return
-            
+
         sleep(.025)#Give it a small buffer time before reading the packet in. Omnidonge message can get very long and we may miss something if we start reading immediately
         self.dragonMasterDeviceManager.add_event_to_send(DragonMasterDeviceManager.DragonMasterDeviceManager.OMNI_EVENT ,firstByteOfPacket + self.serialObject.read(self.serialObject.in_waiting))#returns the response from our omnidongle
 
@@ -1372,7 +1443,7 @@ class Omnidongle(SerialDevice):
         else:
             return "POM Omnidongle (Missing)"
 
-    
+
     pass
 
 
@@ -1387,7 +1458,7 @@ def get_all_connected_dbv400_comports():
     for element in allPorts:
         if element.description.__contains__(DBV400.DBV_DESCRIPTION):
             dbv400Elements.append(element)
-    
+
     return dbv400Elements
 
 """

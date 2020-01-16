@@ -29,4 +29,5 @@ while (not DragonMasterDeviceManager.DragonMasterDeviceManager.KILL_DEVICE_MANAG
 
     sleep(.5)
 
+#Main Loop has been terminated. If the application continues to run long after this point, then more than likely there is a process that is not set as a background process and is still running
 print ("Terminated Device Manager Application")
