@@ -287,6 +287,8 @@ class DBV400(BillAcceptor):
     def process_data_received_message(self, read):
         # print ("DBV Path: " + str(self.get_player_station_hash()) + ", Message:" + read.hex())
         length = read[1]
+        print (read.hex())
+        
         if (length <= 8):
             if read[6] == 0x00 and read[7] == 0x01:
                 self.on_inhibit_success(read)
@@ -306,8 +308,8 @@ class DBV400(BillAcceptor):
             elif read[6] == 0x00 and (read[7] == 0x12 or read[7] == 0x02):
                 self.on_operation_error_clear(read)
                 return
-            elif read[6] == 0x01 and read[7] == 0x04:
-                self.on_downlaod_idle_received(read)
+            elif read[2] == 0x00 and read[3] == 0x10:
+                self.on_download_status_received(read)
                 return
         elif (length <= 9):
             if read[6] == 0x11 and read[7] == 0x00 and read[8] == 0x06:
@@ -343,14 +345,14 @@ class DBV400(BillAcceptor):
             elif read[6] == 0x15 and read[7] == 0x10:
                 self.on_bill_reject_request_received()
                 return
-            elif read[5] == 0x00 and read[6] == 0xd1:
-                self.on_download_request_received(read)
+            elif read[5] == 0x00 and read[6] == 0xd1 and read[8] == 0x06:
+                self.on_download_request_ack_received(read)
                 return
         elif (length >= 10):
             if read[7] == 0x00 and read[8] == 0x06 and read[9] == 0x04:
                 self.on_status_update_received(read)
                 return
-            elif read[5] == 0x10 and read[6] == 0xd5:
+            elif read[6] == 0xd5 and read[7] == 0x00:
                 self.on_download_info_received(read)
                 return
             elif read[6] == 0x00 and read[7] == 0x00:
@@ -441,7 +443,6 @@ class DBV400(BillAcceptor):
     def on_uid_success(self):
         # print("UID set success")
         self.UidSet = True
-        # self.reset_dbv()
         return
 
     """ Reset message was successfully received by the DBV """
@@ -670,9 +671,16 @@ class DBV400(BillAcceptor):
     #endregion
 
     #region updating dbv firmware
-    INDEX_IN_LOAD_BUFFER = 0
-    DOWN_PACKET_DATA = []
-    MAX_DOWNLOAD_BYTE_SIZE = 0
+    DOWNLOAD_REQUEST_PACKET = bytearray([0x12, 0x08, 0x00, 0x10, 0x01, 0x00, 0xd1, 0x00]) #Packet requests that we enter dbv download mode
+    DOWNLOAD_INFO_REQUEST_PACKET = bytearray([0x12, 0x08, 0x00, 0x10, 0x01, 0x10, 0xd5, 0x00]) #Packet to request that we gather info about our download state
+    DOWNLOAD_PACKET = bytearray([0x12, 0x00, 0x10, 0x10, 0x01, 0x00, 0xd2, 0x00]) #Packet to send firmware patch data chunk
+
+    DOWNLOAD_STATE_ACK = bytearray([0x12, 0x09, 0x00, 0x10, 0x01, 0x83, 0x01, 0x04, 0x06])
+
+
+    INDEX_IN_LOAD_BUFFER = 0 #Index in Download packet that we are currently in
+    DOWN_PACKET_DATA = [] #List of all the bytes that we need to send to our DBV. This should only need to be opened once per 
+    MAX_DOWNLOAD_BYTE_SIZE = 0 #This represents the max number of bytes that we can send at a time for our download packets
 
     """
     Runs a process to update the firmware in our DBV devices if needed
@@ -687,21 +695,22 @@ class DBV400(BillAcceptor):
         binFile = open(DBV400.FIRMWARE_UPDATE_FILE_PATH, 'rb')
         DBV400.DOWN_PACKET_DATA = binFile.read()
         self.INDEX_IN_LOAD_BUFFER = 0
-        
+        self.send_download_request()
+
         return
 
     """
     Sends a request to begin the download process for our DBV
     """
     def send_download_request(self):
-
+        self.send_dbv_message(DBV400.DOWNLOAD_REQUEST_PACKET)
         return
 
     """
     Sends a packet to request the download info. This should include the max size of our packet that we are able to send to our dbv
     """
     def send_download_info_request(self):
-
+        print ("Download Info Request")
         return
 
     """
@@ -716,24 +725,62 @@ class DBV400(BillAcceptor):
         return
 
     """
+
+    """
+    def on_download_status_received(self, packetData):
+        ackMessage = bytearray(packetData)
+        ackMessage.append(0x06)
+        ackMessage[1] = len(ackMessage)
+        print (ackMessage)
+        self.send_dbv_message(ackMessage)
+        if packetData[6] == 0x01 and packetData[7] == 0x04:
+            self.on_downlaod_idle_received(packetData)
+            return
+        elif packetData[6] == 0x02 and packetData[7] == 0x04:
+            self.on_download_writing_received(packetData)
+            return
+        elif packetData[6] == 0xd1 and packetData[7] == 0x02:
+            self.on_download_write_error(packetData)
+            return
+        elif packetData[6] == 0xd2 and packetData[7] == 0x03:
+            self.on_firmware_mismatch_error(packetData)
+            return
+
+        return
+
+    def on_download_write_error(self, packetData):
+        print ("Download Write Error")
+        return
+
+    def on_firmware_mismatch_error(self, packetData):
+        print ("Firmware Mismatch")
+        return
+
+    """
     Message indicating that the write process of our packet data has been processed and that we are able to send the next set of data
     """
     def on_downlaod_idle_received(self, packetData):
-
+        self.send_dbv_message(DBV400.DOWNLOAD_INFO_REQUEST_PACKET)
+        self.State = DBV400.DOWNLOAD_IDLE
         return
 
     """
     Simply confirms that the DBV is in the process of writing the data that we have sent to it
     """
     def on_download_writing_received(self, packetData):
-
+        print ("Downlaod Write State")
+        self.State = DBV400.DOWNLOAD_WRITE
         return
 
     """
     This response indicates that the DBV has received a download request and should now be entering download mode
     """
     def on_download_request_received(self, packetData):
+        print ("Downlaod Request")
 
+        return
+
+    def on_download_request_ack_received(self, packetData):
         return
 
     """
@@ -741,6 +788,17 @@ class DBV400(BillAcceptor):
     our Download request
     """
     def on_download_info_received(self, packetData):
+        print ("Download Info")
+        maxPacketSize = 0
+        maxPacketSize += packetData[9] << 0
+        maxPacketSize += packetData[10] << 8
+        maxPacketSize += packetData[11] << 16
+        maxPacketSize += packetData[12] << 24
+
+        startPoint = packetData[13:17]
+
+        self.MAX_DOWNLOAD_BYTE_SIZE = maxPacketSize
+        print (startPoint)
 
         return
 
