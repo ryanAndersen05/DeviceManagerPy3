@@ -3,6 +3,7 @@ import socket
 import pyudev
 import sys
 from sys import stdin
+import re
 
 #std lib imports
 import queue
@@ -131,7 +132,7 @@ class DragonMasterDeviceManager:
         
 
         self.searchingForDevices = False
-
+        get_latest_firmware_version()
         #Start a thread to search for newly connected devices
         deviceAddedThread = threading.Thread(target=self.device_connected_thread,)
         deviceAddedThread.daemon = True
@@ -484,7 +485,8 @@ class DragonMasterDeviceManager:
         if len(eventMessage) < 5:
             print ("The event message was too short...")
             return 
-        playerStationHash = convert_byte_array_to_value(eventMessage[1:4])
+        # playerStationHash = convert_byte_array_to_value(eventMessage[1:4])
+        playerStationHash = int.from_bytes(eventMessage[1:4], byteorder='big')
         #General Event Messages
         if eventCommandByte == DragonMasterDeviceManager.KILL_APPLICATION_EVENT:
             DragonMasterDeviceManager.KILL_DEVICE_MANAGER_APPLICATION = True
@@ -706,7 +708,7 @@ class DragonMasterDeviceManager:
         messageToSend = []
         messageToSend.append(eventID)
         if playerStationHash != None:
-            messageToSend += convert_value_to_byte_array(playerStationHash, numberOfBytes=4)
+            messageToSend += int.to_bytes(playerStationHash, 4, byteorder='big')
         messageToSend += eventData
         
         
@@ -1061,39 +1063,29 @@ class TCPManager:
             checkSumValue ^= val
         return checkSumValue
 
-"""
-Converts a byte array to a value using little endian
 
-NOTE: Little Endian -
-input:[0x01, 0x23, 0x45, 0x67]
-output:0x01234567
+#region firmware update methods
 """
-def convert_byte_array_to_value(byteArray):
-    if len(byteArray) < 4:
-        print("The byte array that was passed in did not meet our 4 byte requirement")
-        return
+
+"""
+def get_latest_firmware_version():
+    try:
+        binFile = open(DragonMasterSerialDevice.DBV400.FIRMWARE_UPDATE_FILE_PATH, 'rb')
         
-    uintValue = 0
-    for i in range(len(byteArray)):
-        uintValue += (byteArray[i] << (i * 8))
-    return uintValue
+        DragonMasterSerialDevice.DBV400.DOWNLOAD_PACKET_DATA = binFile.read()
+        verSearchString = "DBV-400-SU USA ID008 "
+        packetDataAsString = str(DragonMasterSerialDevice.DBV400.DOWNLOAD_PACKET_DATA)
+        x = re.search(verSearchString, packetDataAsString)
+        if x:
+            DragonMasterSerialDevice.DBV400.LATEST_DBV_FIRMWARE = packetDataAsString[x.span()[1]:x.span()[1] + 15]
+            print (DragonMasterSerialDevice.DBV400.LATEST_DBV_FIRMWARE)
+    except Exception as e:
+        print ("There was a problem retrieving our DBV Firmware Version")
+        print (e)
 
+    return
 
-"""
-This method converts a whole number value into a byte array. This should come in easy for TCP commands
-
-input: valueToConvert = 0x301a, numberOfBytes = 4
-output: [0x00, 0x00, 0x30, 0x1a]
-"""
-def convert_value_to_byte_array(valueToConvert, numberOfBytes=4):
-    convertedByteArray = []
-    for i in range(numberOfBytes - 1, -1, -1):
-        byteVal = ((valueToConvert >> (i * 8)) & 0xff)
-        convertedByteArray.append(byteVal)
-
-    return convertedByteArray
-
-
+#endregion firmware update methods
 
 #region string helper methods
 """
