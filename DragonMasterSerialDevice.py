@@ -162,7 +162,9 @@ class SerialDevice(DragonMasterDevice.DragonMasterDevice):
     #End Universal Serial Methods
     pass
 
-
+"""
+Base class for our Bill Acceptors. This is a class that can apply to every bill acceptor that we add to the project.
+"""
 class BillAcceptor(SerialDevice):
     DBV_DESCRIPTION = ""
 
@@ -174,7 +176,8 @@ class BillAcceptor(SerialDevice):
     pass
 
 """
-@author Aaron Thurston, EQ Games/Kaneva, Phone#: 404-680-2119
+@author Aaron Thurston, EQ Games/Kaneva, Phone#: 404-680-2119 (Lead)
+@author Ryan Andersen, EQ Games, Phone#: 404-643-1783
 
 A class that handles all our Bill Acceptor Actions
 """
@@ -466,6 +469,7 @@ class DBV400(BillAcceptor):
         self.send_dbv_message(inhibitMessage)
         self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT, self.State)
         self.check_begin_firmware_download()
+        return
 
 
 
@@ -481,8 +485,8 @@ class DBV400(BillAcceptor):
         idleMessage = DBV400.IDLE_ACK
         idleMessage[5] = message[5]
         self.send_dbv_message(idleMessage)
-        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT, self.State)
         self.State = DBV400.IDLE_STATE
+        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT, self.State)
 
     """ A DBV has been inserted into DBV. We need to send an escrow message to confirm this """
     """ Our current workflow is to tell the DBV to hold the bill for 60 seconds while deciding whether to stack or reject """
@@ -571,8 +575,8 @@ class DBV400(BillAcceptor):
         clearAck[7] = message[7]
         self.send_dbv_message(clearAck)
         self.State = DBV400.CLEAR_STATE
-        self.reset_dbv()
         self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT,self.State)
+        self.reset_dbv()
         pass
 
     """ Process this error message to determine the specific error state """
@@ -594,9 +598,9 @@ class DBV400(BillAcceptor):
 
     """ Process a message from our DBV to determine the version we are in """
     def on_version_message_received(self, message):
-        sizeOfVersion = 9
-        self.dbvVersion = message[9:].decode('utf-8')
-        print ("VersionSet: " + self.dbvVersion)
+        indexOfVersion = 9
+        self.dbvVersion = message[indexOfVersion:].decode('utf-8')
+        # print ("VersionSet: " + self.dbvVersion)
         return
     #endregion on read methods
 
@@ -907,7 +911,6 @@ class DBV400(BillAcceptor):
             return False
 
         self.serialObject.flush()
-
         if self.serialObject == None:
             return False
 
@@ -1007,6 +1010,17 @@ class DBV400(BillAcceptor):
 
     pass
 
+"""
+This bill acceptor is functionally the same
+"""
+class iVizion(DBV400):
+    DBV_DESCRIPTION = "iVIZION"
+
+    def to_string(self):
+        return iVizion.DBV_DESCRIPTION + ": " + self.comport
+
+    def get_ba_type(self):
+        return DragonMasterDeviceManager.DragonMasterDeviceManager.BA_iVIZION
 
 """
 Class that maanages our Draxboard communication and state
@@ -1628,13 +1642,16 @@ Returns a list of all connected DBV 400 comports
 """
 def get_all_connected_dbv400_comports():
     dbv400Elements = []
+    iVizionElements = []
     allPorts = serial.tools.list_ports.comports()
 
     for element in allPorts:
         if element.description.__contains__(DBV400.DBV_DESCRIPTION):
             dbv400Elements.append(element)
+        if element.description.__contains__(iVizion.DBV_DESCRIPTION):
+            iVizionElements.append(element)
 
-    return dbv400Elements
+    return dbv400Elements, iVizionElements
 
 """
 Returns the first omnidongle comport that we find

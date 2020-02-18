@@ -92,6 +92,7 @@ class DragonMasterDeviceManager:
     BA_BILL_STATE_UPDATE_EVENT = 0x85 #Event to Send the status of the bill acceptor
     #Bill Acceptor type
     BA_DBV_400 = 0x01
+    BA_iVIZION = 0x02
 
     #Receive Events
     BA_ACCEPT_BILL_EVENT = 0X86 #Command to accept the bill that is currently in escrow
@@ -212,7 +213,7 @@ class DragonMasterDeviceManager:
             allConnectedDraxboards = DragonMasterSerialDevice.get_all_connected_draxboard_elements()
             allConnectedCustomTG02Printers = DragonMasterDevice.get_all_connected_custom_tg02_printer_elements()
             allConnectedReliancePrinters = DragonMasterDevice.get_all_connected_reliance_printer_elements()
-            allConnectedDBV400Elements = DragonMasterSerialDevice.get_all_connected_dbv400_comports()
+            allConnectedDBV400Elements, allConnectediVizionElements = DragonMasterSerialDevice.get_all_connected_dbv400_comports()
 
             self.deviceContext = pyudev.Context() #we set our device context primarily to find the most up to date usb device paths
 
@@ -249,6 +250,10 @@ class DragonMasterDeviceManager:
             for dbv in allConnectedDBV400Elements:
                 if dbv and not self.device_manager_contains_dbv400(dbv):
                     self.add_new_device(DragonMasterSerialDevice.DBV400(self), dbv)
+
+            for ivizion in allConnectediVizionElements:
+                if ivizion and not self.device_manager_contains_dbv400(self):
+                    self.add_new_device(DragonMasterSerialDevice.iVizion(self), ivizion)
             
         except Exception as e:
             print ("There was an error while searching for devices.")
