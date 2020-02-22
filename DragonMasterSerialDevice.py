@@ -1640,11 +1640,10 @@ class Omnidongle(SerialDevice):
 """
 Returns a list of all connected DBV 400 comports
 """
-def get_all_connected_dbv400_comports():
+def get_all_connected_bill_acceptors():
     dbv400Elements = []
     iVizionElements = []
     allPorts = serial.tools.list_ports.comports()
-
     for element in allPorts:
         if element.description.__contains__(DBV400.DBV_DESCRIPTION):
             dbv400Elements.append(element)

@@ -28,7 +28,7 @@ Our device manager class that will find and hold all of our connected devices an
 It will manages messages between our Unity Application and assign commands to the correct devices.
 """
 class DragonMasterDeviceManager:
-    VERSION = "2.2.0"
+    VERSION = "2.3.0"
     KILL_DEVICE_MANAGER_APPLICATION = False #Setting this value to true will kill the main thread of our Device Manager application effectively closing all other threads
     DRAGON_MASTER_VERSION_NUMBER = "CFS101 0000"
     #region TCP Device Commands
@@ -139,7 +139,7 @@ class DragonMasterDeviceManager:
         deviceAddedThread.daemon = True
         deviceAddedThread.start()
 
-        sleep(.3)
+        sleep(.1)
         print()
         self.search_for_devices()
 
@@ -213,15 +213,17 @@ class DragonMasterDeviceManager:
             allConnectedDraxboards = DragonMasterSerialDevice.get_all_connected_draxboard_elements()
             allConnectedCustomTG02Printers = DragonMasterDevice.get_all_connected_custom_tg02_printer_elements()
             allConnectedReliancePrinters = DragonMasterDevice.get_all_connected_reliance_printer_elements()
-            allConnectedDBV400Elements, allConnectediVizionElements = DragonMasterSerialDevice.get_all_connected_dbv400_comports()
+            allConnectedDBV400Elements, allConnectediVizionElements = DragonMasterSerialDevice.get_all_connected_bill_acceptors()
 
             self.deviceContext = pyudev.Context() #we set our device context primarily to find the most up to date usb device paths
-
+            
+            #This is a special case. In which we will only look for omnidongle devices if there is not one that is already connected. We should only ever talk to one omnidongle device at a time 
             if self.CONNECTED_OMNIDONGLE == None:
                 omnidongleElement = DragonMasterSerialDevice.get_omnidongle_comports()
                 if omnidongleElement:
                     self.add_new_device(DragonMasterSerialDevice.Omnidongle(self), omnidongleElement)
 
+            #Connects all instances of our Draxboard device
             for draxElement in allConnectedDraxboards:
                 if draxElement and not self.device_manager_contains_draxboard(draxElement):
                     self.add_new_device(DragonMasterSerialDevice.Draxboard(self), draxElement)
@@ -251,6 +253,7 @@ class DragonMasterDeviceManager:
                 if dbv and not self.device_manager_contains_dbv400(dbv):
                     self.add_new_device(DragonMasterSerialDevice.DBV400(self), dbv)
 
+            #Add iVizion Bill Acceptors here
             for ivizion in allConnectediVizionElements:
                 if ivizion and not self.device_manager_contains_dbv400(self):
                     self.add_new_device(DragonMasterSerialDevice.iVizion(self), ivizion)
