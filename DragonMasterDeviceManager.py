@@ -1208,7 +1208,7 @@ def interpret_debug_command(commandToRead, deviceManager):
             print ("Printing Drax Buttons: OFF")
         return
     elif command == "logdrax":
-        
+        print ("This is a command, but it is not implemented right now...")
         return
     elif command == "flashdrax":
         if len(commandSplit) >= 2:
@@ -1260,6 +1260,11 @@ def interpret_debug_command(commandToRead, deviceManager):
         else:
             debug_meter_increment(deviceManager)
             return
+    elif command == "requestinput":
+        if len(commandSplit) >= 2:
+            debug_request_drax_input(deviceManager, int(commandSplit[1]))
+        else:
+            debug_request_drax_input(deviceManager)
 
     #PRINT DEBUG
     elif command == "vprint":
@@ -1563,7 +1568,27 @@ def debug_meter_increment(deviceManager, meterID=0, incrementValue=1, playerStat
             return
         pStation.connectedDraxboard.increment_meter_ticks(meterID, incrementValue)
     return
+
+"""
+Sends an event to request the input state of our connected Draxboard device
+"""
+def debug_request_drax_input(deviceManager, playerStationHash = -1):
+    if playerStationHash < 0:
+        for pStation in deviceManager.playerStationDictionary.values():
+            if pStation.connectedDraxboard != None:
+                pStation.connectedDraxboard.send_request_current_input_state()
+    else:
+        if playerStationHash not in deviceManager.playerStationHashToParentDevicePath:
+            print ("The player station hash was not found. Perhaps there is no draxboard connected for that station.")
+            return
+        pStationKey = deviceManager.playerStationHashToParentDevicePath[playerStationHash]
+        pStation = deviceManager.playerStationDictionary[pStationKey]
+        if pStation.connectedDraxboard == None:
+            print ("There is no Draxboard connected to this station hash")
+            return
+        pStation.connectedDraxboard.send_request_current_input_state()
     return
+        
 #endregion debug drax functions
             
 #region debug DBV commands

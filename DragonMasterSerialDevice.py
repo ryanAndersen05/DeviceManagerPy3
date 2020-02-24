@@ -1031,6 +1031,7 @@ class Draxboard(SerialDevice):
     SET_OUTPUT_STATE = bytearray([0x04, 0x02, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00])
     DRAX_OUTPUT_ENABLE = bytearray([]) #Sends a message to the draxboard to only toggle specific output bits on
     DRAX_OUTPUT_DISABLE = bytearray([]) #Sends a message to the draxboard to only toggle specific output bits off
+    READ_INPUT_STATE = bytearray([0x03, 0x00, 0x01, 0x04])#Send this packet to receive the current input state of our draxboard device
     DRAXBOARD_OUTPUT_ENABLE = bytearray([0x02, 0x05, 0x09, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x12]) #This will set the output state. Unlike output_enable/output_disable, this sets the entire state of the output for our draxboards
     METER_INCREMENT = bytearray([0x09, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00]) #Message to increment our hard meters attached to our draxboard devices
     READ_PENDING_METER = bytearray([0x0a, 0x00, 0x02, 0x01, 0x0d]) #region
@@ -1049,6 +1050,7 @@ class Draxboard(SerialDevice):
     INPUT_EVENT_SIZE = 9
     STATUS_EVENT_ID = 0xfb
     STATUS_EVENT_SIZE = 8
+    INPUT_REQUEST_EVENT_ID = 0x03 #This is an input packet, but it is received upon requesting it manually rather than through player interaction
 
     #Command Events
     REQUEST_STATUS_ID = 0x01
@@ -1089,7 +1091,6 @@ class Draxboard(SerialDevice):
 
     #region Override methods
     def start_device(self, deviceElement):
-
         self.serialObject = self.open_serial_device(deviceElement.device, Draxboard.DRAX_BAUDRATE, 5, 5)
         self.send_request_status()#We want to send a request status to our Draxboard as the very first command to ensure that it is functioning properly as well as gather important info
         firstByteOfRequestStatus = self.serialObject.read(1)
@@ -1118,8 +1119,6 @@ class Draxboard(SerialDevice):
         for dev in self.dragonMasterDeviceManager.deviceContext.list_devices():
             if dev.device_path.__contains__(deviceElement.location) and dev.device_path.__contains__(deviceElement.name):
                 devToReturn = dev.parent.parent.parent.device_path
-
-
         return devToReturn
 
     """
@@ -1128,6 +1127,15 @@ class Draxboard(SerialDevice):
     """
     def send_request_status(self):
         self.write_to_serial(self.REQUEST_STATUS)
+
+    """
+    This method will send a packet that will request the currennt input state of our draxboard. This should be sent every time we start our python script.
+    
+    Ideally you should be able to send this upon starting another play session to receive the current input state
+    """
+    def send_request_current_input_state(self):
+        self.write_to_serial(self.READ_INPUT_STATE)
+        return
 
     """
     This method will return
@@ -1166,6 +1174,10 @@ class Draxboard(SerialDevice):
             elif firstByteOfPacket[0] == Draxboard.PENDING_METER_ID:
                 self.on_pending_meter_packet_received(read)
                 return
+            elif firstByteOfPacket[0] == Draxboard.INPUT_REQUEST_EVENT_ID:
+                self.add_input_event_to_tcp_queue(read)
+            else:
+                pass
 
         except Exception as e:
             print ("There was an error processing a data event from our draxboard")
@@ -1200,6 +1212,9 @@ class Draxboard(SerialDevice):
     def on_status_packet_received(self, bytePacket):
         print ("Status packet was received... Nothing implemented to handle this though...")
         return
+
+    
+
 
     """
     This method will be calle upon receiving a packet from the drax that correlates to the us toggling the output of the draxboard.
@@ -1323,7 +1338,7 @@ class Draxboard(SerialDevice):
     """
     def add_input_event_to_tcp_queue(self, inputPacket):
 
-        if inputPacket == None or len(inputPacket) < Draxboard.INPUT_EVENT_SIZE or inputPacket[0] != Draxboard.INPUT_EVENT_ID:
+        if inputPacket == None or len(inputPacket) < Draxboard.INPUT_EVENT_SIZE or (inputPacket[0] != Draxboard.INPUT_EVENT_ID and inputPacket[0] != Draxboard.INPUT_REQUEST_EVENT_ID):
             print ("Invalid Input Event Packet. Please Be sure you are correctly interpreting our input packets")
             return
         inputData = [inputPacket[Draxboard.INPUT_INDEX], inputPacket[Draxboard.DOOR_STATE_INDEX]]
