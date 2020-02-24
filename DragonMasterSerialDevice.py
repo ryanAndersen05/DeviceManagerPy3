@@ -1011,7 +1011,7 @@ class DBV400(BillAcceptor):
     pass
 
 """
-This bill acceptor is functionally the same
+This bill acceptor is functionally the same as our DBV-400
 """
 class iVizion(DBV400):
     DBV_DESCRIPTION = "iVIZION"
@@ -1060,9 +1060,7 @@ class Draxboard(SerialDevice):
     OUTPUT_ENABLE_ID = 0x06
     OUTPUT_DISABLE_ID = 0x07
     METER_INCREMENT_ID = 0x09
-    METER_INCREMENT_SIZE = 7
     PENDING_METER_ID = 0x0a
-    PENDING_METER_SIZE = 7
 
     ##Input Bytes
     INPUT_INDEX = 3
@@ -1082,7 +1080,7 @@ class Draxboard(SerialDevice):
         self.versionNumberLow = 0
         #ushort value that represents the current draxboard output state
         self.draxOutputState = 0
-        #
+        #In Later models of the Draxboard we can set the player station number through the hardware. This can be used for first time setup
         self.playerStationNumber = 0
         self.meterTicksRemaining = 0
         self.playerStationHash = 0#The player station hash is a value assigned only to our Draxboard. It is a value derived from the usb path to our draxboard
@@ -1112,7 +1110,7 @@ class Draxboard(SerialDevice):
         return True
 
     """
-
+    Retrieves the parent path of our draxboard device
     """
     def fetch_parent_path(self, deviceElement):
         devToReturn = None
@@ -1127,6 +1125,7 @@ class Draxboard(SerialDevice):
     """
     def send_request_status(self):
         self.write_to_serial(self.REQUEST_STATUS)
+        return
 
     """
     This method will send a packet that will request the currennt input state of our draxboard. This should be sent every time we start our python script.
@@ -1138,7 +1137,7 @@ class Draxboard(SerialDevice):
         return
 
     """
-    This method will return
+    This method will perform draxboard actions based on the event type packet that is received
 
     NOTE: Be sure that if there is a return packet that you expect, be sure to include it here to ensure
     that we do not miss any packets
@@ -1155,27 +1154,28 @@ class Draxboard(SerialDevice):
         try:
 
             #Dynamic Packets: Packets that can be received at any point regardless of whether they were requested or not
-            if firstByteOfPacket[0] == Draxboard.INPUT_EVENT_ID:
+            if firstByteOfPacket[0] == Draxboard.INPUT_EVENT_ID:# Input State Packet (Dynamic)
                 self.add_input_event_to_tcp_queue(read)
                 return
-            elif firstByteOfPacket[0] == Draxboard.STATUS_EVENT_ID:
+            elif firstByteOfPacket[0] == Draxboard.STATUS_EVENT_ID:# Drax Status Packet (Dynamic)
                 self.on_status_packet_received(read)
                 return
+
             #Response Packet. Packets that are a response to packets that we sent
-            elif firstByteOfPacket[0] == Draxboard.REQUEST_STATUS_ID:
+            elif firstByteOfPacket[0] == Draxboard.INPUT_REQUEST_EVENT_ID:# Input State Packet (Requested)
+                self.add_input_event_to_tcp_queue(read)
+            elif firstByteOfPacket[0] == Draxboard.REQUEST_STATUS_ID:# Drax Status (Requested)
                 self.on_request_status_received(read)
                 return
-            elif firstByteOfPacket[0] == Draxboard.OUTPUT_EVENT_ID:
+            elif firstByteOfPacket[0] == Draxboard.OUTPUT_EVENT_ID:# Drax Output State Packet
                 self.on_output_packet_received(read)
                 return
-            elif firstByteOfPacket[0] == Draxboard.METER_INCREMENT_ID:
+            elif firstByteOfPacket[0] == Draxboard.METER_INCREMENT_ID:# Drax Meter Increment Packet
                 self.on_meter_increment_packet_received(read)
                 return
-            elif firstByteOfPacket[0] == Draxboard.PENDING_METER_ID:
+            elif firstByteOfPacket[0] == Draxboard.PENDING_METER_ID:# Drax Pending Meter Ticks Event
                 self.on_pending_meter_packet_received(read)
                 return
-            elif firstByteOfPacket[0] == Draxboard.INPUT_REQUEST_EVENT_ID:
-                self.add_input_event_to_tcp_queue(read)
             else:
                 pass
 
@@ -1192,7 +1192,7 @@ class Draxboard(SerialDevice):
     """
     def on_request_status_received(self, bytePacket):
         requestStatus = bytePacket
-
+        print (bytePacket.hex())
         if len(requestStatus) < Draxboard.REQUEST_STATUS_SIZE:
             print ("Reqeust Status length was too short or invalid: " + str(requestStatus))
             return
@@ -1201,16 +1201,15 @@ class Draxboard(SerialDevice):
         self.versionNumberLow = requestStatus[16]
 
         self.playerStationNumber = requestStatus[10]
-
         return
 
     """
     This method will be called upon receiving a packet for the draxboard status
 
     TODO: Implement some functionality upon receiving a status packet
+    NOTE: This method is obsolete according to the documentation.
     """
     def on_status_packet_received(self, bytePacket):
-        print ("Status packet was received... Nothing implemented to handle this though...")
         return
 
     
@@ -1338,7 +1337,7 @@ class Draxboard(SerialDevice):
     """
     def add_input_event_to_tcp_queue(self, inputPacket):
 
-        if inputPacket == None or len(inputPacket) < Draxboard.INPUT_EVENT_SIZE or (inputPacket[0] != Draxboard.INPUT_EVENT_ID and inputPacket[0] != Draxboard.INPUT_REQUEST_EVENT_ID):
+        if inputPacket == None or (inputPacket[0] != Draxboard.INPUT_EVENT_ID and inputPacket[0] != Draxboard.INPUT_REQUEST_EVENT_ID):
             print ("Invalid Input Event Packet. Please Be sure you are correctly interpreting our input packets")
             return
         inputData = [inputPacket[Draxboard.INPUT_INDEX], inputPacket[Draxboard.DOOR_STATE_INDEX]]
