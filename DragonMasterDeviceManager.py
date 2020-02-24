@@ -3,6 +3,7 @@ import socket
 import pyudev
 import sys
 from sys import stdin
+import re
 
 #std lib imports
 import queue
@@ -27,7 +28,7 @@ Our device manager class that will find and hold all of our connected devices an
 It will manages messages between our Unity Application and assign commands to the correct devices.
 """
 class DragonMasterDeviceManager:
-    VERSION = "2.2.0"
+    VERSION = "2.3.0"
     KILL_DEVICE_MANAGER_APPLICATION = False #Setting this value to true will kill the main thread of our Device Manager application effectively closing all other threads
     DRAGON_MASTER_VERSION_NUMBER = "CFS101 0000"
     #region TCP Device Commands
@@ -91,6 +92,7 @@ class DragonMasterDeviceManager:
     BA_BILL_STATE_UPDATE_EVENT = 0x85 #Event to Send the status of the bill acceptor
     #Bill Acceptor type
     BA_DBV_400 = 0x01
+    BA_iVIZION = 0x02
 
     #Receive Events
     BA_ACCEPT_BILL_EVENT = 0X86 #Command to accept the bill that is currently in escrow
@@ -131,13 +133,13 @@ class DragonMasterDeviceManager:
         
 
         self.searchingForDevices = False
-
+        get_latest_firmware_version()
         #Start a thread to search for newly connected devices
         deviceAddedThread = threading.Thread(target=self.device_connected_thread,)
         deviceAddedThread.daemon = True
         deviceAddedThread.start()
 
-        sleep(.3)
+        sleep(.1)
         print()
         self.search_for_devices()
 
@@ -211,15 +213,17 @@ class DragonMasterDeviceManager:
             allConnectedDraxboards = DragonMasterSerialDevice.get_all_connected_draxboard_elements()
             allConnectedCustomTG02Printers = DragonMasterDevice.get_all_connected_custom_tg02_printer_elements()
             allConnectedReliancePrinters = DragonMasterDevice.get_all_connected_reliance_printer_elements()
-            allConnectedDBV400Elements = DragonMasterSerialDevice.get_all_connected_dbv400_comports()
+            allConnectedDBV400Elements, allConnectediVizionElements = DragonMasterSerialDevice.get_all_connected_bill_acceptors()
 
             self.deviceContext = pyudev.Context() #we set our device context primarily to find the most up to date usb device paths
-
+            
+            #This is a special case. In which we will only look for omnidongle devices if there is not one that is already connected. We should only ever talk to one omnidongle device at a time 
             if self.CONNECTED_OMNIDONGLE == None:
                 omnidongleElement = DragonMasterSerialDevice.get_omnidongle_comports()
                 if omnidongleElement:
                     self.add_new_device(DragonMasterSerialDevice.Omnidongle(self), omnidongleElement)
 
+            #Connects all instances of our Draxboard device
             for draxElement in allConnectedDraxboards:
                 if draxElement and not self.device_manager_contains_draxboard(draxElement):
                     self.add_new_device(DragonMasterSerialDevice.Draxboard(self), draxElement)
@@ -248,6 +252,11 @@ class DragonMasterDeviceManager:
             for dbv in allConnectedDBV400Elements:
                 if dbv and not self.device_manager_contains_dbv400(dbv):
                     self.add_new_device(DragonMasterSerialDevice.DBV400(self), dbv)
+
+            #Add iVizion Bill Acceptors here
+            for ivizion in allConnectediVizionElements:
+                if ivizion and not self.device_manager_contains_dbv400(self):
+                    self.add_new_device(DragonMasterSerialDevice.iVizion(self), ivizion)
             
         except Exception as e:
             print ("There was an error while searching for devices.")
@@ -484,7 +493,8 @@ class DragonMasterDeviceManager:
         if len(eventMessage) < 5:
             print ("The event message was too short...")
             return 
-        playerStationHash = convert_byte_array_to_value(eventMessage[1:4])
+        # playerStationHash = convert_byte_array_to_value(eventMessage[1:4])
+        playerStationHash = int.from_bytes(eventMessage[1:4], byteorder='big')
         #General Event Messages
         if eventCommandByte == DragonMasterDeviceManager.KILL_APPLICATION_EVENT:
             DragonMasterDeviceManager.KILL_DEVICE_MANAGER_APPLICATION = True
@@ -706,7 +716,7 @@ class DragonMasterDeviceManager:
         messageToSend = []
         messageToSend.append(eventID)
         if playerStationHash != None:
-            messageToSend += convert_value_to_byte_array(playerStationHash, numberOfBytes=4)
+            messageToSend += int.to_bytes(playerStationHash, 4, byteorder='big')
         messageToSend += eventData
         
         
@@ -1061,39 +1071,29 @@ class TCPManager:
             checkSumValue ^= val
         return checkSumValue
 
-"""
-Converts a byte array to a value using little endian
 
-NOTE: Little Endian -
-input:[0x01, 0x23, 0x45, 0x67]
-output:0x01234567
+#region firmware update methods
 """
-def convert_byte_array_to_value(byteArray):
-    if len(byteArray) < 4:
-        print("The byte array that was passed in did not meet our 4 byte requirement")
-        return
+
+"""
+def get_latest_firmware_version():
+    try:
+        binFile = open(DragonMasterSerialDevice.DBV400.FIRMWARE_UPDATE_FILE_PATH, 'rb')
         
-    uintValue = 0
-    for i in range(len(byteArray)):
-        uintValue += (byteArray[i] << (i * 8))
-    return uintValue
+        DragonMasterSerialDevice.DBV400.DOWNLOAD_PACKET_DATA = binFile.read()
+        verSearchString = "DBV-400-SU USA ID008 "
+        packetDataAsString = str(DragonMasterSerialDevice.DBV400.DOWNLOAD_PACKET_DATA)
+        x = re.search(verSearchString, packetDataAsString)
+        if x:
+            DragonMasterSerialDevice.DBV400.LATEST_DBV_FIRMWARE = packetDataAsString[x.span()[1]:x.span()[1] + 15]
+            print (DragonMasterSerialDevice.DBV400.LATEST_DBV_FIRMWARE)
+    except Exception as e:
+        print ("There was a problem retrieving our DBV Firmware Version")
+        print (e)
 
+    return
 
-"""
-This method converts a whole number value into a byte array. This should come in easy for TCP commands
-
-input: valueToConvert = 0x301a, numberOfBytes = 4
-output: [0x00, 0x00, 0x30, 0x1a]
-"""
-def convert_value_to_byte_array(valueToConvert, numberOfBytes=4):
-    convertedByteArray = []
-    for i in range(numberOfBytes - 1, -1, -1):
-        byteVal = ((valueToConvert >> (i * 8)) & 0xff)
-        convertedByteArray.append(byteVal)
-
-    return convertedByteArray
-
-
+#endregion firmware update methods
 
 #region string helper methods
 """
@@ -1208,7 +1208,7 @@ def interpret_debug_command(commandToRead, deviceManager):
             print ("Printing Drax Buttons: OFF")
         return
     elif command == "logdrax":
-        
+        print ("This is a command, but it is not implemented right now...")
         return
     elif command == "flashdrax":
         if len(commandSplit) >= 2:
@@ -1260,6 +1260,11 @@ def interpret_debug_command(commandToRead, deviceManager):
         else:
             debug_meter_increment(deviceManager)
             return
+    elif command == "requestinput":
+        if len(commandSplit) >= 2:
+            debug_request_drax_input(deviceManager, int(commandSplit[1]))
+        else:
+            debug_request_drax_input(deviceManager)
 
     #PRINT DEBUG
     elif command == "vprint":
@@ -1563,7 +1568,27 @@ def debug_meter_increment(deviceManager, meterID=0, incrementValue=1, playerStat
             return
         pStation.connectedDraxboard.increment_meter_ticks(meterID, incrementValue)
     return
+
+"""
+Sends an event to request the input state of our connected Draxboard device
+"""
+def debug_request_drax_input(deviceManager, playerStationHash = -1):
+    if playerStationHash < 0:
+        for pStation in deviceManager.playerStationDictionary.values():
+            if pStation.connectedDraxboard != None:
+                pStation.connectedDraxboard.send_request_current_input_state()
+    else:
+        if playerStationHash not in deviceManager.playerStationHashToParentDevicePath:
+            print ("The player station hash was not found. Perhaps there is no draxboard connected for that station.")
+            return
+        pStationKey = deviceManager.playerStationHashToParentDevicePath[playerStationHash]
+        pStation = deviceManager.playerStationDictionary[pStationKey]
+        if pStation.connectedDraxboard == None:
+            print ("There is no Draxboard connected to this station hash")
+            return
+        pStation.connectedDraxboard.send_request_current_input_state()
     return
+        
 #endregion debug drax functions
             
 #region debug DBV commands

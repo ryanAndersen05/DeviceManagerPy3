@@ -162,7 +162,9 @@ class SerialDevice(DragonMasterDevice.DragonMasterDevice):
     #End Universal Serial Methods
     pass
 
-
+"""
+Base class for our Bill Acceptors. This is a class that can apply to every bill acceptor that we add to the project.
+"""
 class BillAcceptor(SerialDevice):
     DBV_DESCRIPTION = ""
 
@@ -174,13 +176,13 @@ class BillAcceptor(SerialDevice):
     pass
 
 """
-@author Aaron Thurston, EQ Games/Kaneva, Phone#: 404-680-2119
+@author Aaron Thurston, EQ Games/Kaneva, Phone#: 404-680-2119 (Lead)
+@author Ryan Andersen, EQ Games, Phone#: 404-643-1783
 
 A class that handles all our Bill Acceptor Actions
 """
 class DBV400(BillAcceptor):
-    FIRMWARE_UPDATE_FILE_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "DBV-400(USA)-SU ID-008 V001-00.bin")
-    # FIRMWARE_UPDATE_FILE_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "DBV-400_SU-SD_12604_ID008_USA.bin")
+    FIRMWARE_UPDATE_FILE_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "DBV400_LatestFirmware.bin")
     #region Constants
     DBV_DESCRIPTION = "DBV-400"
     DBV_BAUDRATE = 9600
@@ -399,7 +401,7 @@ class DBV400(BillAcceptor):
 
     """ We have received a message that the DBV has started (or restarted) and needs to be acknowledged """
     def on_power_up_nack_received(self,message):
-        print("power up nack received")
+        # print("power up nack received")
         powerUpAck = DBV400.POWER_ACK
         powerUpAck[5] = message[5]
         self.UidSet = False
@@ -411,7 +413,7 @@ class DBV400(BillAcceptor):
     """ Same as above, but the DBV has started with a bill that is waiting to be stacked """
     def on_power_up_acceptor_nack_received(self, message):
         # print("power up acceptor nack received")
-        print ("Power UP")
+        # print ("Power UP")
         self.UidSet = False
         powerUpAck = DBV400.POWER_ACCEPTOR_ACK
         powerUpAck[5] = message[5]
@@ -459,36 +461,41 @@ class DBV400(BillAcceptor):
 
     """ DBV was successfully set to inhibit state. Send ACK to DBV to confirm state """
     def on_inhibit_success(self,message):
+        # print ("Inhibit Success Event")
+            
         inhibitMessage = DBV400.INHIBIT_ACK
         inhibitMessage[5] = message[5]
         self.State = DBV400.INHIBIT_STATE
-        # print ("Inhibit Success: " + str(self.get_player_station_hash()))
         self.send_dbv_message(inhibitMessage)
         self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT, self.State)
+        self.check_begin_firmware_download()
+        return
+
 
 
     """ Idle request successfully received by the DBV """
     def on_idle_request_received(self):
-        # print ("Idle request received: " + str(self.get_player_station_hash()))
+        # print ("Idle Request Acked")
         self.State = DBV400.WAITING_STATE
         pass
 
     """ DBV was successfully set to idle state. Send ACK to DBV to confirm state """
     def on_idle_success(self,message):
+        # print ("Idle successfully received")
         idleMessage = DBV400.IDLE_ACK
         idleMessage[5] = message[5]
-        # print ("Idle success received: " + str(self.get_player_station_hash()))
         self.send_dbv_message(idleMessage)
-        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT, self.State)
         self.State = DBV400.IDLE_STATE
+        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT, self.State)
 
     """ A DBV has been inserted into DBV. We need to send an escrow message to confirm this """
     """ Our current workflow is to tell the DBV to hold the bill for 60 seconds while deciding whether to stack or reject """
     def on_bill_inserted(self, message):
+        # print ("Bill Inserted Event")
+
         escrowMessage = DBV400.ESCROW_ACK
         escrowMessage[5] = message[5]
         self.send_dbv_message(escrowMessage)
-        # print("Bill inserted: " + str(message[11]))
         self.AmountStored = message[11]
         if self.AutoReject:
             self.send_dbv_message(DBV400.REJECT_COMMAND)
@@ -498,6 +505,7 @@ class DBV400(BillAcceptor):
 
     """ A bil inserted to the DBV was rejected due to an error (invalid bill, invalid state, etc.) """
     def on_bill_rejected(self, message):
+        # print ("Bill Rejected Event")
         rejectAck = DBV400.REJECT_ACK
         rejectAck[5] = message[5]
         self.send_dbv_message(rejectAck)
@@ -506,6 +514,7 @@ class DBV400(BillAcceptor):
 
     """ A bill was returned by the DBV due to a reject command or powering up with a bill inserted """
     def on_bill_returned(self, message):
+        # print ("Bill Returned Event")
         returnAck = DBV400.RETURN_ACK
         returnAck[5] = message[5]
         self.send_dbv_message(returnAck)
@@ -530,6 +539,7 @@ class DBV400(BillAcceptor):
         self.send_dbv_message(vendValidAck)
         self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_ACCEPTED_EVENT,self.AmountStored)
         self.AmountStored = 0
+        return
 
     """ A reject bill command was successfully processed """
     def on_bill_reject_request_received(self):
@@ -538,6 +548,7 @@ class DBV400(BillAcceptor):
 
     """ A returned/rejected bill was left at the mouth of the DBV and needs to be removed """
     def on_note_stay_received(self, message):
+        # print ("Note Stay Event")
         noteStayAck = DBV400.NOTE_STAY_ACK
         noteStayAck[5] = message[5]
         self.send_dbv_message(noteStayAck)
@@ -564,8 +575,8 @@ class DBV400(BillAcceptor):
         clearAck[7] = message[7]
         self.send_dbv_message(clearAck)
         self.State = DBV400.CLEAR_STATE
-        self.reset_dbv()
         self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT,self.State)
+        self.reset_dbv()
         pass
 
     """ Process this error message to determine the specific error state """
@@ -587,9 +598,9 @@ class DBV400(BillAcceptor):
 
     """ Process a message from our DBV to determine the version we are in """
     def on_version_message_received(self, message):
-        sizeOfVersion = 9
-        self.dbvVersion = message[9:].decode('utf-8')
-        print ("VersionSet: " + self.dbvVersion)
+        indexOfVersion = 9
+        self.dbvVersion = message[indexOfVersion:].decode('utf-8')
+        # print ("VersionSet: " + self.dbvVersion)
         return
     #endregion on read methods
 
@@ -670,18 +681,41 @@ class DBV400(BillAcceptor):
     #endregion
 
     #region updating dbv firmware
+    LATEST_DBV_FIRMWARE = None
+
     DOWNLOAD_REQUEST_PACKET = bytearray([0x12, 0x08, 0x00, 0x10, 0x01, 0x00, 0xd1, 0x00]) #Packet requests that we enter dbv download mode
     DOWNLOAD_INFO_REQUEST_PACKET = bytearray([0x12, 0x08, 0x00, 0x10, 0x01, 0x10, 0xd5, 0x00]) #Packet to request that we gather info about our download state
-    DOWNLOAD_SEND_BYTES_PACKET = bytearray([0x12, 0x00, 0x10, 0x10, 0x01, 0x00, 0xd2, 0x00])
-    DOWNLOAD_END_PACKET = bytearray([0x12, 0x08, 0x00, 0x10, 0x01, 0x00, 0xd3, 0x00])
+    DOWNLOAD_SEND_BYTES_PACKET = bytearray([0x12, 0x00, 0x10, 0x10, 0x01, 0x00, 0xd2, 0x00]) #Packet that sends the byte chunks of our firmware bin file
+    DOWNLOAD_END_PACKET = bytearray([0x12, 0x08, 0x00, 0x10, 0x01, 0x00, 0xd3, 0x00]) #This packets should be sent after all our firmware data has been sent
 
 
 
     DOWNLOAD_INDEX = 0 #Index in Download packet that we are currently in
     DOWNLOAD_PACKET_DATA = [] #List of all the bytes that we need to send to our DBV. This should only need to be opened once per 
     MAX_DOWNLOAD_BYTE_SIZE = 0 #This represents the max number of bytes that we can send at a time for our download packets
-    DOWNLOAD_START_POSITION = 0
-    DOWNLOAD_INFO_COLLECTED = False
+    DOWNLOAD_START_POSITION = 0 #Upon starting our download process, the dbv will send a hex address that will indicate where we should write our data, this should be saved so that we do not have to ask for download info before sending each download packet
+    DOWNLOAD_INFO_COLLECTED = False #Before starting our download process we should set this to false. If set to false we will request download info. Upon receiving this packet, this will be toggled back to True
+    DOWNLOAD_PROCESS_BEGAN = False
+
+    """
+
+    """
+    def bill_acceptor_requires_firmware_update(self):
+        if (DBV400.LATEST_DBV_FIRMWARE == None):
+            return False
+        return not self.dbvVersion.lower().__contains__(DBV400.LATEST_DBV_FIRMWARE.lower())
+
+    """
+
+    """
+    def check_begin_firmware_download(self):
+        if self.DOWNLOAD_PROCESS_BEGAN:
+            return
+        if self.bill_acceptor_requires_firmware_update():
+            self.begin_firmware_download_process()
+        else:
+            print ("Nothing Happened")
+
 
     """
     Runs a process to update the firmware in our DBV devices if needed
@@ -692,9 +726,7 @@ class DBV400(BillAcceptor):
         if (self.State != DBV400.INHIBIT_STATE):
             print ("Please be sure that the DBV is in the inhibit state before running firmware update")
             return
-
-        binFile = open(DBV400.FIRMWARE_UPDATE_FILE_PATH, 'rb')
-        DBV400.DOWNLOAD_PACKET_DATA = binFile.read()
+        self.DOWNLOAD_PROCESS_BEGAN = True
         self.DOWNLOAD_INDEX = 0
         self.DOWNLOAD_INFO_COLLECTED = False
         self.send_download_request()
@@ -705,6 +737,7 @@ class DBV400(BillAcceptor):
     Sends a request to begin the download process for our DBV
     """
     def send_download_request(self):
+        print ("Sending Download Request")
         self.send_dbv_message(DBV400.DOWNLOAD_REQUEST_PACKET)
         return
 
@@ -712,7 +745,8 @@ class DBV400(BillAcceptor):
     Sends a packet to request the download info. This should include the max size of our packet that we are able to send to our dbv
     """
     def send_download_info_request(self,):
-        # print ("Sending Info Request")
+        print ("Sending Info Request")
+        self.DOWNLOAD_INFO_COLLECTED = True
         self.send_dbv_message(DBV400.DOWNLOAD_INFO_REQUEST_PACKET)
         return
 
@@ -731,7 +765,6 @@ class DBV400(BillAcceptor):
         indexForDLPacketAsBytes = int.to_bytes(indexForDLPacket, 4, byteorder='little')
         downloadPacket = DBV400.DOWNLOAD_SEND_BYTES_PACKET[:] + bytearray(indexForDLPacketAsBytes)
         downloadPacketChunkSize = self.MAX_DOWNLOAD_BYTE_SIZE - len(downloadPacket)
-
         dlPacketInfo = DBV400.DOWNLOAD_PACKET_DATA[self.DOWNLOAD_INDEX: min(self.DOWNLOAD_INDEX + downloadPacketChunkSize, fullPacketSize)]
         updatedDownloadIndex = self.DOWNLOAD_INDEX + downloadPacketChunkSize
 
@@ -739,29 +772,37 @@ class DBV400(BillAcceptor):
         percentageIncrement = 10
         previousPercentageComplete = int(int(float(self.DOWNLOAD_INDEX) / float(fullPacketSize) * 100) / percentageIncrement)
         nextPercentageComplete = int(int(float(updatedDownloadIndex) / float(fullPacketSize) * 100) / percentageIncrement)
-
         if  previousPercentageComplete < nextPercentageComplete:
             print (str(self.get_player_station_hash()) + " DBV Downloading: " + str(nextPercentageComplete * percentageIncrement) + "%")
 
         ############################################################################################################################
         self.DOWNLOAD_INDEX = updatedDownloadIndex
-        downloadPacket += bytearray(dlPacketInfo)
-        packetSizeAsBytes = int.to_bytes(len(downloadPacket), 2, byteorder='little')
-        
-        downloadPacket[1] = packetSizeAsBytes[0]
-        downloadPacket[2] = packetSizeAsBytes[1]
+        try:
+            downloadPacket += bytearray(dlPacketInfo)
+            packetSizeAsBytes = int.to_bytes(len(downloadPacket), 2, byteorder='little')
+            
+            downloadPacket[1] = packetSizeAsBytes[0]
+            downloadPacket[2] = packetSizeAsBytes[1]
+            self.send_dbv_message(downloadPacket)
 
-        self.send_dbv_message(downloadPacket)
+        except Exception as e:
+            print (e)
+            print (self.MAX_DOWNLOAD_BYTE_SIZE)
+            print (updatedDownloadIndex)
+            print (len(downloadPacket))
         
         return
 
+    """
+    This method should be called upon completing the download process for our DBV firmware update
+    """
     def send_download_complete_message(self):
         # print ("Sending Download Complete")
         self.send_dbv_message(DBV400.DOWNLOAD_END_PACKET)
         return
 
     """
-
+    This method should be called upon receiving a Download status packet
     """
     def on_download_status_received(self, packetData):
         ackMessage = bytearray(packetData)
@@ -783,10 +824,16 @@ class DBV400(BillAcceptor):
 
         return
 
+    """
+    If we receive a download status packet that contains an error code for download write error, this method should be called
+    """
     def on_download_write_error(self, packetData):
         print ("Download Write Error")
         return
 
+    """
+
+    """
     def on_firmware_mismatch_error(self, packetData):
         print ("Firmware Mismatch")
         return
@@ -795,8 +842,9 @@ class DBV400(BillAcceptor):
     Message indicating that the write process of our packet data has been processed and that we are able to send the next set of data
     """
     def on_downlaod_idle_received(self, packetData):
+        # print ("Download Idle")
         self.State = DBV400.DOWNLOAD_IDLE
-        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT,self.State)
+        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT, self.State)
         if self.DOWNLOAD_INFO_COLLECTED:
             self.send_download_bytes_to_dbv()
         else:
@@ -832,7 +880,7 @@ class DBV400(BillAcceptor):
     """
     def on_download_info_received(self, packetData):
         print ("Download Info")
-        self.DOWNLOAD_INFO_COLLECTED = True
+        
         maxPacketSize = int.from_bytes(packetData[9:13], byteorder='little', signed=False)
         startPoint = int.from_bytes(packetData[13:17], byteorder='little', signed=False)
 
@@ -845,6 +893,8 @@ class DBV400(BillAcceptor):
     """
     After we send a packet that indicates the download process has completed we should receive this packet.
     This is simply a response that our download proecess is completed
+
+    NOTE: You probably won't receive this response before the DBV is disconnected
     """
     def on_downlaod_completion_received(self, packetData):
 
@@ -857,8 +907,10 @@ class DBV400(BillAcceptor):
         self.UidSet = False
 
         self.serialObject = self.open_serial_device(deviceElement.device, DBV400.DBV_BAUDRATE, None, None)
-        self.serialObject.flush()
+        if self.serialObject == None:
+            return False
 
+        self.serialObject.flush()
         if self.serialObject == None:
             return False
 
@@ -875,8 +927,11 @@ class DBV400(BillAcceptor):
             self.reset_dbv()
         elif self.State != DBV400.INHIBIT_STATE:
             self.reset_dbv()
-
+        else:
+            self.check_begin_firmware_download()
+            return True
         self.get_dbv_state()
+        
         return True
 
     """
@@ -955,6 +1010,17 @@ class DBV400(BillAcceptor):
 
     pass
 
+"""
+This bill acceptor is functionally the same as our DBV-400
+"""
+class iVizion(DBV400):
+    DBV_DESCRIPTION = "iVIZION"
+
+    def to_string(self):
+        return iVizion.DBV_DESCRIPTION + ": " + self.comport
+
+    def get_ba_type(self):
+        return DragonMasterDeviceManager.DragonMasterDeviceManager.BA_iVIZION
 
 """
 Class that maanages our Draxboard communication and state
@@ -965,6 +1031,7 @@ class Draxboard(SerialDevice):
     SET_OUTPUT_STATE = bytearray([0x04, 0x02, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00])
     DRAX_OUTPUT_ENABLE = bytearray([]) #Sends a message to the draxboard to only toggle specific output bits on
     DRAX_OUTPUT_DISABLE = bytearray([]) #Sends a message to the draxboard to only toggle specific output bits off
+    READ_INPUT_STATE = bytearray([0x03, 0x00, 0x01, 0x04])#Send this packet to receive the current input state of our draxboard device
     DRAXBOARD_OUTPUT_ENABLE = bytearray([0x02, 0x05, 0x09, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x12]) #This will set the output state. Unlike output_enable/output_disable, this sets the entire state of the output for our draxboards
     METER_INCREMENT = bytearray([0x09, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00]) #Message to increment our hard meters attached to our draxboard devices
     READ_PENDING_METER = bytearray([0x0a, 0x00, 0x02, 0x01, 0x0d]) #region
@@ -983,6 +1050,7 @@ class Draxboard(SerialDevice):
     INPUT_EVENT_SIZE = 9
     STATUS_EVENT_ID = 0xfb
     STATUS_EVENT_SIZE = 8
+    INPUT_REQUEST_EVENT_ID = 0x03 #This is an input packet, but it is received upon requesting it manually rather than through player interaction
 
     #Command Events
     REQUEST_STATUS_ID = 0x01
@@ -992,9 +1060,7 @@ class Draxboard(SerialDevice):
     OUTPUT_ENABLE_ID = 0x06
     OUTPUT_DISABLE_ID = 0x07
     METER_INCREMENT_ID = 0x09
-    METER_INCREMENT_SIZE = 7
     PENDING_METER_ID = 0x0a
-    PENDING_METER_SIZE = 7
 
     ##Input Bytes
     INPUT_INDEX = 3
@@ -1014,7 +1080,7 @@ class Draxboard(SerialDevice):
         self.versionNumberLow = 0
         #ushort value that represents the current draxboard output state
         self.draxOutputState = 0
-        #
+        #In Later models of the Draxboard we can set the player station number through the hardware. This can be used for first time setup
         self.playerStationNumber = 0
         self.meterTicksRemaining = 0
         self.playerStationHash = 0#The player station hash is a value assigned only to our Draxboard. It is a value derived from the usb path to our draxboard
@@ -1023,7 +1089,6 @@ class Draxboard(SerialDevice):
 
     #region Override methods
     def start_device(self, deviceElement):
-
         self.serialObject = self.open_serial_device(deviceElement.device, Draxboard.DRAX_BAUDRATE, 5, 5)
         self.send_request_status()#We want to send a request status to our Draxboard as the very first command to ensure that it is functioning properly as well as gather important info
         firstByteOfRequestStatus = self.serialObject.read(1)
@@ -1045,15 +1110,13 @@ class Draxboard(SerialDevice):
         return True
 
     """
-
+    Retrieves the parent path of our draxboard device
     """
     def fetch_parent_path(self, deviceElement):
         devToReturn = None
         for dev in self.dragonMasterDeviceManager.deviceContext.list_devices():
             if dev.device_path.__contains__(deviceElement.location) and dev.device_path.__contains__(deviceElement.name):
                 devToReturn = dev.parent.parent.parent.device_path
-
-
         return devToReturn
 
     """
@@ -1062,9 +1125,19 @@ class Draxboard(SerialDevice):
     """
     def send_request_status(self):
         self.write_to_serial(self.REQUEST_STATUS)
+        return
 
     """
-    This method will return
+    This method will send a packet that will request the currennt input state of our draxboard. This should be sent every time we start our python script.
+    
+    Ideally you should be able to send this upon starting another play session to receive the current input state
+    """
+    def send_request_current_input_state(self):
+        self.write_to_serial(self.READ_INPUT_STATE)
+        return
+
+    """
+    This method will perform draxboard actions based on the event type packet that is received
 
     NOTE: Be sure that if there is a return packet that you expect, be sure to include it here to ensure
     that we do not miss any packets
@@ -1081,25 +1154,30 @@ class Draxboard(SerialDevice):
         try:
 
             #Dynamic Packets: Packets that can be received at any point regardless of whether they were requested or not
-            if firstByteOfPacket[0] == Draxboard.INPUT_EVENT_ID:
+            if firstByteOfPacket[0] == Draxboard.INPUT_EVENT_ID:# Input State Packet (Dynamic)
                 self.add_input_event_to_tcp_queue(read)
                 return
-            elif firstByteOfPacket[0] == Draxboard.STATUS_EVENT_ID:
+            elif firstByteOfPacket[0] == Draxboard.STATUS_EVENT_ID:# Drax Status Packet (Dynamic)
                 self.on_status_packet_received(read)
                 return
+
             #Response Packet. Packets that are a response to packets that we sent
-            elif firstByteOfPacket[0] == Draxboard.REQUEST_STATUS_ID:
+            elif firstByteOfPacket[0] == Draxboard.INPUT_REQUEST_EVENT_ID:# Input State Packet (Requested)
+                self.add_input_event_to_tcp_queue(read)
+            elif firstByteOfPacket[0] == Draxboard.REQUEST_STATUS_ID:# Drax Status (Requested)
                 self.on_request_status_received(read)
                 return
-            elif firstByteOfPacket[0] == Draxboard.OUTPUT_EVENT_ID:
+            elif firstByteOfPacket[0] == Draxboard.OUTPUT_EVENT_ID:# Drax Output State Packet
                 self.on_output_packet_received(read)
                 return
-            elif firstByteOfPacket[0] == Draxboard.METER_INCREMENT_ID:
+            elif firstByteOfPacket[0] == Draxboard.METER_INCREMENT_ID:# Drax Meter Increment Packet
                 self.on_meter_increment_packet_received(read)
                 return
-            elif firstByteOfPacket[0] == Draxboard.PENDING_METER_ID:
+            elif firstByteOfPacket[0] == Draxboard.PENDING_METER_ID:# Drax Pending Meter Ticks Event
                 self.on_pending_meter_packet_received(read)
                 return
+            else:
+                pass
 
         except Exception as e:
             print ("There was an error processing a data event from our draxboard")
@@ -1114,7 +1192,7 @@ class Draxboard(SerialDevice):
     """
     def on_request_status_received(self, bytePacket):
         requestStatus = bytePacket
-
+        print (bytePacket.hex())
         if len(requestStatus) < Draxboard.REQUEST_STATUS_SIZE:
             print ("Reqeust Status length was too short or invalid: " + str(requestStatus))
             return
@@ -1123,17 +1201,19 @@ class Draxboard(SerialDevice):
         self.versionNumberLow = requestStatus[16]
 
         self.playerStationNumber = requestStatus[10]
-
         return
 
     """
     This method will be called upon receiving a packet for the draxboard status
 
     TODO: Implement some functionality upon receiving a status packet
+    NOTE: This method is obsolete according to the documentation.
     """
     def on_status_packet_received(self, bytePacket):
-        print ("Status packet was received... Nothing implemented to handle this though...")
         return
+
+    
+
 
     """
     This method will be calle upon receiving a packet from the drax that correlates to the us toggling the output of the draxboard.
@@ -1257,7 +1337,7 @@ class Draxboard(SerialDevice):
     """
     def add_input_event_to_tcp_queue(self, inputPacket):
 
-        if inputPacket == None or len(inputPacket) < Draxboard.INPUT_EVENT_SIZE or inputPacket[0] != Draxboard.INPUT_EVENT_ID:
+        if inputPacket == None or (inputPacket[0] != Draxboard.INPUT_EVENT_ID and inputPacket[0] != Draxboard.INPUT_REQUEST_EVENT_ID):
             print ("Invalid Input Event Packet. Please Be sure you are correctly interpreting our input packets")
             return
         inputData = [inputPacket[Draxboard.INPUT_INDEX], inputPacket[Draxboard.DOOR_STATE_INDEX]]
@@ -1574,15 +1654,17 @@ class Omnidongle(SerialDevice):
 """
 Returns a list of all connected DBV 400 comports
 """
-def get_all_connected_dbv400_comports():
+def get_all_connected_bill_acceptors():
     dbv400Elements = []
+    iVizionElements = []
     allPorts = serial.tools.list_ports.comports()
-
     for element in allPorts:
         if element.description.__contains__(DBV400.DBV_DESCRIPTION):
             dbv400Elements.append(element)
+        if element.description.__contains__(iVizion.DBV_DESCRIPTION):
+            iVizionElements.append(element)
 
-    return dbv400Elements
+    return dbv400Elements, iVizionElements
 
 """
 Returns the first omnidongle comport that we find

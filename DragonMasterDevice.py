@@ -179,7 +179,7 @@ class Joystick(DragonMasterDevice):
                         updatedAxes = (self.currentAxes[0], adjustedValue)
                         self.currentAxes = updatedAxes
                     if DragonMasterDeviceManager.DragonMasterDeviceManager.DEBUG_DISPLAY_JOY_AXIS:
-                        print (self.to_string() + ": " + str(self.currentAxes))
+                        print (str(self.get_player_station_hash()) + "-" + self.to_string() + ": " + str(self.currentAxes))
         except Exception as e:
             print ("There was an error with our joystick connection")
             print (e)
