@@ -258,6 +258,7 @@ class DBV400(BillAcceptor):
 
     def __init__(self, deviceManager):
         super().__init__(deviceManager)
+        self.dbvVersionBytes = []
         self.dbvVersion = None
         return
 
@@ -599,8 +600,8 @@ class DBV400(BillAcceptor):
     """ Process a message from our DBV to determine the version we are in """
     def on_version_message_received(self, message):
         indexOfVersion = 9
+        self.dbvVersionBytes = message
         self.dbvVersion = message[indexOfVersion:].decode('utf-8')
-        # print ("VersionSet: " + self.dbvVersion)
         return
     #endregion on read methods
 
@@ -1602,7 +1603,12 @@ class Omnidongle(SerialDevice):
     Player Station
     """
     def fetch_parent_path(self, deviceElement):
-        return None
+        devToReturn = None
+        for dev in self.dragonMasterDeviceManager.deviceContext.list_devices():
+            if dev.device_path.__contains__(deviceElement.location) and dev.device_path.__contains__(deviceElement.name):
+                devToReturn = dev.parent.parent.parent.parent.device_path
+        print (devToReturn)
+        return devToReturn
 
     """
     Disconnect our omnidongle by setting our CONNECTED_OMNIDONGLE value
