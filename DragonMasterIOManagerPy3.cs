@@ -4,13 +4,15 @@ using UnityEngine;
 
 using System;
 using System.Text;
+
 using System.Threading;
 
 using System.Net;
 using System.Net.Sockets;
 
 using System.Runtime.Serialization.Formatters.Binary;
-
+using System.Runtime.Serialization;
+using System.IO;
 
 /// <summary>
 /// @author Ryan Andersen EQ Games (404-643-1783)
@@ -40,7 +42,7 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
     /// <summary>
     /// List of all the buttons that the draxboard can send over
     /// </summary>
-    public enum DraxButtonID
+    public enum DraxButtonID : ushort
     {
         SHOOT_BUTTON = 0x0001,
         POWER_UP_BUTTON = 0x0002,
@@ -78,7 +80,9 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
         STATION_METER_IN = 0x8000,
     }
 
-    ///
+    /// <summary>
+    /// Possible States of our Draxboard device
+    /// </summary>
     public enum DraxboardState : byte
     {
         Error = 0x00,//At this moment, the only thing we are tracking is whether or not we are disconnected.
@@ -96,10 +100,20 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
         METER_OUT_MACHINE = 0x03
     }
 
-    public enum JoystickState
+    /// <summary>
+    /// Possible states of our joystick device
+    /// </summary>
+    public enum JoystickState : byte
     {
-        Error,
-        Connected,
+        Error = 0x00,
+        Connected = 0x01,
+    }
+
+
+    public enum JoystickType : byte
+    {
+        ULTIMARC_JOYSTICK = 0x01,
+        BAOLIAN_JOYSTICK = 0x02
     }
 
     /// <summary>
@@ -108,10 +122,10 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
     public enum BillAcceptorState
     {
         ERROR,
-        NOT_INIT,
+        NOT_INIT,//Once a bill acceptor is set to connected make this the default state
         POWER_UP,
         NOTE_STAY,
-        IDLE,
+        IDLE,//Bill Acceptor can accept bills
         INHIBIT,
         UNIT_FAILURE,
         BOX_REMOVED,
@@ -144,7 +158,7 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
     /// <summary>
     /// List of all possible states of our Reliance Printer
     /// </summary>
-    public enum ReliancePrinterState
+    public enum ReliancePrinterState : uint
     {
         PRINTER_READY = 0X00,
         COVER_OPEN = 0X01, //The reliance printer's cover is open. Functionality with the printer should stop
@@ -194,12 +208,9 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
     //JOYSTICK COMMANDS
     private const byte JOYSTICK_ID = 0X20; // Bit 5 represents joystick id events
     private const byte JOYSTICK_INPUT_EVENT = 0X21; //Input event from the joystick. Sends the x and y values that are currently set on the joystick
-    //JOYSTICK BRANDS
-    private const byte ULTIMARC_JOYSTICK = 0x01;// 
-    private const byte BAOLIAN_JOYSTICK = 0x02; //
 
     //PRINTER COMMANDS
-    private const byte PRINTER_ID = 0X40; //
+    private const byte PRINTER_ID = 0X40; //ID to indicate that this is a printer type event
 
     //Receive Events
     private const byte PRINTER_CASHOUT_TICKET = 0X41; //Command to print a cashout/voucher ticket
@@ -254,7 +265,7 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
     /// This list will be populated automatically if the playerstation hash has never been heard from. Either the playerstation index can be set by the hardware
     /// in Drax version 6.1x+ or you can manually set them through the settings menu. The default will be to set them in the order that the hashes are received, which will more than likely not be the correct order for each player station
     /// </summary>
-    private uint[] playerStationHashOrder = new uint[10];//cChange the value here to support a larger group of player stations. Setting it to 10, since I don't think we go above that in the near future.
+    private PlayerStationData[] playerStationDataOrderList = new PlayerStationData[10];//cChange the value here to support a larger group of player stations. Setting it to 10, since I don't think we go above that in the near future.
 
 
     private TCPManager associatedTCPManager;
@@ -265,6 +276,13 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
     {
         instance = this;
         StartupDragonMasterIOManagerPy3();
+        for (int i = 0; i < playerStationDataOrderList.Length; i++)
+        {
+            playerStationDataOrderList[i] = new PlayerStationData();
+            playerStationDataOrderList[i].playerStationIndex = i;
+        }
+
+        LoadPeripheralSettings();
     }
 
     private void Update()
@@ -459,7 +477,6 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
         byte deviceID = bytePacket[5];
         uint playerStationHash = GetPlayerStationHashFromBytePacketEvent(bytePacket);
 
-        AddPlayerStationToDeviceDictionaryIfNotAssigned(playerStationHash);
         PlayerStationData playerStation;
         switch (deviceID)
         {
@@ -468,13 +485,23 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
                 return;
 
             case DRAX_ID:
+                byte playerStationIndex = bytePacket[8];//In later versions of firmware, player station index can be assigned through the draxboard. This will return 0 if the version does not support this feature.
+                AddPlayerStationToDeviceDictionaryIfNotAssigned(playerStationHash, (int)playerStationIndex - 1);
+
                 playerStation = GetPlayerStationDataFromPlayerStationHash(playerStationHash);
+
                 if (playerStation == null)
                 {
                     Debug.LogError("There was an error connecting the DRAXBOARD.... I don't know how that happened.");
                     return;
                 }
+
                 playerStation.draxboardState = DraxboardState.Connected;
+
+                byte draxVersionHigh = bytePacket[6];// Drax version high.low
+                byte draxVersionLow = bytePacket[7];
+                playerStation.draxVersionHigh = draxVersionHigh;
+                playerStation.draxVersionLow = draxVersionLow;
                 return;
             case BILL_ACCEPTOR_ID:
                 playerStation = GetPlayerStationDataFromPlayerStationHash(playerStationHash);
@@ -483,8 +510,8 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
                     Debug.LogError("There was an error connecting the BILL ACCEPTOR. Perhaps there is no draxboard connected to our player station");
                     return;
                 }
+
                 playerStation.billAcceptorState = BillAcceptorState.NOT_INIT;
-                
                 return;
             case JOYSTICK_ID:
                 playerStation = GetPlayerStationDataFromPlayerStationHash(playerStationHash);
@@ -495,6 +522,7 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
                 }
 
                 playerStation.joystickState = JoystickState.Connected;
+                // playerStation.joystickType = (JoystickType)
                 return;
             case PRINTER_ID:
                 playerStation = GetPlayerStationDataFromPlayerStationHash(playerStationHash);
@@ -519,7 +547,6 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
         byte deviceID = bytePacket[5];
         uint playerStationHash = GetPlayerStationHashFromBytePacketEvent(bytePacket);
 
-        AddPlayerStationToDeviceDictionaryIfNotAssigned(playerStationHash);
         PlayerStationData playerStationData;
 
         switch (deviceID)
@@ -534,6 +561,7 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
                 {
                     Debug.LogError("There was an error disconnecting our DRAXBOARD.... I don't know how we got here");
                 }
+                playerStationData.draxboardState = DraxboardState.Error;
                 return;
             case BILL_ACCEPTOR_ID:
                 playerStationData = GetPlayerStationDataFromPlayerStationHash(playerStationHash);
@@ -548,6 +576,7 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
                 {
                     Debug.LogError("There was an error disconnecting our JOYSTICK.... I don't know how we got here");
                 }
+                playerStationData.joystickState = JoystickState.Error;
                 return;
             case PRINTER_ID:
                 playerStationData = GetPlayerStationDataFromPlayerStationHash(playerStationHash);
@@ -861,8 +890,32 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
             return;
         }
 
-        stationData.joystick_xAxis = packetEvent[5];
-        stationData.joystick_yAxis = packetEvent[6];
+        stationData.SetFromRawJoystickValues(packetEvent[5], packetEvent[6]);
+    }
+
+
+    public void SetJoystickAxesSwapped(int playerIndex, bool SwapJoystickAxisValues)
+    {
+        PlayerStationData playerStationData = GetPlayerStationDataFromPlayerStationIndexInOverseer(playerIndex);
+        
+        if (playerStationData != null)
+        {
+            playerStationData.swapAxisValues = SwapJoystickAxisValues;
+        }
+    }
+
+    /// Returns whether or not our joystick axes are set to be swapped.
+    /// NOTE: This does not require a joystick to be connected to return a value
+    public bool GetJoystickAxesSwapped(int playerIndex) 
+    {
+        PlayerStationData playerStationData = GetPlayerStationDataFromPlayerStationIndexInOverseer(playerIndex);
+
+        if (playerStationData != null)
+        {
+            return playerStationData.swapAxisValues;
+        }
+
+        return false;
     }
 
     /// <summary>
@@ -878,7 +931,7 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
             return 0;
         }
 
-        return AdjustJoystickAxisNormalized(!playerStationData.swapAxisValues ? playerStationData.joystick_yAxis : playerStationData.joystick_xAxis);
+        return AdjustJoystickAxisNormalized(playerStationData.joystick_yAxis);
     }
 
     /// <summary>
@@ -894,7 +947,7 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
             return 0;
         }
 
-        return AdjustJoystickAxisNormalized(!playerStationData.swapAxisValues ? playerStationData.joystick_xAxis : playerStationData.joystick_yAxis);
+        return AdjustJoystickAxisNormalized(playerStationData.joystick_xAxis);
     }
 
     /// <summary>
@@ -904,7 +957,7 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
     public float GetAllJoytickHorizontal()
     {
         float horizontalTotal = 0;
-        for (int i = 0; i < playerStationHashOrder.Length; i++)
+        for (int i = 0; i < playerStationDataOrderList.Length; i++)
         {
             horizontalTotal += GetHorizontalJoystickAxis(i);
         }
@@ -918,7 +971,7 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
     public float GetAllJoystickVertical()
     {
         float verticalTotal = 0;
-        for (int i = 0; i < playerStationHashOrder.Length; i++)
+        for (int i = 0; i < playerStationDataOrderList.Length; i++)
         {
             verticalTotal += GetVerticalJoystickAxis(i);
         }
@@ -932,7 +985,7 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
     /// <returns></returns>
     private float AdjustJoystickAxisNormalized(byte joystickAxisValue)
     {
-        float joystickAdjustmentValue = 128;
+        float joystickAdjustmentValue = 128;//Possibly want to move this. Maybe to player station data
 
         float adjustedJoystickValue = joystickAxisValue;
         adjustedJoystickValue -= joystickAdjustmentValue;
@@ -943,7 +996,7 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
     #endregion joystick events
 
     #region bill acceptor events
-    /// A bill was inserted and is not waiting approval to stack it. Either the user will stack it or it will be automatically accepted or rejected upon
+    /// A bill was inserted and is now waiting approval to stack it. Either the user will stack it or it will be automatically accepted or rejected upon
     /// receiving a bill based on certain condtions
     public void OnBillWasInserted(byte[] packetEvent) 
     {
@@ -1276,7 +1329,9 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
     /// <summary>
     /// Call this method to print an audit ticket to our 
     /// Returns true if we were able to send a print audit ticket request to our python application. False if we did not send a request
-    ///
+    /// 
+    /// NOTE: This does not block sending a print command to our player station beyond checking if there is a valid printer to send our command to. If you
+    /// need to block printing for a reason in-game, be sure to block it from a different location
     /// </summary>
     public bool PrintAuditTicket(int playerStationIndexToPrintTo, string auditTicketDataString)
     {
@@ -1300,7 +1355,9 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
         return true;
     }
 
+    /// <summary>
     /// Returns a bool that details whether or not we have a print job queued for the player station index that was passed in to our function
+    /// </summary>
     public bool GetPrintJobQueuedByPlayerIndex(int playerStationIndex)
     {
         PlayerStationData playerStationData = GetPlayerStationDataFromPlayerStationIndexInOverseer(playerStationIndex);
@@ -1311,7 +1368,9 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
         return playerStationData.printJobQueued;
     }
 
+    /// <summary>
     /// Sends a request for the printer that is associated with the player index
+    /// </summary>
     public void RequestPrinterState(int playerIndex)
     {
         uint playerStationHash = GetPlayerStationHashFromPlayerStationIndex(playerIndex);
@@ -1339,46 +1398,70 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
             return;
         }
 
-        if (playerStationIndexToAssign >= playerStationHashOrder.Length || playerStationIndexToAssign < 0)
+        if (playerStationIndexToAssign >= playerStationDataOrderList.Length || playerStationIndexToAssign < 0)
         {
             Debug.LogError("Value: " + playerStationIndexToAssign + " - The playerStationIndex that you are trying to assign is out of range of our max supported player size.");
-            Debug.LogError("Please use a value between 0 and " + playerStationHashOrder.Length.ToString());
+            Debug.LogError("Please use a value between 0 and " + playerStationDataOrderList.Length.ToString());
             return;
         }
 
-        if (playerStationHashOrder[playerStationIndexToAssign] == playerStationHash)
+        if (playerStationDataOrderList[playerStationIndexToAssign].playerStationHash == playerStationHash)
         {
             //This player station is already correctly assigned. No need to carry out this function
             return;
         }
 
-        AddPlayerStationToDeviceDictionaryIfNotAssigned(playerStationHash);
+        AddPlayerStationToDeviceDictionaryIfNotAssigned(playerStationHash, playerStationDataOrderList[playerStationIndexToAssign]);
 
         PlayerStationData playerStationData = GetPlayerStationDataFromPlayerStationHash(playerStationHash);
         playerStationData.playerStationHash = playerStationHash;
     }
 
+    /// This will check if the player station index that is passed in is a valid index to assign. Meaning that there is no valid player station hash already
+    /// assigned, the player station index is valid, and the player station hash is valid as well. If all those conditions are met we will assign this
+    /// player station hash to the associated player station index
+
+    /// NOTE: If you want to force an assign, you should use 'AssignPlayerStationHashToPlayerStationIndex'
+    private void AddPlayerStationToDeviceDictionaryIfNotAssigned(uint playerStationHash, int playerStationIndex)
+    {
+        if (playerStationHash == 0)
+        {
+            return;
+        }
+        if (playerStationIndex < 0 || playerStationIndex >= playerStationDataOrderList.Length)
+        {
+            return;
+        }
+
+        if (playerStationDataOrderList[playerStationIndex].playerStationHash == 0)
+        {
+            return;
+        }
+        else 
+        {
+            AddPlayerStationToDeviceDictionaryIfNotAssigned(playerStationHash, playerStationDataOrderList[playerStationIndex]);
+        }
+    }
 
     /// <summary>
     /// Assigne a new player station data to our device dictionary if there is not one. This will return the player station that is associated with that player station hash
     /// </summary>
     /// <param name="playerStationHash"></param>
     /// <returns></returns>
-    private void AddPlayerStationToDeviceDictionaryIfNotAssigned(uint playerStationHash)
+    private void AddPlayerStationToDeviceDictionaryIfNotAssigned(uint playerStationHash, PlayerStationData associatedPlayerStationData)
     {
         if (playerStationHash == 0)
         {
             Debug.LogWarning("A player station hash of 0 was passed in. This value is invalid. Must be greater than 0.");
             return;
         }
-        PlayerStationData playerStationData;
+        
         if (!playerStationDeviceDictionary.ContainsKey(playerStationHash))
         {
-            playerStationData = new PlayerStationData();
-
-            playerStationDeviceDictionary.Add(playerStationHash, playerStationData);
+            playerStationDeviceDictionary.Add(playerStationHash, null);
         }
 
+        playerStationDeviceDictionary[playerStationHash] = associatedPlayerStationData;
     }
 
     /// <summary>
@@ -1420,9 +1503,9 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
             return -1;
         }
 
-        for (int i = 0; i < playerStationHashOrder.Length; i++)
+        for (int i = 0; i < playerStationDataOrderList.Length; i++)
         {
-            if (playerStationHash == playerStationHashOrder[i])
+            if (playerStationHash == playerStationDataOrderList[i].playerStationHash)
                 return i;
         }
 
@@ -1437,12 +1520,12 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
     /// <returns></returns>
     private uint GetPlayerStationHashFromPlayerStationIndex(int playerStationIndex)
     {
-        if (playerStationIndex < 0 || playerStationIndex >= playerStationHashOrder.Length)
+        if (playerStationIndex < 0 || playerStationIndex >= playerStationDataOrderList.Length)
         {
             return 0;
         }
 
-        return playerStationHashOrder[playerStationIndex];
+        return playerStationDataOrderList[playerStationIndex].playerStationHash;
     }
 
 
@@ -1503,11 +1586,33 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
         #endregion const values
 
         #region drax variables
+        public int playerStationIndex
+        {
+            get 
+            {
+                return persistedValues.PlayerStationIndex;
+            }
+            set 
+            {
+                persistedValues.PlayerStationIndex = value;
+            }
+        }
+
         /// <summary>
         /// This is a value that is set by our python application that is derived from the usb path to the device. This will be how we will
         /// identify the player stations between python and our Unity application
         /// </summary>
-        public uint playerStationHash;
+        public uint playerStationHash 
+        {
+            get     
+            {
+                return persistedValues.PlayerStationHash;
+            }
+            set 
+            {
+                persistedValues.PlayerStationHash = value;
+            }
+        }
         
         /// <summary>
         /// The current output state of our draxboard
@@ -1533,27 +1638,45 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
         /// The current state of our draxboard
         /// </summary>
         public DraxboardState draxboardState;
+
+        /// <summary>
+        /// format for the draxboard version number will be draxVersionHigh.draxVersionLow
+        /// So if our draxboard is v6.14 for example, draxVersionHigh will equal 6 and draxVersionLow will equal 14
+        /// </summary>
+        public byte draxVersionHigh;
+        public byte draxVersionLow;
         #endregion drax variables
 
         #region joystick variables
         /// <summary>
         /// If this value is set to true, this will make it so that the y-axis is the horizontal axis and
-        /// x-axis will be the vertical
+        /// x-axis will be the vertical. This is used in case our joystick was built inverted, which may be necessary due to space that is 
+        /// availble on our Draxboards
         /// </summary>
-        public bool swapAxisValues;
+        public bool swapAxisValues 
+        {
+            get
+            {
+                return persistedValues.SwapJoystickAxisValues;
+            }
+            set 
+            {
+                persistedValues.SwapJoystickAxisValues = value;
+            }
+        }
 
         /// This refers to the type of joystick that is currently plugged into the machine. At the moement we have two types of joystick that we support
-        public byte joystickType = 0;
+        public JoystickType joystickType;
 
         /// <summary>
         /// Raw x axis from our python application. Any flipping or altering will have to be done in our Axes getter method
         /// </summary>
-        public byte joystick_xAxis = 0;
+        public byte joystick_xAxis {get; private set;}
 
         /// <summary>
         /// Raw y axis from our python application. Any flipping or altering will have to be done in our Axes getter method
         /// </summary>
-        public byte joystick_yAxis = 0;
+        public byte joystick_yAxis {get; private set;}
 
         /// <summary>
         /// The current state of our joystick... until we go more in depth with collecting status from our joystick this will only set it to either connected or disconnected
@@ -1596,15 +1719,38 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
         /// </summary>
         public CustomPrinterState customPrinterState;
         /// <summary>
-        /// The State of our printer specific to our Reliance Printer
+        /// The State of our printer specific to our Reliance Printer. This will have different states compared to other devices
         /// </summary>
         public ReliancePrinterState reliancePrinterState;
+
+        /// <summary>
+        /// This is a container that will hold values that should be persisted among play sessions
+        /// </summary>
+        public PersistedPlayerStationValues persistedValues {get; private set; }
 
         /// <summary>
         /// Shows how much paper is available in our printer
         /// </summary>
         public PaperStatus paperAvailability;
         #endregion printer variables
+
+        #region initializer
+        /// <summary> 
+        /// Use this when a new player station 
+        /// </summary>
+        public PlayerStationData()
+        {
+            persistedValues = new PersistedPlayerStationValues();
+        }
+
+        /// <summary> 
+        /// Use this overload method when reloading player station information on startup.
+        /// </summary>
+        public PlayerStationData(PersistedPlayerStationValues persistedValues)
+        {
+            this.persistedValues = persistedValues;
+        }
+        #endregion initializer
 
         #region draxboard events
         /// <summary>
@@ -1665,6 +1811,43 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
         }
         #endregion draxboard events
 
+        #region joystick methods
+        /// <summary>
+        /// This method will assign the appropriate joystick values based on the dead zone and other joystick values that are set
+        /// </summary>
+        public void SetFromRawJoystickValues(byte rawXAxis, byte rawYAxis)
+        {
+            if (!persistedValues.SwapJoystickAxisValues)
+            {
+                joystick_xAxis = rawXAxis;
+                joystick_yAxis = rawYAxis;
+            }
+            else 
+            {
+                joystick_xAxis = rawYAxis;
+                joystick_yAxis = rawXAxis;
+            }
+
+            if (persistedValues.invertXAxis)
+            {
+                joystick_xAxis = (byte)(-(int)joystick_xAxis + 256);
+            }
+            if (persistedValues.invertYAxis)
+            {
+                joystick_yAxis = (byte)(-(int)joystick_yAxis + 256);
+            }
+
+            if (Mathf.Abs(joystick_xAxis) / 128f < persistedValues.JoystickDeadzone)
+            {
+                joystick_xAxis = 0;
+            }
+            if (Mathf.Abs(joystick_yAxis) / 128f < persistedValues.JoystickDeadzone)
+            {
+                joystick_yAxis = 0;
+            }
+        }
+        #endregion joystick methods
+
         #region printer events
         /// <summary>
         /// This coroutine will start once we send a print event of any kind to our python application. It should end once we have received a clear flag from our python application
@@ -1680,6 +1863,19 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
             }
         }
         #endregion printer events
+
+        /// <summary>
+        /// Assigns persisted player station values to our player station data object. This should only ever be called from the load function
+        /// when this class is first loaded up in our game
+        /// </summary>
+        public void AssignPersistedPlayerstationDataFromLoad(PersistedPlayerStationValues persistedPlayerStationValuesToAssign)
+        {
+            if (persistedPlayerStationValuesToAssign == null)
+            {
+                return;
+            }
+            this.persistedValues = persistedPlayerStationValuesToAssign;
+        }
 
 
         /// <summary>
@@ -1697,10 +1893,32 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
         {
 
         }
-
-        
     }
 
+    [System.Serializable]
+    /// <summary>
+    /// This class will contain values that should be persisted accross play sessions for our player stations.
+    /// For example the player station hash and the player station index should be persisted, so that they can be assigned on start
+    /// instead of having to calibrate the stations each time the game starts. You may also want to keep values such as joystick
+    /// deadzones in here.
+    /// </summary>
+    private class PersistedPlayerStationValues
+    {
+        public int PlayerStationIndex; // This is the player number. for an 8 player cabinet this should be a number between 0-7(inclusive)
+        public uint PlayerStationHash; // A reference to the associated player station hash. This is the value that our python application will send to correspond player station that it is sending or receiving information about
+
+        public float JoystickDeadzone = .25f; // Any value reported below this threshold will be set to 0. Our joysticks are very sensitive and require this property
+        public bool SwapJoystickAxisValues = true; // This will swap our joystick axes meaning that the x axis in game will be the y axis on the controller and vice-versa
+        public bool invertXAxis = false; //This will flip left/right on our horizontal axis
+        public bool invertYAxis = false; //This will flip our up/down on our vertical axis
+    }
+
+    [System.Serializable]
+    private class PeripheralSaveData
+    {
+        /// This will be a list of all the persisted values that each player station will contain. This is to appropriately assign values on start
+        public PersistedPlayerStationValues[] PersistedPlayerStationValuesList;
+    }
     #endregion player station management classes
 
     #region threading methods
@@ -1727,8 +1945,11 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
         /// </summary>
         public Queue<byte[]> queuedPacketsToSend = new Queue<byte[]>();
 
+        // Correlates to your local host. This should be the same among every computer
         private readonly IPAddress HOST_ADDRESS = IPAddress.Parse("127.0.0.1");
+        // This is the port that we will be receive information from our python application from. This is just an arbirary value. Can be anything but must match what is in python
         private const int RECEIVE_PORT = 25001;
+        // This is the port that we will send information to our python application. This is an arbitrary value. Can be anything, but must match with what is in python
         private const int SEND_PORT = 35001;
 
         #region receive tcp events
@@ -1838,7 +2059,7 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
             Socket acceptedSocket = null;
             if (!this.associatedDeviceManager)
             {
-                print ("I properly exited out Send thread");
+                // Debug.Log("I properly exited out Send thread");
                 return;
             }
 
@@ -1906,7 +2127,7 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
 
             if (!this.associatedDeviceManager)
             {
-                print ("I Exited Properly Our Read Threads");
+                // Debug.Log("I properly exited out of our threaded method");
                 return;
             }
 
@@ -2021,13 +2242,47 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
 
 
     #region loading/saving
+    private static string PERIPHERAL_SAVE_DIRECTORY
+    {
+        get 
+        {
+            return Path.Combine(BookkeepingManager.LinuxPersistentDirectory, "PeripheralSave.dat");
+        }
+    }
 
     /// <summary>
     /// Saves the data for our peripheral settings to a binary serialized file
     /// </summary>
     public void SavePeripheralSettings()
     {
+        PeripheralSaveData PeripheralSaveData = new PeripheralSaveData();
+        PersistedPlayerStationValues[] PersistedPlayerStationValuesList = new PersistedPlayerStationValues[playerStationDataOrderList.Length];
+        for (int i = 0; i < playerStationDataOrderList.Length; ++i)
+        {
+            PersistedPlayerStationValuesList[i] = playerStationDataOrderList[i].persistedValues;
+        }
 
+        FileStream fs = new FileStream(PERIPHERAL_SAVE_DIRECTORY, FileMode.Create);
+
+        try 
+        {
+            BinaryFormatter formatter = new BinaryFormatter();
+            formatter.Serialize(fs, PeripheralSaveData);
+        }
+        catch (SerializationException e)
+        {
+            Debug.LogError("Error when Serialing our Peripheral Save File");
+            Debug.LogError(e);
+        }
+        catch (Exception e)
+        {
+            Debug.LogError("Error when Serialing our Peripheral Save File");
+            Debug.LogError(e);
+        }
+        finally
+        {
+            fs.Close();
+        }
     }
 
     /// <summary>
@@ -2035,7 +2290,28 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
     /// </summary>
     public void LoadPeripheralSettings()
     {
+        PeripheralSaveData peripheralSaveData = null;
+        FileStream fs = new FileStream(PERIPHERAL_SAVE_DIRECTORY, FileMode.Open);
 
+        try
+        {
+            BinaryFormatter formatter = new BinaryFormatter();
+
+            peripheralSaveData = (PeripheralSaveData) formatter.Deserialize(fs);
+            
+            for (int i = 0; i < Mathf.Min(peripheralSaveData.PersistedPlayerStationValuesList.Length, playerStationDataOrderList.Length); ++i)
+            {
+                if (peripheralSaveData.PersistedPlayerStationValuesList[i] != null)
+                {
+                    playerStationDataOrderList[i].AssignPersistedPlayerstationDataFromLoad(peripheralSaveData.PersistedPlayerStationValuesList[i]);
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            Debug.LogError("There was an error loading our peripheral settings");
+            Debug.LogError(e);
+        }
     }
     #endregion loading/saving
 
@@ -2217,7 +2493,7 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
 
         public override string GetDeviceName()
         {
-            return "DBV-400 (JCM)";
+            return "Bill Acceptor";
         }
     }
 
@@ -2244,7 +2520,9 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
 
     }
 
-    /// Log of Omnidongle events. This will include connection/disconnection events, as well as message
+    /// <summary>
+    /// Log of Omnidongle events. This will include connection/disconnection events, as well as message send, message receive
+    /// </summary>
     private class OmnidongleLog
     {
         public enum OmnidongleEvent
@@ -2261,32 +2539,7 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
     #endregion device manager logging
 
     #region persisted player station information
-    /// The key that we will use to save our player station info to our player prefs
-    private const string PLAYER_STATION_KEY = "PlayerStation";
-    
-    /// Whenever we want to update our Player Station Information
-    public void SavePlayerStationInformationToPlayerPrefs() 
-    {
-        for (int i = 0; i < playerStationHashOrder.Length; ++i)
-        {
-            PlayerPrefs.SetInt(PLAYER_STATION_KEY + i.ToString(), (int)playerStationHashOrder[i]);//Hopefully this isn't an issue. I don't think we will ever need a number larger than a 32bit int for the hash
-        }
-        PlayerPrefs.Save();
-    }
 
-    /// This should be called upon initializing the game and before reading any information from our python application
-    public void LoadPlayerStationInformationFromPlayerPrefs() 
-    {
-        string key;
-        for (int i = 0; i < playerStationHashOrder.Length; ++i)
-        {
-            key = PLAYER_STATION_KEY + i.ToString();
-            if (PlayerPrefs.HasKey(key))
-            {
-                playerStationHashOrder[i] = (uint)PlayerPrefs.GetInt(key);
-            }
-        }
-    }
 
     #endregion persisted player station information
 
