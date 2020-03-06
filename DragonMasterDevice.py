@@ -309,6 +309,16 @@ class Printer(DragonMasterDevice):
         return
 
     """
+    Returns the printer type id. This is primarily for our Unity application to idntify which type of printer
+    it is connected to. This will help wiht deciphering states we receive from our application
+
+    NOTE: All classes that extend the printer class should contain this method
+    """
+    @staticmethod
+    def get_printer_id():
+        return 0x00
+
+    """
     Method that will check the current state of the connected printer. This will send a message to our Unity
     Application if the state has changed
     """
@@ -769,6 +779,10 @@ class CustomTG02(Printer):
     def to_string(self):
         return "CustomTG02(" + ")"
     #End Override Methods
+
+    @staticmethod
+    def get_printer_id():
+        return DragonMasterDeviceManager.DragonMasterDeviceManager.CUSTOM_TG02
     pass
 
 """
@@ -926,6 +940,10 @@ class ReliancePrinter(Printer):
         Printer.print_codex_ticket(self, codexTicketInfo, lineLength, whiteSpaceUnderTicket)
         self.associatedRelianceSerial.cut()
     #endregion override printer methods
+
+    @staticmethod
+    def get_printer_id():
+        return DragonMasterDeviceManager.DragonMasterDeviceManager.RELIANCE_PRINTER
     pass
 
 

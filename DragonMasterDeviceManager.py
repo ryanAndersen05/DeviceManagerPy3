@@ -310,6 +310,7 @@ class DragonMasterDeviceManager:
             pass
         elif isinstance(deviceThatWasAdded, DragonMasterDevice.Printer):
             deviceData.append(DragonMasterDeviceManager.PRINTER_ID)#DeviceTypeID
+            deviceData.append(deviceThatWasAdded.get_printer_id())
             pass
         elif isinstance(deviceThatWasAdded, DragonMasterSerialDevice.Draxboard):
             deviceData.append(DragonMasterDeviceManager.DRAX_ID)#DeviceTypeID
@@ -555,24 +556,24 @@ class DragonMasterDeviceManager:
             self.on_print_codex_ticket_event(playerStationHash, eventMessage[5:])
             return
         elif eventCommandByte == DragonMasterDeviceManager.PRINTER_TEST_TICKET:
-            self.on_print_test_ticket_event(playerStationHash, eventMessage[5:])
+            self.on_print_test_ticket_event(playerStationHash)
             return
             
         #Bill Acceptor Outputs
         elif eventCommandByte == DragonMasterDeviceManager.BA_IDLE_EVENT:
-            self.on_ba_idle_event(playerStationHash, eventMessage[5:])
+            self.on_ba_idle_event(playerStationHash)
             return
         elif eventCommandByte == DragonMasterDeviceManager.BA_INHIBIT_EVENT:
-            self.on_ba_inhibit_event(playerStationHash, eventMessage[5:])
+            self.on_ba_inhibit_event(playerStationHash)
             return
         elif eventCommandByte == DragonMasterDeviceManager.BA_RESET_EVENT:
-            self.on_ba_reset_event(playerStationHash, eventMessage[5:])
+            self.on_ba_reset_event(playerStationHash)
             return
         elif eventCommandByte == DragonMasterDeviceManager.BA_ACCEPT_BILL_EVENT:
-            self.on_ba_accept_bill_event(playerStationHash, eventMessage[5:])
+            self.on_ba_stack_bill_event(playerStationHash)
             return
         elif eventCommandByte == DragonMasterDeviceManager.BA_REJECT_BILL_EVENT:
-            self.on_ba_reject_bill_event(playerStationHash, eventMessage[5:])
+            self.on_ba_reject_bill_event(playerStationHash)
             return
 
     """
@@ -597,9 +598,9 @@ class DragonMasterDeviceManager:
     @param eventMessage: a list of bytes that will be sent to our omnidongle device
     """
     def on_omnidongle_event_received(self, eventMessage):
-        if DragonMasterDeviceManager.CONNECTED_OMNIDONGLE != None:
+        if self.CONNECTED_OMNIDONGLE != None:
 
-            omnidevice = DragonMasterDeviceManager.CONNECTED_OMNIDONGLE
+            omnidevice = self.CONNECTED_OMNIDONGLE
             omnidevice.add_event_to_queue(omnidevice.send_data_to_omnidongle_wait_for_response, eventMessage[1:])
         return
 
@@ -679,50 +680,61 @@ class DragonMasterDeviceManager:
     """
     This method should be called when a bill acceptor idle event is triggered from Unity
     """
-    def on_ba_idle_event(self, playerSationHash, eventData):
+    def on_ba_idle_event(self, playerStationHash):
         billAcceptor = self.get_bill_acceptor_from_player_station_hash(playerStationHash)
 
         if billAcceptor == None:
             return
-        if not len(eventData):
-            return
-
-        billAcceptor.idle_dbv()
+        
+        billAcceptor.add_event_to_queue(billAcceptor.idle_dbv)
         return
 
     """
     This method should be called when a bill acceptor inhibit event is called from Unity
     """
-    def on_ba_inhibit_event(self, playerStationHash, eventData):
+    def on_ba_inhibit_event(self, playerStationHash):
         billAcceptor = self.get_bill_acceptor_from_player_station_hash(playerStationHash)
 
         if billAcceptor == None:
             return
-        if not len(eventData):
-            return
         
-        billAcceptor.inhibit_dbv()
+        billAcceptor.add_event_to_queue(billAcceptor.inhibit_dbv)
         return
 
     """
     This method should be called when a bill acceptor reset event is called from Unity
     """
-    def on_ba_reset_event(self, playerStationHash, eventData):
+    def on_ba_reset_event(self, playerStationHash):
+        billAcceptor = self.get_bill_acceptor_from_player_station_hash(playerStationHash)
 
+        if billAcceptor == None:
+            return
+
+        billAcceptor.add_event_to_queue(billAcceptor.reset_dbv)
         return
 
     """
     If there is a bill in pending this message should be sent to our bill acceptor to appropriately accept it
     """
-    def on_ba_accept_bill_event(self, playerStationHash, eventData):
+    def on_ba_stack_bill_event(self, playerStationHash):
+        billAcceptor = self.get_bill_acceptor_from_player_station_hash(playerStationHash)
+        
+        if billAcceptor == None:
+            return
 
+        billAcceptor.add_event_to_queue(billAcceptor.stack_bill)
         return
 
     """
     If there is a bill pending in our bill acceptor this should be called to properly reject the bill
     """
-    def on_ba_reject_bill_event(self, playerStationHash, eventData):
+    def on_ba_reject_bill_event(self, playerStationHash):
+        billAcceptor = self.get_bill_acceptor_from_player_station_hash(playerStationHash)
+        
+        if billAcceptor == None:
+            return
 
+        billAcceptor.add_event_to_queue(billAcceptor.reject_bill)
         return
     #endregion bill acceptor tcp events
 
@@ -751,7 +763,7 @@ class DragonMasterDeviceManager:
     """
     Method that should be called when attempting to print out a test ticket from our 
     """
-    def on_print_test_ticket_event(self, eventData):
+    def on_print_test_ticket_event(self, playerStationHash):
 
         return
 
@@ -926,17 +938,21 @@ class DragonMasterDeviceManager:
 
 """
 This class acts as a container of all the devices that are connected to this player station
+
+TODO: Add a way to store multiple devices in the event that there are perhaps 2 joysticks connected to the same player station
 """
 class PlayerStationContainer:
     
     def __init__(self):
         #Whenever we connect to a new draxboard, this value will be set. As long as the drax is reconnected to the same usb port, this path should remain the same
         self.persistedPlayerStationHash = 0
-        #Connected Draxboard. Will be None if there is no Drax currently connected
+        #Connected Draxboard. 
         self.connectedDraxboard = None
-        #
+        #The connected bill acceptor that is associated with this player staiton
         self.connectedBillAcceptor = None
+        #The connected joystick that is associated with this player station
         self.connectedJoystick = None
+        #The connected printer that is associated with this player staiton
         self.connectedPrinter = None    
 
     """
@@ -1000,7 +1016,7 @@ class TCPManager:
     This enqueues an event to send to our unity application
 
     @type messageToQueueForSend: bytes
-
+    @param messageToQueuForSend: This is the byte packet that we want to enqueue and deliver to Unity as soon as possible
     """
     def add_event_to_send(self, messageToQueueForSend):
         if messageToQueueForSend == None:
@@ -1492,7 +1508,7 @@ def debug_status_message(deviceManager):
     return
 
 """
-Function to test our threaded device events
+Function to test our threaded device events. Sends 3 queued events all the connected devices that we have
 """
 def debug_test_event(deviceManager):
     for dev in deviceManager.allConnectedDevices:
