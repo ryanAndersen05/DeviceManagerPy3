@@ -1576,7 +1576,6 @@ class Omnidongle(SerialDevice):
     packet to the device
     """
     def poll_serial_thread(self):
-        serialDevice = self.serialObject
         self.pollingDevice = True
         self.serialState = SerialDevice.SERIAL_WAIT_FOR_EVENT
         try:

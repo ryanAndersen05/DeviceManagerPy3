@@ -743,35 +743,58 @@ class DragonMasterDeviceManager:
     Method that should be called to print out a cashout ticket
     """
     def on_print_cashout_ticket_event(self, playerStationHash, eventData):
+        printerDevice = self.get_printer_from_player_station_hash(playerStationHash)
 
+        if printerDevice == None:
+            return
+
+        printerDevice.add_event_to_queue(printerDevice.print_voucher_ticket, DragonMasterDeviceManager.PRINTER_CASHOUT_TICKET, eventData)
         return
 
     """
     Method that should be called to print out a codex ticket
     """
     def on_print_codex_ticket_event(self, playerStationHash, eventData):
+        printerDevice = self.get_printer_from_player_station_hash(playerStationHash)
 
+        if printerDevice == None:
+            return
+
+        printerDevice.add_event_to_queue(printerDevice.print_codex_ticket, str(eventData))
         return
 
     """
     Method that should be called to print out an audit ticket
     """
     def on_print_audit_ticket_event(self, playerStationHash, eventData):
+        printerDevice = self.get_printer_from_player_station_hash(playerStationHash)
+        if printerDevice == None:
+            return
 
+        printerDevice.add_event_to_queue(printerDevice.print_audit_ticket, str(eventData))
         return
 
     """
     Method that should be called when attempting to print out a test ticket from our 
     """
     def on_print_test_ticket_event(self, playerStationHash):
+        printerDevice = self.get_printer_from_player_station_hash(playerStationHash)
+        if printerDevice == None:
+            return
 
+        printerDevice.add_event_to_queue(printerDevice.print_voucher_ticket, DragonMasterDeviceManager.PRINTER_TEST_TICKET, []) #Alwasy want to print our voucher ticket with a value of 0 when it is a test ticket
         return
 
     """
     This method should be called whenever a reprint is requested from our Unity application
     """
     def on_print_reprint_ticket_event(self, playerStationHash, eventData):
+        printerDevice = self.get_printer_from_player_station_hash(playerStationHash)
 
+        if printerDevice == None:
+            return
+
+        printerDevice.add_event_to_queue(printerDevice.print_voucher_ticket, DragonMasterDeviceManager.PRINTER_REPRINT_TICKET,eventData)
         return
 
     #endregion printer tcp events

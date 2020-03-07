@@ -473,7 +473,6 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
     private void OnDeviceConnectedEvent(byte[] bytePacket)
     {
 
-
         byte deviceID = bytePacket[5];
         uint playerStationHash = GetPlayerStationHashFromBytePacketEvent(bytePacket);
 
@@ -985,11 +984,10 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
     /// <returns></returns>
     private float AdjustJoystickAxisNormalized(byte joystickAxisValue)
     {
-        float joystickAdjustmentValue = 128;//Possibly want to move this. Maybe to player station data
-
+        
         float adjustedJoystickValue = joystickAxisValue;
-        adjustedJoystickValue -= joystickAdjustmentValue;
-        adjustedJoystickValue /= joystickAdjustmentValue;
+        adjustedJoystickValue -= PlayerStationData.JOYSTICK_AXIS_OFFSET;
+        adjustedJoystickValue /= PlayerStationData.JOYSTICK_AXIS_OFFSET;
 
         return adjustedJoystickValue;
     }
@@ -1000,41 +998,73 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
     /// receiving a bill based on certain condtions
     public void OnBillWasInserted(byte[] packetEvent) 
     {
+        uint playerStationHash = GetPlayerStationHashFromBytePacketEvent(packetEvent);
+
+        if (playerStationHash == 0)
+        {
+            return;
+        }
+
+        int playerStationIndex = GetPlayerStationIndexFromPlayerStationHash(playerStationHash);
+
 
     }
 
     /// If a bill was stacked that means that we have completed the acceptance process of our bill and can now add credits to the player that is associated with this index
     public void OnBillWasStacked(byte[] packetEvent)
     {
+        uint playerStationHash = GetPlayerStationHashFromBytePacketEvent(packetEvent);
 
+        if (playerStationHash == 0)
+        {
+            return;
+        }
+
+        int playerStationIndex = GetPlayerStationIndexFromPlayerStationHash(playerStationHash);
     }
 
     /// This method will be called whe we retrieve a command to says that we have successfully rejected a bill
     public void OnBillWasRejected(byte[] packetEvent)
     {
+        uint plyaerStationHash = GetPlayerStationHashFromBytePacketEvent(packetEvent);
 
+        if (plyaerStationHash == 0)
+        {
+            return;
+        }
+
+        int playerStationIndex = GetPlayerStationIndexFromPlayerStationHash(playerStationHash);
     }
 
     /// This method will be called upon a bill being returned from the bill acceptor
     /// Thsi will carry out no action in the game, but should log the fact that we did receive a bill
     public void OnBillWasReturned(byte[] packetEvent)
     {
+        uint playerStationHash = GetPlayerStationHashFromBytePacketEvent(packetEvent);
 
+        if (playerStationHash == 0)
+        {
+            return;
+        }
+
+        int playerStationIndex = GetPlayerStationIndexFromPlayerStationHash(playerStationHash);
     }
 
     //Every time the state is updated in the bill acceptor, this method should be called. We can also get this, but requesting the state manually
     public void OnBillAcceptorStateReceived(byte[] packetEvent)
     {
+        uint playerStationHash = GetPlayerStationHashFromBytePacketEvent(packetEvent);
+
+        if (playerStationHash == 0)
+        {
+            return;
+        }
+
+        int playerStationIndex = GetPlayerStationIndexFromPlayerStationHash(playerStationHash);
 
     }
 
-    //When our bill has changed state, this method should be called with the associated state assigned
-    public void OnReceivedBillAcceptorState(byte[] packetEvent)
-    {
-
-    }
-
-    //Sends a command to accept the bill that is currently in escrow
+    // Sends a command to the associated bill acceptor to accept the bill that is currently being held in escrow
     public void AcceptBillThatIsCurrentlyInEscrow(int playerIndex) 
     {
         uint playerStationHash = GetPlayerStationHashFromPlayerStationIndex(playerIndex);
@@ -1043,10 +1073,10 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
             Debug.LogWarning("There was no player station hash associated with the player index. Perhaps you will need to calibrate the player stations");
             return;
         }
-        QueueEventToSendToPython(BA_REJECT_BILL_EVENT, new byte[] { }, playerStationHash);
+        QueueEventToSendToPython(BA_ACCEPT_BILL_EVENT, new byte[] { }, playerStationHash);
     }
 
-    //Sends a command to reject the bill that is currently in escrow
+    //Sends a command to the associated bill acceptor to reject the bill that is curernetly being held in escrow
     public void RejectBillThatIsCurrentlyInEscrow(int playerIndex) 
     {
         uint playerStationHash = GetPlayerStationHashFromPlayerStationIndex(playerIndex);

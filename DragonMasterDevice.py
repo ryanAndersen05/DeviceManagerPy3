@@ -340,9 +340,28 @@ class Printer(DragonMasterDevice):
     """
     This method will print out a voucher ticket. The general format should apply to all of our printer types
     """
-    def print_voucher_ticket(self, totalCreditsWon, ticketType, playerStation = "0", validationNumber = "0", TerminalID = "000000", dateTimeOfPrint=None, whiteSpaceUnderTicket=1):
+    def print_voucher_ticket(self, ticketType, printVoucherData, whiteSpaceUnderTicket=1):
+
+
+        totalCreditsWon = "0.00"
+        playerStation = "0"
+        validationNumber = "0"
+        TerminalID = "000000"
+        dateTimeOfPrint = None
+
+        
+
 
         try:
+
+            if ticketType != DragonMasterDeviceManager.DragonMasterDeviceManager.PRINTER_TEST_TICKET:
+                propertiesSplitList = str(printVoucherData).split('|')
+                totalCreditsWon = propertiesSplitList[0]
+                playerStation = propertiesSplitList[1]
+                validationNumber = propertiesSplitList[2]
+                TerminalID = propertiesSplitList[3]
+                dateTimeOfPrint = datetime.datetime(propertiesSplitList[4], propertiesSplitList[5], propertiesSplitList[6], propertiesSplitList[7], propertiesSplitList[8], propertiesSplitList[9])
+
             if dateTimeOfPrint == None:#An older version of the game may not provide the datetime of the print. This probably won't be an issue, but just in case....
                 dateTimeOfPrint = datetime.datetime.now()
                 print ("Date Time was None, defaulting to the current time on our system clock")
@@ -404,7 +423,7 @@ class Printer(DragonMasterDevice):
                 self.printerObject.set(align='center', font='b', height=12, bold=False)
                 self.printerObject.textln("***REPRINT***")
 
-            qrData = "$"+str(totalCreditsWon) + " " + dateTimeOfPrint.strftime('%I:%M:%S %p  %x')
+            qrData = "$"+ totalCreditsWon + " " + dateTimeOfPrint.strftime('%I:%M:%S %p  %x')
             self.printerObject.set(align='center', font='b', height=12)
             self.printerObject.qr(content=qrData, size=8) # Print the QR code to be scanned. We need to figure out the content of these codes.
 
@@ -923,18 +942,27 @@ class ReliancePrinter(Printer):
 
 
     #region override printer methods
+
+    """
+    Override method to print our audit ticket for Reliance Printers
+    """
     def print_audit_ticket(self, auditInfoString):
         self.associatedRelianceSerial.retract()
         Printer.print_audit_ticket(self, auditInfoString, 29, 0)
         self.associatedRelianceSerial.cut()
         return
 
-
-    def print_voucher_ticket(self, totalCreditsWon, ticketType, playerStation = "0", validationNumber = "0", terminalID = "000000" , dateTimeOfPrint=None, whiteSpaceUnderTicket=1):
+    """
+    Override method to print our voucher ticket for Reliance Printers
+    """
+    def print_voucher_ticket(self, ticketType, eventData):
         self.associatedRelianceSerial.retract()
-        super().print_voucher_ticket(totalCreditsWon, ticketType, playerStation, validationNumber, terminalID, dateTimeOfPrint, whiteSpaceUnderTicket)
+        Printer.print_voucher_ticket(self, ticketType, eventData)
         self.associatedRelianceSerial.cut()
 
+    """
+    Override method to print our codex ticket for Reliance Printers
+    """
     def print_codex_ticket(self, codexTicketInfo, lineLength=29, whiteSpaceUnderTicket=0):
         self.associatedRelianceSerial.retract()
         Printer.print_codex_ticket(self, codexTicketInfo, lineLength, whiteSpaceUnderTicket)
