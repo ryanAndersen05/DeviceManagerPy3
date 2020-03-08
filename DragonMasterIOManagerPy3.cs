@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Events;
 
 using System;
 using System.Text;
@@ -145,7 +146,7 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
     /// <summary>
     /// List of all possible states of our CustomTG02 Printer
     /// </summary>
-    public enum CustomPrinterState
+    public enum CustomPrinterState : uint
     {
         DISCONNECTED,
         ERROR,
@@ -495,7 +496,7 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
                     return;
                 }
 
-                playerStation.draxboardState = DraxboardState.Connected;
+                playerStation.draxboardState = (byte)DraxboardState.Connected;
 
                 byte draxVersionHigh = bytePacket[6];// Drax version high.low
                 byte draxVersionLow = bytePacket[7];
@@ -510,7 +511,7 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
                     return;
                 }
 
-                playerStation.billAcceptorState = BillAcceptorState.NOT_INIT;
+                playerStation.billAcceptorState = (byte)BillAcceptorState.NOT_INIT;
                 return;
             case JOYSTICK_ID:
                 playerStation = GetPlayerStationDataFromPlayerStationHash(playerStationHash);
@@ -520,7 +521,7 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
                     return;
                 }
 
-                playerStation.joystickState = JoystickState.Connected;
+                playerStation.joystickState = (byte)JoystickState.Connected;
                 // playerStation.joystickType = (JoystickType)
                 return;
             case PRINTER_ID:
@@ -531,8 +532,8 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
                     return;
                 }
 
-                playerStation.paperAvailability = PaperStatus.OUT_OF_PAPER;
-                playerStation.printerTypeAssignedToStation = CUSTOM_TG02;
+                playerStation.paperAvailability = (byte)PaperStatus.OUT_OF_PAPER;
+                playerStation.printerState = (uint)CustomPrinterState.READY;
                 return;
         }
     }
@@ -560,7 +561,7 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
                 {
                     Debug.LogError("There was an error disconnecting our DRAXBOARD.... I don't know how we got here");
                 }
-                playerStationData.draxboardState = DraxboardState.Error;
+                playerStationData.draxboardState = (byte)DraxboardState.Error;
                 return;
             case BILL_ACCEPTOR_ID:
                 playerStationData = GetPlayerStationDataFromPlayerStationHash(playerStationHash);
@@ -575,10 +576,11 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
                 {
                     Debug.LogError("There was an error disconnecting our JOYSTICK.... I don't know how we got here");
                 }
-                playerStationData.joystickState = JoystickState.Error;
+                playerStationData.joystickState = (byte)JoystickState.Error;
                 return;
             case PRINTER_ID:
                 playerStationData = GetPlayerStationDataFromPlayerStationHash(playerStationHash);
+                playerStationData.printerState = (uint)CustomPrinterState.DISCONNECTED;
                 if (playerStationData == null)
                 {
                     Debug.LogError("There was an error disconnecting our PRINTER.... I don't know how we got here");
@@ -1004,10 +1006,11 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
         {
             return;
         }
-
-        int playerStationIndex = GetPlayerStationIndexFromPlayerStationHash(playerStationHash);
-
-
+        PlayerStationData playerStationData = GetPlayerStationDataFromPlayerStationHash(playerStationHash);
+        if (playerStationData != null)
+        {
+            playerStationData.OnBillWasInsertedEvent.Invoke();
+        }
     }
 
     /// If a bill was stacked that means that we have completed the acceptance process of our bill and can now add credits to the player that is associated with this index
@@ -1020,20 +1023,24 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
             return;
         }
 
-        int playerStationIndex = GetPlayerStationIndexFromPlayerStationHash(playerStationHash);
+        PlayerStationData playerStationData = GetPlayerStationDataFromPlayerStationHash(playerStationHash);
+        if (playerStationData != null)
+        {
+            playerStationData.OnBillWasStackedEvent.Invoke(packetEvent[5]);
+        }
     }
 
     /// This method will be called whe we retrieve a command to says that we have successfully rejected a bill
     public void OnBillWasRejected(byte[] packetEvent)
     {
-        uint plyaerStationHash = GetPlayerStationHashFromBytePacketEvent(packetEvent);
+        uint playerStationHash = GetPlayerStationHashFromBytePacketEvent(packetEvent);
 
-        if (plyaerStationHash == 0)
+        if (playerStationHash == 0)
         {
             return;
         }
-
-        int playerStationIndex = GetPlayerStationIndexFromPlayerStationHash(playerStationHash);
+        
+        // PlayerStationData playerStationData = GetPlayerStationDataFromPlayerStationHash(playerStationHash);
     }
 
     /// This method will be called upon a bill being returned from the bill acceptor
@@ -1047,7 +1054,7 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
             return;
         }
 
-        int playerStationIndex = GetPlayerStationIndexFromPlayerStationHash(playerStationHash);
+        // PlayerStationData playerStationData = GetPlayerStationDataFromPlayerStationHash(playerStationHash);
     }
 
     //Every time the state is updated in the bill acceptor, this method should be called. We can also get this, but requesting the state manually
@@ -1060,10 +1067,17 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
             return;
         }
 
-        int playerStationIndex = GetPlayerStationIndexFromPlayerStationHash(playerStationHash);
+        PlayerStationData playerStationData = GetPlayerStationDataFromPlayerStationHash(playerStationHash);
+
+        if (playerStationData != null)
+        {
+            playerStationData.billAcceptorState = packetEvent[5];
+            playerStationData.OnBillAcceptorStateReceivedEvent.Invoke();
+        }
 
     }
 
+    #region bill acceptor send commands
     // Sends a command to the associated bill acceptor to accept the bill that is currently being held in escrow
     public void AcceptBillThatIsCurrentlyInEscrow(int playerIndex) 
     {
@@ -1140,11 +1154,15 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
         
         QueueEventToSendToPython(BA_BILL_STATE_UPDATE_EVENT, new byte[] {}, playerStationHash);
     }
+    #endregion bill acceptor send commands
+
     #endregion bill acceptor events
 
     #region printer events
-    //Blocks all print events until the previous one has been completed. An operator will also have the ability to manually
-    //clear the printer error to allow for another attempt at printing if it gets locked ups
+    /// <summary>
+    /// Blocks all print events until the previous one has been completed. An operator will also have the ability to manually
+    /// clear the printer error to allow for another attempt at printing if it gets locked ups
+    /// </summary>
     private void BeginCoroutineToBlockPrintUntilPrintJobVerificationReturned(uint playerStationHash) 
     {
         PlayerStationData playerStationData = GetPlayerStationDataFromPlayerStationHash(playerStationHash);
@@ -1563,6 +1581,7 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
     /// Returns the PlayerStationData object that is associated with the playerIndex that is passed in. This will return null if there is no PlayerStationData
     /// associated with that player index
     /// 
+    /// NOTE: You can receive PlayerStationData 
     /// </summary>
     /// <param name="playerStationIndexInOverseer"></param>
     /// <returns></returns>
@@ -1598,8 +1617,87 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
     }
     #endregion player station helper functions
 
-    #region Player Station Management Classes
+    #region action getters
+    /// <summary>
+    /// Use this to return a UnityAction that will be invoked any time a bill inserted event was called
+    ///
+    /// NOTE: This should only ever be used on start up when assigning certain player methods to this event
+    /// </summary>
+    public UnityAction GetOnBillWasInsertedUnityEvent(int playerIndexInOverseer)
+    {
+        PlayerStationData playerStationData = GetPlayerStationDataFromPlayerStationIndexInOverseer(playerIndexInOverseer);
+        if (playerStationData == null)
+            return null;
+        return playerStationData.OnBillWasInsertedEvent;
+    }
 
+    /// <summary>
+    /// Use this to return a UnityAction that will be invoked any time the associated playerstation receives a Bill Stacked Event 
+    ///
+    /// NOTE: This should only ever be used on start up when assigning certain player methods to this event
+    /// </summary>
+    public UnityAction<int> GetOnBillWasStackedUnityEvent(int playerIndexInOverseer)
+    {
+        PlayerStationData playerStationData = GetPlayerStationDataFromPlayerStationIndexInOverseer(playerIndexInOverseer);
+        if (playerStationData == null)
+            return null;
+        return playerStationData.OnBillWasStackedEvent;
+    }
+
+    /// <summary>
+    /// Use this to return a UnityAction that will be invoked any time the associated player receives a joystick event 
+    ///
+    /// NOTE: This should only ever be used on start up when assigning certain player methods to this event
+    /// </summary>
+    public UnityAction GetOnBillAcceptorStateReceivedUnityEvent(int playerIndexInOverseer)
+    {
+        PlayerStationData playerStationData = GetPlayerStationDataFromPlayerStationIndexInOverseer(playerIndexInOverseer);
+        if (playerStationData == null)
+            return null;
+        return playerStationData.OnBillAcceptorStateReceivedEvent;
+    }
+
+    /// <summary>
+    /// Use this to return a UnityAction that will be invoked any time the associated player receives a joystick event 
+    ///
+    /// NOTE: This should only ever be used on start up when assigning certain player methods to this event
+    /// </summary>
+    public UnityAction GetOnPrinterStateReceivedUnityEvent(int playerIndexInOverseer)
+    {
+        PlayerStationData playerStationData = GetPlayerStationDataFromPlayerStationIndexInOverseer(playerIndexInOverseer);
+        if (playerStationData == null)
+            return null;
+        return playerStationData.OnPrinterStateReceivedEvent;
+    }
+
+    /// <summary>
+    /// Use this to return a UnityAction that will be invoked any time the associated player receives a joystick event 
+    ///
+    /// NOTE: This should only ever be used on start up when assigning certain player methods to this event
+    /// </summary>
+    public UnityAction GetOnPrintJobCompletedSuccessfullyUnityEvent(int playerIndexInOverseer)
+    {
+        PlayerStationData playerStationData = GetPlayerStationDataFromPlayerStationIndexInOverseer(playerIndexInOverseer);
+        if (playerStationData == null)
+            return null;
+        return playerStationData.OnPrintJobCompletedSuccessfullyEvent;
+    }
+
+    /// <summary>
+    /// Use this to return a UnityAction that will be invoked any time the associated player receives a joystick event 
+    ///
+    /// NOTE: This should only ever be used on start up when assigning certain player methods to this event
+    /// </summary>
+    public UnityAction GetOnPrintJobErroredUntiyEvent(int playerIndexInOverseer)
+    {
+        PlayerStationData playerStationData = GetPlayerStationDataFromPlayerStationIndexInOverseer(playerIndexInOverseer);
+        if (playerStationData == null)
+            return null;
+        return playerStationData.OnPrintJobErroredEvent;
+    }
+    #endregion action getters
+
+    #region Player Station Management Classes
     /// <summary>
     /// This class holds all the data related to each individual player station.
     /// There are 4 devices that each player station should have. These include:
@@ -1611,11 +1709,32 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
     /// </summary>
     private class PlayerStationData
     {
+        //The idea behind these events is so that a player or outside listener can know the moment that an event was received by our station
+        //All of these events will be triggered at the end of any functionality that needs to be compledted
+        //For example an input received event will be called AFTER the buttons have been set in our player station
+        #region unity events
+
+        //Bill Acceptor Events
+        public UnityAction OnBillWasInsertedEvent;//Bill was inserted, but has not been accepted or rejected. Is being held in Escrow
+        public UnityAction<int> OnBillWasStackedEvent;//Bill was accepted and has now been stacked in our Bill Acceptor
+        public UnityAction OnBillAcceptorStateReceivedEvent;
+
+        //Printer Events
+        public UnityAction OnPrinterStateReceivedEvent;
+        public UnityAction OnPrintJobCompletedSuccessfullyEvent;
+        public UnityAction OnPrintJobErroredEvent;
+        #endregion unity events
+
+
         #region const values
+        //This is a way to mark the half way point of our joystick values. Since each axis will be returned as a value between 0 and 256, the 0 value axis would be equal to 128
         public const byte JOYSTICK_AXIS_OFFSET = 128;
         #endregion const values
 
         #region drax variables
+        /// <summary>
+        /// The player station index that is assigned to this PlayerStationData
+        /// </summary>
         public int playerStationIndex
         {
             get 
@@ -1667,7 +1786,7 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
         /// <summary>
         /// The current state of our draxboard
         /// </summary>
-        public DraxboardState draxboardState;
+        public byte draxboardState;
 
         /// <summary>
         /// format for the draxboard version number will be draxVersionHigh.draxVersionLow
@@ -1695,8 +1814,11 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
             }
         }
 
+        /// <summary>
         /// This refers to the type of joystick that is currently plugged into the machine. At the moement we have two types of joystick that we support
-        public JoystickType joystickType;
+        /// Ultimarc and Baolian
+        /// </summary>
+        public byte joystickType;
 
         /// <summary>
         /// Raw x axis from our python application. Any flipping or altering will have to be done in our Axes getter method
@@ -1711,7 +1833,7 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
         /// <summary>
         /// The current state of our joystick... until we go more in depth with collecting status from our joystick this will only set it to either connected or disconnected
         /// </summary>
-        public JoystickState joystickState;
+        public byte joystickState;
         #endregion joystick variables
 
         #region bill acceptor variables
@@ -1723,7 +1845,7 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
         /// <summary>
         /// The current state of our bill acceptor
         /// </summary>
-        public BillAcceptorState billAcceptorState;
+        public byte billAcceptorState;
 
         /// The version of the bill acceptor that we are using. This is sent as a string from our bill acceptor and we pass along those ascii bytes from our python application
         public string billAcceptorVersion;
@@ -1744,24 +1866,23 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
         /// </summary>
         public byte printerTypeAssignedToStation;
 
-        /// <summary>
-        /// The state of the printer, specific to custom printers
-        /// </summary>
-        public CustomPrinterState customPrinterState;
-        /// <summary>
-        /// The State of our printer specific to our Reliance Printer. This will have different states compared to other devices
-        /// </summary>
-        public ReliancePrinterState reliancePrinterState;
-
-        /// <summary>
-        /// This is a container that will hold values that should be persisted among play sessions
-        /// </summary>
-        public PersistedPlayerStationValues persistedValues {get; private set; }
+        // 
+        public uint printerState;
+        // In some cases a printer may have states that are specific to it alone. In this case you can set that state in altPrinterState for a more detailed descript of the current state of your printer
+        //
+        public uint altPrinterState;
 
         /// <summary>
         /// Shows how much paper is available in our printer
         /// </summary>
-        public PaperStatus paperAvailability;
+        public byte paperAvailability;
+
+        /// <summary>
+        /// This is a container that will hold values that should be persisted among play sessions
+        /// Values such as the player station index, the joystick deadzones, etc. values that should carry on to the next play session should be stored in this
+        /// container
+        /// </summary>
+        public PersistedPlayerStationValues persistedValues {get; private set;}
         #endregion printer variables
 
         #region initializer
@@ -1911,7 +2032,7 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
         /// <summary>
         /// Call this method if there was error received from a device that we should display to the operator
         /// </summary>
-        public void OnDeviceErrorRaised()
+        private void OnDeviceErrorRaised()
         {
 
         }
@@ -1919,7 +2040,7 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
         /// <summary>
         /// Call this method if an error that we are displaying to the operator has been resolved. This should clear up the message if there are no more errors to report.
         /// </summary>
-        public void OnDeviceErrorResolved()
+        private void OnDeviceErrorResolved()
         {
 
         }
@@ -1932,7 +2053,7 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
     /// instead of having to calibrate the stations each time the game starts. You may also want to keep values such as joystick
     /// deadzones in here.
     /// </summary>
-    private class PersistedPlayerStationValues
+    protected class PersistedPlayerStationValues
     {
         public int PlayerStationIndex; // This is the player number. for an 8 player cabinet this should be a number between 0-7(inclusive)
         public uint PlayerStationHash; // A reference to the associated player station hash. This is the value that our python application will send to correspond player station that it is sending or receiving information about

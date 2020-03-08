@@ -274,6 +274,9 @@ class DragonMasterDeviceManager:
     """
     Adds a new device to our device manager. This will fail to add a device if the device fails to
     start up appropriately
+
+    @type deviceToAdd: DragonMasterDevice
+    @param deviceToAdd: The device that we are going to add to our device manager
     """
     def add_new_device(self, deviceToAdd, deviceElementNode):
         if (self.allConnectedDevices.__contains__(deviceToAdd)):
