@@ -176,8 +176,8 @@ class BillAcceptor(SerialDevice):
     pass
 
 """
-@author Aaron Thurston, EQ Games/Kaneva, Phone#: 404-680-2119 (Lead)
-@author Ryan Andersen, EQ Games, Phone#: 404-643-1783
+@author Aaron Thurston, EQ Games/Kaneva, Phone#: 404-680-2119 (Lead Programmer for DBV)
+@author Ryan Andersen, EQ Games, Phone#: 404-643-1783 (Support programmer for DBV)
 
 A class that handles all our Bill Acceptor Actions
 """
@@ -1023,6 +1023,21 @@ class iVizion(DBV400):
     def get_ba_type(self):
         return DragonMasterDeviceManager.DragonMasterDeviceManager.BA_iVIZION
 
+
+"""
+New device, that is functionally similar to our DBV-400, with additional features. This class will handle the functionality of
+DBV-500 devices that are connected
+"""
+class DBV500(DBV400):
+    DBV_DESCRIPTION = "DBV-500"
+
+    def to_string(self):
+        return DBV500.DBV_DESCRIPTION + ": " + self.comport
+
+    def get_ba_type(self):
+        return DragonMasterDeviceManager.DragonMasterDeviceManager.BA_DBV_500
+    pass
+
 """
 Class that maanages our Draxboard communication and state
 """
@@ -1661,14 +1676,17 @@ Returns a list of all connected DBV 400 comports
 def get_all_connected_bill_acceptors():
     dbv400Elements = []
     iVizionElements = []
+    dbv500Elements = []
     allPorts = serial.tools.list_ports.comports()
     for element in allPorts:
         if element.description.__contains__(DBV400.DBV_DESCRIPTION):
             dbv400Elements.append(element)
         if element.description.__contains__(iVizion.DBV_DESCRIPTION):
             iVizionElements.append(element)
+        if element.description.__contains__(DBV500.DBV_DESCRIPTION):
+            dbv500Elements.append(element)
 
-    return dbv400Elements, iVizionElements
+    return dbv400Elements, iVizionElements, dbv500Elements
 
 """
 Returns the first omnidongle comport that we find

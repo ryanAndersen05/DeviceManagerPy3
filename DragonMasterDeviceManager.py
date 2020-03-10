@@ -93,6 +93,7 @@ class DragonMasterDeviceManager:
     #Bill Acceptor type
     BA_DBV_400 = 0x01
     BA_iVIZION = 0x02
+    BA_DBV_500 = 0x03
 
     #Receive From Unity Events
     BA_ACCEPT_BILL_EVENT = 0X86 #Command to accept the bill that is currently in escrow
@@ -215,7 +216,7 @@ class DragonMasterDeviceManager:
             allConnectedDraxboards = DragonMasterSerialDevice.get_all_connected_draxboard_elements()
             allConnectedCustomTG02Printers = DragonMasterDevice.get_all_connected_custom_tg02_printer_elements()
             allConnectedReliancePrinters = DragonMasterDevice.get_all_connected_reliance_printer_elements()
-            allConnectedDBV400Elements, allConnectediVizionElements = DragonMasterSerialDevice.get_all_connected_bill_acceptors()
+            allConnectedDBV400Elements, allConnectediVizionElements, allConnectedDBV500Elements = DragonMasterSerialDevice.get_all_connected_bill_acceptors()
 
             self.deviceContext = pyudev.Context() #we set our device context primarily to find the most up to date usb device paths
             
@@ -252,13 +253,18 @@ class DragonMasterDeviceManager:
 
             #Add our DBV 400 Bill Acceptors here
             for dbv in allConnectedDBV400Elements:
-                if dbv and not self.device_manager_contains_dbv400(dbv):
+                if dbv and not self.device_manager_contains_bill_acceptor(dbv):
                     self.add_new_device(DragonMasterSerialDevice.DBV400(self), dbv)
 
             #Add iVizion Bill Acceptors here
             for ivizion in allConnectediVizionElements:
-                if ivizion and not self.device_manager_contains_dbv400(self):
+                if ivizion and not self.device_manager_contains_bill_acceptor(ivizion):
                     self.add_new_device(DragonMasterSerialDevice.iVizion(self), ivizion)
+
+            for dbv500 in allConnectedDBV500Elements:
+                if dbv500 and not self.device_manager_contains_bill_acceptor(dbv500):
+                    self.add_new_device(DragonMasterSerialDevice.DBV500(self), dbv500)
+
             
         except Exception as e:
             print ("There was an error while searching for devices.")
@@ -933,9 +939,9 @@ class DragonMasterDeviceManager:
     Returns whether or not the draxboard that was passed into the method was already added to our
     device manager list
     """
-    def device_manager_contains_dbv400(self, dbvElement):
+    def device_manager_contains_bill_acceptor(self, dbvElement):
         for dev in self.allConnectedDevices:
-            if isinstance(dev, DragonMasterSerialDevice.DBV400):
+            if isinstance(dev, DragonMasterSerialDevice.BillAcceptor):
                 if dev.comport == dbvElement.device:
                     return True
         return False
@@ -955,17 +961,22 @@ class DragonMasterDeviceManager:
 #region helper classes
     """
     Method that checks to see if there are any joystick events that we should be sending off
+    NOTE: This does not act as an event for new joystick values, that is handled in the Joystick class. This method is used
+    to collect joystick values if they are different the next time we are ready to send another TCP message to our Unity Application. This is simply
+    to prevent having 5-10 messages per joystick every time we send a new message
     """
     def check_for_joystick_events(self):
         for key in self.playerStationDictionary:
             if self.playerStationDictionary[key].connectedJoystick != None:
                 self.playerStationDictionary[key].connectedJoystick.send_updated_joystick_to_unity_application()
+        return
 
 
 """
 This class acts as a container of all the devices that are connected to this player station
 
 TODO: Add a way to store multiple devices in the event that there are perhaps 2 joysticks connected to the same player station
+This has been an issue in the past where we will try to remove a device
 """
 class PlayerStationContainer:
     
