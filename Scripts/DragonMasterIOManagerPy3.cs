@@ -113,6 +113,7 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
 
     public enum JoystickType : byte
     {
+        NONE = 0x00,
         ULTIMARC_JOYSTICK = 0x01,
         BAOLIAN_JOYSTICK = 0x02
     }
@@ -131,6 +132,14 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
         UNIT_FAILURE,
         BOX_REMOVED,
         STACKER_JAMMED
+    }
+
+    /// This is an enum reference to various types of bill acceptors that are compatible with our Unity Application
+    public enum BillAcceptorType : byte
+    {
+        NONE = 0x00, 
+        DBV_400 = 0x01,
+        iVIZION = 0x02,
     }
 
     /// <summary>
@@ -168,6 +177,15 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
         RS232_ERROR = 0X200,//There was an error with the serial communication. Functionality with printer should stop
         POWER_SUPPLY_VOLTAGE_ERROR = 0X4000,//There is not enough power running to the reiance printer. Fucntionality with printer should stop until this is resolved
         CUTTER_ERROR = 0X10000,//There was an error with the printer cutter. functionality with printer should stop until this is resolved
+    }
+
+    /// An enum reference ot the types of printers that are currently compatible with our Unity Application
+    public enum PrinterType : byte
+    {
+        NONE = 0x00,
+        CUSTOM_TG02 = 0x01,
+        RELIANCE_PRINTER = 0x02,
+        PYRAMID_PRINTER = 0x03,
     }
     #endregion enums
 
@@ -522,7 +540,7 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
                 }
 
                 playerStation.joystickState = (byte)JoystickState.Connected;
-                // playerStation.joystickType = (JoystickType)
+                playerStation.joystickType = bytePacket[6];
                 return;
             case PRINTER_ID:
                 playerStation = GetPlayerStationDataFromPlayerStationHash(playerStationHash);
@@ -569,6 +587,8 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
                 {
                     Debug.LogError("There was an error disconnecting our BILL ACCEPTOR.... I don't know how we got here");
                 }
+                playerStationData.billAcceptorType = (byte)BillAcceptorType.NONE;
+                playerStationData.billAcceptorState = (byte)BillAcceptorState.ERROR;
                 return;
             case JOYSTICK_ID:
                 playerStationData = GetPlayerStationDataFromPlayerStationHash(playerStationHash);
@@ -577,6 +597,7 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
                     Debug.LogError("There was an error disconnecting our JOYSTICK.... I don't know how we got here");
                 }
                 playerStationData.joystickState = (byte)JoystickState.Error;
+                playerStationData.joystickType = (byte)JoystickType.NONE;
                 return;
             case PRINTER_ID:
                 playerStationData = GetPlayerStationDataFromPlayerStationHash(playerStationHash);
@@ -868,6 +889,30 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
 
         return 0;
     }
+
+    /// Returns the intput state of our draxboard as our unity application currenntly interprets it
+    /// NOTE: It is possible that the state has changed python side, but may be delayed by a couple frames while we process the data to our Unity application
+    public ushort GetInputStateForPlayerStation(int playerStationIndex)
+    {
+        PlayerStationData playerStationData= GetPlayerStationDataFromPlayerStationIndexInOverseer(playerStationIndex);
+        if (playerStationData == null)
+            return 0;
+        
+        return playerStationData.playerStationInputState;
+    }
+
+    /// Returns the draxboard output state as untiy currently interprets it
+    /// This information may be off by a couple of frames, while our python application is processing and sending data through TCP
+    public uint GetDraxOutputStateForPlayerStation(int playerStationIndex)
+    {
+        PlayerStationData playerStationData = GetPlayerStationDataFromPlayerStationIndexInOverseer(playerStationIndex);
+
+        if (playerStationData == null)
+        {
+            return 0;
+        }
+        return playerStationData.draxOutputState;
+    }
     #endregion drax events
 
     #region joystick events
@@ -993,6 +1038,21 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
 
         return adjustedJoystickValue;
     }
+
+    /// <summary>
+    /// Returns the type of joystick that is being used in the passed in player station
+    /// </summary>
+    public JoystickType GetJoystickType(int playerStationIndex)
+    {
+        PlayerStationData playerStationData = GetPlayerStationDataFromPlayerStationIndexInOverseer(playerStationIndex);
+
+        if (playerStationData == null)
+        {
+            return JoystickType.NONE;
+        }
+
+        return (JoystickType)playerStationData.joystickType;
+    }
     #endregion joystick events
 
     #region bill acceptor events
@@ -1077,6 +1137,41 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
 
     }
 
+    /// Returns the byte that describes the state of our Bill Acceptor
+    private byte GetRawBillAcceptorState(int playerStationIndex)
+    {
+        PlayerStationData playerStationData = GetPlayerStationDataFromPlayerStationIndexInOverseer(playerStationIndex);
+        if (playerStationData == null)
+        {
+            return 0;
+        }
+
+        return playerStationData.billAcceptorState;
+
+    }
+
+    /// Returns the current state of the bill acceptor, based on the raw state received from our python application
+    public BillAcceptorState GetBillAcceptorState(int playerStationIndex)
+    {
+        PlayerStationData playerStationData = GetPlayerStationDataFromPlayerStationIndexInOverseer(playerStationIndex);
+        if (playerStationData == null)
+        {
+            return BillAcceptorState.ERROR;
+        }
+        return (BillAcceptorState)playerStationData.billAcceptorState;
+    }
+
+    /// Returns an enum of the type of bill acceptor that is currently being used in this player station
+    public BillAcceptorType GetBillAcceptorType(int playerStationIndex) 
+    {
+        PlayerStationData playerStationData = GetPlayerStationDataFromPlayerStationIndexInOverseer(playerStationIndex);
+        if (playerStationData == null)
+        {
+            return BillAcceptorType.NONE;
+        }
+
+        return (BillAcceptorType)playerStationData.billAcceptorType;
+    }
     #region bill acceptor send commands
     // Sends a command to the associated bill acceptor to accept the bill that is currently being held in escrow
     public void AcceptBillThatIsCurrentlyInEscrow(int playerIndex) 
@@ -1187,6 +1282,27 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
             return;
         }
 
+        byte printJobType = packetEvent[4];
+
+        switch(printJobType)
+        {
+            case PRINTER_CASHOUT_TICKET:
+
+                break;
+            case PRINTER_REPRINT_TICKET:
+
+                break;
+            case PRINTER_TEST_TICKET:
+
+                break;
+            case PRINTER_AUDIT_TICKET:
+
+                break;
+            case PRINTER_CODEX_TICKET:
+
+                break;
+        }
+
         pStationData.printJobQueued = false;
 
     }
@@ -1229,9 +1345,30 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
 
     //This method should be called upon receiving an event for our printer's state
     //This will update the state that is set in the player station with the hash that is associated with it
-    public void OnPrinterStateReceived(byte[] pakcetEvent)
+    public void OnPrinterStateReceived(byte[] packetEvent)
     {
+        uint playerStationHash = GetPlayerStationHashFromBytePacketEvent(packetEvent);
+        if (playerStationHash == 0)
+        {
+            return;
+        }
+        PlayerStationData playerStationData = GetPlayerStationDataFromPlayerStationHash(playerStationHash);
+        
+        switch ((PrinterType)playerStationData.printerTypeAssignedToStation)
+        {
+            case PrinterType.NONE:
+                Debug.LogError("A printer state was received, but the printer type is set to NONE. Something went wrong");
+                return;
+            case PrinterType.CUSTOM_TG02:
 
+                break;
+            case PrinterType.RELIANCE_PRINTER:
+
+                break;
+            case PrinterType.PYRAMID_PRINTER:
+
+                break;
+        }
     }
 
 
@@ -1430,6 +1567,17 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
 
         QueueEventToSendToPython(PRINTER_STATE_EVENT, new byte[]{ }, playerStationHash);
     }
+
+    /// Returns the type of printer that is currently attached to this player station
+    public PrinterType GetPrinterType(int playerStationIndex)
+    {
+        PlayerStationData playerStationData = GetPlayerStationDataFromPlayerStationIndexInOverseer(playerStationIndex);
+        if (playerStationData == null)
+        {
+            return PrinterType.NONE;
+        }
+        return (PrinterType)playerStationData.printerTypeAssignedToStation;
+    }
     #endregion printer events
 
     #region player station helper functions
@@ -1566,7 +1714,7 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
     /// If 0 is returned the hash is invalid. No hash should have a value of 0
     /// </summary>
     /// <returns></returns>
-    private uint GetPlayerStationHashFromPlayerStationIndex(int playerStationIndex)
+    public uint GetPlayerStationHashFromPlayerStationIndex(int playerStationIndex)
     {
         if (playerStationIndex < 0 || playerStationIndex >= playerStationDataOrderList.Length)
         {
@@ -2688,11 +2836,6 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
 
     
     #endregion device manager logging
-
-    #region persisted player station information
-
-
-    #endregion persisted player station information
 
     #region debug methods
     
