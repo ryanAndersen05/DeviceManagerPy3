@@ -331,7 +331,7 @@ class DragonMasterDeviceManager:
         elif isinstance(deviceThatWasAdded, DragonMasterSerialDevice.DBV400):
             deviceData.append(DragonMasterDeviceManager.BILL_ACCEPTOR_ID)#DeviceTypeID
             deviceData.append(deviceThatWasAdded.get_ba_type())#The Bill Acceptor Type. In the future, we plan on adding new types of Bill Acceptors
-            deviceData.append(deviceThatWasAdded.dbvVersionBytes) #append the version of our DBV-400
+            deviceData += deviceThatWasAdded.dbvVersionBytes #append the version of our DBV-400
             pass
         elif isinstance(deviceThatWasAdded, DragonMasterSerialDevice.Omnidongle):
             deviceData.append(DragonMasterDeviceManager.OMNI_EVENT)#DeviceTypeID
@@ -535,7 +535,7 @@ class DragonMasterDeviceManager:
             print ("The event message was too short...")
             return 
         # playerStationHash = convert_byte_array_to_value(eventMessage[1:4])
-        playerStationHash = int.from_bytes(eventMessage[1:4], byteorder='big')
+        playerStationHash = int.from_bytes(eventMessage[1:5], byteorder='big')
         #General Event Messages
         if eventCommandByte == DragonMasterDeviceManager.KILL_APPLICATION_EVENT:
             DragonMasterDeviceManager.KILL_DEVICE_MANAGER_APPLICATION = True
@@ -584,6 +584,11 @@ class DragonMasterDeviceManager:
         elif eventCommandByte == DragonMasterDeviceManager.BA_REJECT_BILL_EVENT:
             self.on_ba_reject_bill_event(playerStationHash)
             return
+        elif eventCommandByte == DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT:
+            self.on_ba_request_state_event(playerStationHash)
+            return
+        else:
+            print (str(eventCommandByte) + " has not been set up")
 
     """
     This will send all the currently connected devices to our unity application. Helpful if our game restarts while the machine is still running
@@ -745,6 +750,13 @@ class DragonMasterDeviceManager:
 
         billAcceptor.add_event_to_queue(billAcceptor.reject_bill)
         return
+
+    def on_ba_request_state_event(self, playerStationHash):
+        billAcceptor = self.get_bill_acceptor_from_player_station_hash(playerStationHash)
+
+        if billAcceptor == None:
+            return
+        billAcceptor.send_event_message(DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT, billAcceptor.State.to_bytes(2, 'big'))
     #endregion bill acceptor tcp events
 
     #region printer tcp events
@@ -830,7 +842,6 @@ class DragonMasterDeviceManager:
         if playerStationHash != None:
             messageToSend += int.to_bytes(playerStationHash, 4, byteorder='big')
         messageToSend += eventData
-        
         
         self.tcpManager.add_event_to_send(messageToSend)
         return
@@ -1997,7 +2008,7 @@ def debug_print_test_ticket(deviceManager, playerStationHash = -1):
     if playerStationHash < 0:
         for pStation in deviceManager.playerStationDictionary.values():
             if pStation.connectedPrinter != None:
-                pStation.connectedPrinter.print_voucher_ticket("0", DragonMasterDeviceManager.PRINTER_TEST_TICKET)
+                pStation.connectedPrinter.print_voucher_ticket(DragonMasterDeviceManager.PRINTER_TEST_TICKET, "")
 
         return
     if playerStationHash not in deviceManager.playerStationHashToParentDevicePath:
@@ -2005,7 +2016,7 @@ def debug_print_test_ticket(deviceManager, playerStationHash = -1):
         return
     pStationKey = deviceManager.playerStationHashToParentDevicePath[playerStationHash]
     if deviceManager.playerStationDictionary[pStationKey].connectedPrinter != None:
-        deviceManager.playerStationDictionary[pStationKey].connectedPrinter.print_voucher_ticket("0", DragonMasterDeviceManager.PRINTER_TEST_TICKET)
+        deviceManager.playerStationDictionary[pStationKey].connectedPrinter.print_voucher_ticket(DragonMasterDeviceManager.PRINTER_TEST_TICKET, "")
     else:
         print ("Player Station Found but there was no associted printer connected")
 
