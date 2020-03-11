@@ -176,8 +176,8 @@ class BillAcceptor(SerialDevice):
     pass
 
 """
-@author Aaron Thurston, EQ Games/Kaneva, Phone#: 404-680-2119 (Lead)
-@author Ryan Andersen, EQ Games, Phone#: 404-643-1783
+@author Aaron Thurston, EQ Games/Kaneva, Phone#: 404-680-2119 (Lead Programmer for DBV)
+@author Ryan Andersen, EQ Games, Phone#: 404-643-1783 (Support programmer for DBV)
 
 A class that handles all our Bill Acceptor Actions
 """
@@ -227,7 +227,7 @@ class DBV400(BillAcceptor):
     #endregion
     #region States
 
-    NOT_INIT_STATE = 0 # DBV not initialized.
+    NOT_INIT_STATE = 16 # DBV not initialized.
     POWER_UP_NACK_STATE = 1 # Power up ACK not received by DBV yet. Write POWER_UP_ACK to DBV (with event id set) to move past this.
     POWER_UP_ACCEPTOR_NACK_STATE = 2 # Power up ACK not received, but with a bill currently in the acceptor.
     POWER_UP_STATE = 3 # DBV UID set and powered on. Needs to be reset.
@@ -258,6 +258,7 @@ class DBV400(BillAcceptor):
 
     def __init__(self, deviceManager):
         super().__init__(deviceManager)
+        self.dbvVersionBytes = []
         self.dbvVersion = None
         return
 
@@ -396,7 +397,7 @@ class DBV400(BillAcceptor):
         if message[10] == 0x03 and message[11] == 0x11:
             self.State = DBV400.ACTIVE_STATE
 
-        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT,self.State)#Sends a state update to our unity application
+        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT,self.State.to_bytes(2, 'big'))#Sends a state update to our unity application
         # print("New State: " + str(self.State))
 
     """ We have received a message that the DBV has started (or restarted) and needs to be acknowledged """
@@ -407,7 +408,7 @@ class DBV400(BillAcceptor):
         self.UidSet = False
         self.State = DBV400.POWER_UP_NACK_STATE
         self.send_dbv_message(powerUpAck)
-        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT, self.State)
+        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT, self.State.to_bytes(2, 'big'))
         self.get_dbv_state()
 
     """ Same as above, but the DBV has started with a bill that is waiting to be stacked """
@@ -419,14 +420,14 @@ class DBV400(BillAcceptor):
         powerUpAck[5] = message[5]
         self.State = DBV400.POWER_UP_ACCEPTOR_NACK_STATE
         self.send_dbv_message(powerUpAck)
-        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT,self.State)
+        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT,self.State.to_bytes(2, 'big'))
         self.get_dbv_state()
 
     """ DBV has successfully received a power up acknowledgement and is ready to proceed with the power up process """
     def on_power_up_success(self):
         # print("power up success")
         self.State = DBV400.POWER_UP_STATE
-        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT,self.State)
+        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT,self.State.to_bytes(2, 'big'))
         self.power_up_dbv()
         return
 
@@ -436,7 +437,7 @@ class DBV400(BillAcceptor):
         self.State = DBV400.UNSUPPORTED_STATE
         self.UID = message[4]
         self.UidSet = True
-        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT, self.State)
+        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT, self.State.to_bytes(2, 'big'))
         return
 
 
@@ -467,7 +468,7 @@ class DBV400(BillAcceptor):
         inhibitMessage[5] = message[5]
         self.State = DBV400.INHIBIT_STATE
         self.send_dbv_message(inhibitMessage)
-        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT, self.State)
+        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT, self.State.to_bytes(2, 'big'))
         self.check_begin_firmware_download()
         return
 
@@ -486,7 +487,7 @@ class DBV400(BillAcceptor):
         idleMessage[5] = message[5]
         self.send_dbv_message(idleMessage)
         self.State = DBV400.IDLE_STATE
-        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT, self.State)
+        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT, self.State.to_bytes(2, 'big'))
 
     """ A DBV has been inserted into DBV. We need to send an escrow message to confirm this """
     """ Our current workflow is to tell the DBV to hold the bill for 60 seconds while deciding whether to stack or reject """
@@ -501,7 +502,7 @@ class DBV400(BillAcceptor):
             self.send_dbv_message(DBV400.REJECT_COMMAND)
         else :
             self.send_dbv_message(DBV400.HOLD_BILL)
-        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_INSERTED_EVENT, self.AmountStored)
+        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_INSERTED_EVENT, [self.AmountStored])
 
     """ A bil inserted to the DBV was rejected due to an error (invalid bill, invalid state, etc.) """
     def on_bill_rejected(self, message):
@@ -509,7 +510,7 @@ class DBV400(BillAcceptor):
         rejectAck = DBV400.REJECT_ACK
         rejectAck[5] = message[5]
         self.send_dbv_message(rejectAck)
-        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_REJECTED_EVENT,self.AmountStored)
+        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_REJECTED_EVENT,[self.AmountStored])
         self.AmountStored = 0
 
     """ A bill was returned by the DBV due to a reject command or powering up with a bill inserted """
@@ -518,7 +519,7 @@ class DBV400(BillAcceptor):
         returnAck = DBV400.RETURN_ACK
         returnAck[5] = message[5]
         self.send_dbv_message(returnAck)
-        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_RETURNED_EVENT,self.AmountStored)
+        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_RETURNED_EVENT,[self.AmountStored])
         self.AmountStored = 0
 
     """ A bill was successfully held in the bill acceptor from a command """
@@ -537,7 +538,7 @@ class DBV400(BillAcceptor):
         vendValidAck = DBV400.VEND_VALID_ACK
         vendValidAck[5] = message[5]
         self.send_dbv_message(vendValidAck)
-        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_ACCEPTED_EVENT,self.AmountStored)
+        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_ACCEPTED_EVENT,[self.AmountStored])
         self.AmountStored = 0
         return
 
@@ -553,7 +554,7 @@ class DBV400(BillAcceptor):
         noteStayAck[5] = message[5]
         self.send_dbv_message(noteStayAck)
         self.State = DBV400.NOTE_STAY_STATE
-        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT,self.State)
+        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT,self.State.to_bytes(2, 'big'))
         pass
 
     """ The DBV has reported an error. Ack this message and wait for the error clear message """
@@ -564,7 +565,7 @@ class DBV400(BillAcceptor):
         opErrorAck[7] = message[7]
         self.send_dbv_message(opErrorAck)
         self.State = DBV400.ERROR_STATE
-        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT,self.State)
+        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT,self.State.to_bytes(2, 'big'))
         pass
 
     """ A DBV error was cleared and the system is ready to be reset to resume normal operation """
@@ -575,7 +576,7 @@ class DBV400(BillAcceptor):
         clearAck[7] = message[7]
         self.send_dbv_message(clearAck)
         self.State = DBV400.CLEAR_STATE
-        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT,self.State)
+        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT,self.State.to_bytes(2, 'big'))
         self.reset_dbv()
         pass
 
@@ -592,15 +593,15 @@ class DBV400(BillAcceptor):
             else:
                 self.State = DBV400.ERROR_STATE
                 # let the operator reset from this error
-            self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT,self.State)
+            self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT,self.State.to_bytes(2, 'big'))
         pass
 
 
     """ Process a message from our DBV to determine the version we are in """
     def on_version_message_received(self, message):
         indexOfVersion = 9
+        self.dbvVersionBytes = message
         self.dbvVersion = message[indexOfVersion:].decode('utf-8')
-        # print ("VersionSet: " + self.dbvVersion)
         return
     #endregion on read methods
 
@@ -668,7 +669,7 @@ class DBV400(BillAcceptor):
 
     """ Send event message to Unity """
     def send_event_message(self, eventType, messageContent):
-        message = [messageContent]
+        message = messageContent
         playerStationHash = self.get_player_station_hash()
         self.dragonMasterDeviceManager.add_event_to_send(eventType, message, playerStationHash)
         return
@@ -714,7 +715,8 @@ class DBV400(BillAcceptor):
         if self.bill_acceptor_requires_firmware_update():
             self.begin_firmware_download_process()
         else:
-            print ("Nothing Happened")
+            # print ("Nothing Happened")
+            pass
 
 
     """
@@ -844,7 +846,7 @@ class DBV400(BillAcceptor):
     def on_downlaod_idle_received(self, packetData):
         # print ("Download Idle")
         self.State = DBV400.DOWNLOAD_IDLE
-        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT, self.State)
+        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT, self.State.to_bytes(2, 'big'))
         if self.DOWNLOAD_INFO_COLLECTED:
             self.send_download_bytes_to_dbv()
         else:
@@ -857,7 +859,7 @@ class DBV400(BillAcceptor):
     def on_download_writing_received(self, packetData):
         # print ("Downlaod Write State")
         self.State = DBV400.DOWNLOAD_WRITE
-        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT,self.State)
+        self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_STATE_UPDATE_EVENT,self.State.to_bytes(2, 'big'))
         return
 
     """
@@ -1021,6 +1023,21 @@ class iVizion(DBV400):
 
     def get_ba_type(self):
         return DragonMasterDeviceManager.DragonMasterDeviceManager.BA_iVIZION
+
+
+"""
+New device, that is functionally similar to our DBV-400, with additional features. This class will handle the functionality of
+DBV-500 devices that are connected
+"""
+class DBV500(DBV400):
+    DBV_DESCRIPTION = "DBV-500"
+
+    def to_string(self):
+        return DBV500.DBV_DESCRIPTION + ": " + self.comport
+
+    def get_ba_type(self):
+        return DragonMasterDeviceManager.DragonMasterDeviceManager.BA_DBV_500
+    pass
 
 """
 Class that maanages our Draxboard communication and state
@@ -1459,7 +1476,6 @@ class ReliancePrinterSerial(SerialDevice):
     packet to the device
     """
     def poll_serial_thread(self):
-        serialDevice = self.serialObject
         self.pollingDevice = True
         self.serialState = SerialDevice.SERIAL_WAIT_FOR_EVENT
         try:
@@ -1576,7 +1592,6 @@ class Omnidongle(SerialDevice):
     packet to the device
     """
     def poll_serial_thread(self):
-        serialDevice = self.serialObject
         self.pollingDevice = True
         self.serialState = SerialDevice.SERIAL_WAIT_FOR_EVENT
         try:
@@ -1602,7 +1617,12 @@ class Omnidongle(SerialDevice):
     Player Station
     """
     def fetch_parent_path(self, deviceElement):
-        return None
+        devToReturn = None
+        for dev in self.dragonMasterDeviceManager.deviceContext.list_devices():
+            if dev.device_path.__contains__(deviceElement.location) and dev.device_path.__contains__(deviceElement.name):
+                devToReturn = dev.parent.parent.parent.parent.device_path
+        print (devToReturn)
+        return devToReturn
 
     """
     Disconnect our omnidongle by setting our CONNECTED_OMNIDONGLE value
@@ -1657,14 +1677,17 @@ Returns a list of all connected DBV 400 comports
 def get_all_connected_bill_acceptors():
     dbv400Elements = []
     iVizionElements = []
+    dbv500Elements = []
     allPorts = serial.tools.list_ports.comports()
     for element in allPorts:
         if element.description.__contains__(DBV400.DBV_DESCRIPTION):
             dbv400Elements.append(element)
         if element.description.__contains__(iVizion.DBV_DESCRIPTION):
             iVizionElements.append(element)
+        if element.description.__contains__(DBV500.DBV_DESCRIPTION):
+            dbv500Elements.append(element)
 
-    return dbv400Elements, iVizionElements
+    return dbv400Elements, iVizionElements, dbv500Elements
 
 """
 Returns the first omnidongle comport that we find

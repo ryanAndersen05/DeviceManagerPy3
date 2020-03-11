@@ -309,6 +309,16 @@ class Printer(DragonMasterDevice):
         return
 
     """
+    Returns the printer type id. This is primarily for our Unity application to idntify which type of printer
+    it is connected to. This will help wiht deciphering states we receive from our application
+
+    NOTE: All classes that extend the printer class should contain this method
+    """
+    @staticmethod
+    def get_printer_id():
+        return 0x00
+
+    """
     Method that will check the current state of the connected printer. This will send a message to our Unity
     Application if the state has changed
     """
@@ -330,29 +340,48 @@ class Printer(DragonMasterDevice):
     """
     This method will print out a voucher ticket. The general format should apply to all of our printer types
     """
-    def print_voucher_ticket(self, totalCreditsWon, ticketType, playerStation = "0", validationNumber = "0", TerminalID = "000000", dateTimeOfPrint=None, whiteSpaceUnderTicket=1):
+    def print_voucher_ticket(self, ticketType, printVoucherData, whiteSpaceUnderTicket=1):
+
+
+        totalCreditsWon = "0.00"
+        playerStation = "0"
+        validationNumber = "0"
+        TerminalID = "000000"
+        dateTimeOfPrint = None
 
         try:
+
+            if ticketType != DragonMasterDeviceManager.DragonMasterDeviceManager.PRINTER_TEST_TICKET:
+                propertiesSplitList = str(printVoucherData).split('|')
+                totalCreditsWon = propertiesSplitList[0]
+                playerStation = propertiesSplitList[1]
+                validationNumber = propertiesSplitList[2]
+                TerminalID = propertiesSplitList[3]
+                dateTimeOfPrint = datetime.datetime(propertiesSplitList[4], propertiesSplitList[5], propertiesSplitList[6], propertiesSplitList[7], propertiesSplitList[8], propertiesSplitList[9])
+
             if dateTimeOfPrint == None:#An older version of the game may not provide the datetime of the print. This probably won't be an issue, but just in case....
                 dateTimeOfPrint = datetime.datetime.now()
                 print ("Date Time was None, defaulting to the current time on our system clock")
-            self.config_text()
+            # self.config_text()
             self.printerObject.set(align='center', font='b', height=12, bold=False)
-
             if ticketType == DragonMasterDeviceManager.DragonMasterDeviceManager.PRINTER_REPRINT_TICKET:
                 self.printerObject.textln("***REPRINT***")
 
+            self.printerObject.set(align='center', font='b', height=12, bold=False)
             self.printerObject.textln("THANKS FOR PLAYING")
             self.printerObject.textln("VALID ON DATE OF \nISSUE ONLY!")
             self.printerObject.textln('========================')
-            self.printerObject.set(align='center')  # Align text
+            self.printerObject.set(align='center', font='b', height=12, bold=True)  # Align text
+            self.printerObject.textln(Printer.LOCATION_NAME)
+            self.printerObject.set(align='center', font='b', height=12, bold=False)
+            self.printerObject.textln('========================')
 
             # Print text and image
-            try:
-                self.printerObject.image(Printer.CROSS_FIRE_PNG_PATH, high_density_horizontal=True, high_density_vertical=True)  # Cross Fire Image
-            except Exception as e:
-                print ("There was an error reading the image 'Cross-fire.png'")
-                self.printerObject.textln("Cross Fire")#Instead of loading the image we use the actual text
+            # try:
+            #     self.printerObject.image(Printer.CROSS_FIRE_PNG_PATH, high_density_horizontal=True, high_density_vertical=True)  # Cross Fire Image
+            # except Exception as e:
+            #     print ("There was an error reading the image 'Cross-fire.png'")
+            #     self.printerObject.textln("Cross Fire")#Instead of loading the image we use the actual text
 
             self.printerObject.set(align='center', font='b', height=12, bold=False)
             self.printerObject.textln(self.dragonMasterDeviceManager.DRAGON_MASTER_VERSION_NUMBER)
@@ -371,7 +400,6 @@ class Printer(DragonMasterDevice):
             self.printerObject.set(align='center', font='b', height=24, bold=True)
             self.printerObject.textln('=' * 24)
             
-            self.printerObject.textln(Printer.LOCATION_NAME)
             self.printerObject.set(align='center', font='b', height=12, bold=False)
 
             self.printerObject.textln(DragonMasterDeviceManager.set_string_length_multiple("Machine", Printer.MACHINE_NUMBER, 24, ' ')) # Print Machine Number.
@@ -394,7 +422,7 @@ class Printer(DragonMasterDevice):
                 self.printerObject.set(align='center', font='b', height=12, bold=False)
                 self.printerObject.textln("***REPRINT***")
 
-            qrData = "$"+str(totalCreditsWon) + " " + dateTimeOfPrint.strftime('%I:%M:%S %p  %x')
+            qrData = "$"+ totalCreditsWon + " " + dateTimeOfPrint.strftime('%I:%M:%S %p  %x')
             self.printerObject.set(align='center', font='b', height=12)
             self.printerObject.qr(content=qrData, size=8) # Print the QR code to be scanned. We need to figure out the content of these codes.
 
@@ -691,10 +719,8 @@ class Printer(DragonMasterDevice):
             printerStatus = 0
             paperStatus = 0
             self.printerObject._raw(RT_STATUS_ONLINE)
-            sleep(.01)
             printerStatus = self.printerObject._read()[0]
             self.printerObject._raw(RT_STATUS_PAPER)
-            sleep(.01)
             status = self.printerObject._read()
             if len(status) == 0:
                 paperStatus = 2
@@ -708,6 +734,9 @@ class Printer(DragonMasterDevice):
 
 
         except Exception as e:
+            if (str(e).__contains__("Errno 110")):
+                print("Time Out Error. Should be resolved once paper is put back into our custom TG02")
+                return (0, 0)
             print ("Error experienced while trying to gather paper status")
             print (e)
             return None 
@@ -763,12 +792,17 @@ class CustomTG02(Printer):
     """
     def config_text(self):
         msg = '\x1b\xc1\x30'
-        self.printerObject.device.write(CustomTG02.OUT_EP, msg, 1)
+        self.printerObject._raw(msg)
+        return
 
 
     def to_string(self):
         return "CustomTG02(" + ")"
     #End Override Methods
+
+    @staticmethod
+    def get_printer_id():
+        return DragonMasterDeviceManager.DragonMasterDeviceManager.CUSTOM_TG02
     pass
 
 """
@@ -909,23 +943,36 @@ class ReliancePrinter(Printer):
 
 
     #region override printer methods
+
+    """
+    Override method to print our audit ticket for Reliance Printers
+    """
     def print_audit_ticket(self, auditInfoString):
         self.associatedRelianceSerial.retract()
         Printer.print_audit_ticket(self, auditInfoString, 29, 0)
         self.associatedRelianceSerial.cut()
         return
 
-
-    def print_voucher_ticket(self, totalCreditsWon, ticketType, playerStation = "0", validationNumber = "0", terminalID = "000000" , dateTimeOfPrint=None, whiteSpaceUnderTicket=1):
+    """
+    Override method to print our voucher ticket for Reliance Printers
+    """
+    def print_voucher_ticket(self, ticketType, eventData):
         self.associatedRelianceSerial.retract()
-        super().print_voucher_ticket(totalCreditsWon, ticketType, playerStation, validationNumber, terminalID, dateTimeOfPrint, whiteSpaceUnderTicket)
+        Printer.print_voucher_ticket(self, ticketType, eventData)
         self.associatedRelianceSerial.cut()
 
+    """
+    Override method to print our codex ticket for Reliance Printers
+    """
     def print_codex_ticket(self, codexTicketInfo, lineLength=29, whiteSpaceUnderTicket=0):
         self.associatedRelianceSerial.retract()
         Printer.print_codex_ticket(self, codexTicketInfo, lineLength, whiteSpaceUnderTicket)
         self.associatedRelianceSerial.cut()
     #endregion override printer methods
+
+    @staticmethod
+    def get_printer_id():
+        return DragonMasterDeviceManager.DragonMasterDeviceManager.RELIANCE_PRINTER
     pass
 
 
