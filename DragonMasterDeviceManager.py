@@ -510,7 +510,7 @@ class DragonMasterDeviceManager:
     @type eventMessage: bytes
     @param eventMessage: A list of bytes that will decipher what our DeviceManager should do
     """
-    def interpret_event_from_unity(self, eventMessage):
+    def interpret_and_process_event_from_unity(self, eventMessage):
         if eventMessage == None or len(eventMessage) <= 0:
             print ("The event message that was passed in was empty...")
             return
@@ -529,19 +529,21 @@ class DragonMasterDeviceManager:
         elif eventCommandByte == DragonMasterDeviceManager.OMNI_EVENT:
             self.on_omnidongle_event_received(eventMessage)
             return
+        elif eventCommandByte == DragonMasterDeviceManager.KILL_APPLICATION_EVENT:
+            DragonMasterDeviceManager.KILL_DEVICE_MANAGER_APPLICATION = True #This will kill the main thread at the next available time. So processes may still run for a second
+            return
         
-        #All event functions below this poinr need to have a hash
+        #All event functions below this point need to have a playerStationHash as they are specific to a specific player station
         if len(eventMessage) < 5:
+            print (eventMessage.hex())
             print ("The event message was too short...")
             return 
         # playerStationHash = convert_byte_array_to_value(eventMessage[1:4])
         playerStationHash = int.from_bytes(eventMessage[1:5], byteorder='big')
         #General Event Messages
-        if eventCommandByte == DragonMasterDeviceManager.KILL_APPLICATION_EVENT:
-            DragonMasterDeviceManager.KILL_DEVICE_MANAGER_APPLICATION = True
-            return
+        
         #Drax Outputs
-        elif eventCommandByte == DragonMasterDeviceManager.DRAX_HARD_METER_EVENT:
+        if eventCommandByte == DragonMasterDeviceManager.DRAX_HARD_METER_EVENT:
             self.on_drax_hard_meter_event(playerStationHash, eventMessage[5:])
             return
         elif eventCommandByte == DragonMasterDeviceManager.DRAX_OUTPUT_EVENT:
@@ -850,7 +852,7 @@ class DragonMasterDeviceManager:
     Upon receiving an event from our Unity Application, we will process the command through this method
 
     Packets that are received will contain the following layout:
-    [Function, playerStationID, data....]
+    [Function, playerStationID(optional), data....]
 
     @type eventList: list
     @param eventList: list of events that have been received from our unity application and will be interpreted
@@ -861,10 +863,9 @@ class DragonMasterDeviceManager:
 
         for event in eventList:
             if not DragonMasterDeviceManager.KILL_DEVICE_MANAGER_APPLICATION:
-                self.interpret_event_from_unity(event)
+                self.interpret_and_process_event_from_unity(event)
             pass
         return
-        
     #endregion TCP Communication
     pass
 

@@ -47,7 +47,7 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
     {
         SHOOT_BUTTON = 0x0001,
         POWER_UP_BUTTON = 0x0002,
-        REDEEM_BUTTON = 0x0004,
+        REDEEM_BUTTON = 0x0004, //Ticket button
         MENU_BUTTON = 0x0008,
         ATTENDANT_KEY = 0x0010,//AKA Green Key
         SUPERVISOR_KEY = 0x0020,//AKA Red Key
@@ -121,17 +121,29 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
     /// <summary>
     /// List of all possible states that our Bll Acceptor can be in
     /// </summary>
-    public enum BillAcceptorState
+    public enum BillAcceptorState : ushort
     {
-        ERROR,
-        NOT_INIT,//Once a bill acceptor is set to connected make this the default state
-        POWER_UP,
-        NOTE_STAY,
-        IDLE,//Bill Acceptor can accept bills
-        INHIBIT,
-        UNIT_FAILURE,
-        BOX_REMOVED,
-        STACKER_JAMMED
+        DISCONNECTED = 0X00, // DBV is disconnected
+        NOT_INIT_STATE = 0X10, //DBV not initialized.
+        POWER_UP_NACK_STATE = 0X01, //Power up ACK not received by DBV yet. Write POWER_UP_ACK to DBV (with event id set) to move past this.
+        POWER_UP_ACCEPTOR_NACK_STATE = 0X02, //Power up ACK not received, but with a bill currently in the acceptor.
+        POWER_UP_STATE = 0X03, //DBV UID set and powered on. Needs to be reset.
+        IDLE_STATE = 0X04,  //DBV can accept bills in this state. Bezel light on.
+        INHIBIT_STATE = 0X05, //DBV CANNOT accept bills in this state. Bezel light off.
+        ESCROW_STATE = 0X06, //DBV is currently accepting a bill
+        UNSUPPORTED_STATE = 0X07,  //UID not set. Write SET_UID to DBV UID and move past this state.
+        ERROR_STATE = 0X08, //DBV has encountered an error. Reset the DBV or wait for error to clear.
+        ERROR_STATE_STACKER_FAILURE = 0X09, //The stacker has error when attempting to accept credits. This can usually be fixed with a reset.
+        ERROR_STATE_BOX_REMOVED = 0X0a, // The container where credits are stored in the DBV has been removed. This might mean that the operator is removing the credits inserted.
+        ERROR_STATE_ACCEPTOR_JAM = 0x0b, // The stacker on top of the DBV has been removed for a few seconds. Re-insert it, and reset.
+        CLEAR_STATE = 0x0c,  // DBV error has cleared.
+        NOTE_STAY_STATE = 0x0d, // A bill has been left in the acceptor slot of the DBV. When removed, the DBV will proceed as normal.
+        ACTIVE_STATE = 0x0e, // DBV is actively holding or accepting bill.
+        WAITING_STATE = 0x0e,
+        DOWNLOAD_IDLE = 0x0401,
+        DOWNLOAD_WRITE = 0x0402,
+        ABNORMAL = 0x02d1,
+        FIRMWARE_MISMATCH = 0x03d2,
     }
 
     /// This is an enum reference to various types of bill acceptors that are compatible with our Unity Application
@@ -140,6 +152,7 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
         NONE = 0x00, 
         DBV_400 = 0x01,
         iVIZION = 0x02,
+        DBV_500 = 0x03,
     }
 
     /// <summary>
@@ -179,7 +192,9 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
         CUTTER_ERROR = 0X10000,//There was an error with the printer cutter. functionality with printer should stop until this is resolved
     }
 
+    /// <summary>
     /// An enum reference ot the types of printers that are currently compatible with our Unity Application
+    /// </summary>
     public enum PrinterType : byte
     {
         NONE = 0x00,
@@ -284,7 +299,7 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
     /// This list will be populated automatically if the playerstation hash has never been heard from. Either the playerstation index can be set by the hardware
     /// in Drax version 6.1x+ or you can manually set them through the settings menu. The default will be to set them in the order that the hashes are received, which will more than likely not be the correct order for each player station
     /// </summary>
-    private PlayerStationData[] playerStationDataOrderList = new PlayerStationData[10];//cChange the value here to support a larger group of player stations. Setting it to 10, since I don't think we go above that in the near future.
+    private PlayerStationData[] playerStationDataOrderList = new PlayerStationData[16];//cChange the value here to support a larger group of player stations. Setting it to 10, since I don't think we go above that in the near future.
 
 
     private TCPManager associatedTCPManager;
@@ -294,14 +309,13 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
     private void Awake()
     {
         instance = this;
-        StartupDragonMasterIOManagerPy3();
-        for (int i = 0; i < playerStationDataOrderList.Length; i++)
-        {
-            playerStationDataOrderList[i] = new PlayerStationData();
-            playerStationDataOrderList[i].playerStationIndex = i;
-        }
+    }
 
-        LoadPeripheralSettings();
+    private void Start()
+    {
+        
+
+        StartupDragonMasterIOManagerPy3();
     }
 
     private void Update()
@@ -345,6 +359,7 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
     /// <returns></returns>
     private IEnumerator DelayApplicationQuit()
     {
+        SavePeripheralSettings();
         applicationQuitDelayed = true;
 
         Application.CancelQuit();
@@ -386,6 +401,7 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
             return;
         }
         byte eventID = packetReceivedFromPython[0];
+        DebugUI.Instance.AddMessageForSecondsAsync(ByteArrayToString(packetReceivedFromPython));
         switch (eventID)
         {
             //General Events
@@ -451,9 +467,17 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
     /// </summary>
     public void StartupDragonMasterIOManagerPy3()
     {
-        this.associatedTCPManager = new TCPManager(this);
+        for (int i = 0; i < playerStationDataOrderList.Length; i++)
+        {
+            playerStationDataOrderList[i] = new PlayerStationData();
+            playerStationDataOrderList[i].playerStationIndex = i;
+        }
 
-        StartCoroutine(PeriodicallySendStatusToOurPythonApplicationToPreventShutdown());
+        LoadPeripheralSettings();
+
+        this.associatedTCPManager = new TCPManager(this);
+        SendRequestAllConnectedDevicesEvent();
+        StartCoroutine(PeriodicallySendStatusToOurPythonApplicationToPreventShutdown());//Coroutine to let our python application know that the game is still running
     }
 
 
@@ -465,13 +489,34 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
     /// <param name="playerStationHash"></param>
     public void QueueEventToSendToPython(byte eventIDByte, byte[] packetDatas, uint playerStationHash = 0)
     {
-        byte[] packetToQueue = new byte[packetDatas.Length + 3];
+        byte[] packetToQueue;
+
+        if (playerStationHash != 0)
+        {
+            byte[] playerStationHashAsBytes = GetByteArrayFromPlayerStationHash(playerStationHash);
+            print (ByteArrayToString(playerStationHashAsBytes));
+            packetToQueue = new byte[packetDatas.Length + 7];
+            for (int i = 0; i < playerStationHashAsBytes.Length; ++i)
+            {
+                packetToQueue[3 + i] = playerStationHashAsBytes[i];
+            }
+
+        }
+        else
+        {
+            packetToQueue = new byte[packetDatas.Length + 3];
+        }
         packetToQueue[2] = eventIDByte;
-        ushort sizeOfPacketToSend = (ushort)(packetDatas.Length + 1);
+        ushort sizeOfPacketToSend = (ushort)(packetToQueue.Length - 2);
         byte higherByte = (byte)((sizeOfPacketToSend >> 8) & 0xff);
         byte lowerByte = (byte)(sizeOfPacketToSend & 0xff);
         packetToQueue[0] = higherByte;
         packetToQueue[1] = lowerByte;
+
+        for (int i = 0; i < packetDatas.Length; ++i)
+        {
+            packetToQueue[packetToQueue.Length - 1 - i] = packetDatas[packetDatas.Length - 1 - i];
+        }
 
         this.associatedTCPManager.QueueEventToSendToPythonApplication(packetToQueue);//Queue our newly created packet in our TCP Manager
 
@@ -494,8 +539,8 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
 
         byte deviceID = bytePacket[5];
         uint playerStationHash = GetPlayerStationHashFromBytePacketEvent(bytePacket);
+        PlayerStationData playerStation = GetPlayerStationDataFromPlayerStationHash(playerStationHash);
 
-        PlayerStationData playerStation;
         switch (deviceID)
         {
             case OMNI_EVENT:
@@ -503,15 +548,37 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
                 return;
 
             case DRAX_ID:
-                byte playerStationIndex = bytePacket[8];//In later versions of firmware, player station index can be assigned through the draxboard. This will return 0 if the version does not support this feature.
-                AddPlayerStationToDeviceDictionaryIfNotAssigned(playerStationHash, (int)playerStationIndex - 1);
-
-                playerStation = GetPlayerStationDataFromPlayerStationHash(playerStationHash);
+                if (playerStationHash == 0)
+                {
+                    Debug.LogError("The connected draxboard had a player station hash of 0. This should NOT happen");
+                    return;
+                }
+                int playerStationIndex = (int)bytePacket[8] - 1;//In later versions of firmware, player station index can be assigned through the draxboard. This will return 0 if the version does not support this feature.
 
                 if (playerStation == null)
                 {
-                    Debug.LogError("There was an error connecting the DRAXBOARD.... I don't know how that happened.");
-                    return;
+                    
+                    DebugUI.Instance.AddMessageForSeconds("PlayerStationHash " + playerStationHash + " has not been assigned");
+
+                    if ((playerStationIndex >= 0 && playerStationIndex < playerStationDataOrderList.Length) &&
+                        GetPlayerStationHashFromPlayerStationIndex(playerStationIndex) == 0)
+                    {
+                        AssignPlayerStationHashToPlayerStationIndex(playerStationHash, playerStationIndex);
+                        DebugUI.Instance.AddMessageForSeconds("Assigning Player Station " + playerStationIndex + " to the hash " + playerStationHash, 20);
+                        playerStation = GetPlayerStationDataFromPlayerStationHash(playerStationHash);
+                    }
+                    else
+                    {
+                        
+                        AssignPlayerStationHashToNextAvailablePlayerStation(playerStationHash);
+                        playerStation = GetPlayerStationDataFromPlayerStationHash(playerStationHash);
+                        if (playerStation == null)
+                        {   
+                            Debug.LogError("There was an issue assigning player station hash to a player station");
+                            return;
+                        }
+                        DebugUI.Instance.AddMessageForSeconds("Assigning To Next Available Station " + playerStation.playerStationIndex + " to the hash " + playerStationHash, 20);
+                    }
                 }
 
                 playerStation.draxboardState = (byte)DraxboardState.Connected;
@@ -529,7 +596,9 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
                     return;
                 }
 
-                playerStation.billAcceptorState = (byte)BillAcceptorState.NOT_INIT;
+                playerStation.billAcceptorState = (byte)BillAcceptorState.NOT_INIT_STATE;
+                playerStation.billAcceptorType = bytePacket[6];
+                RequestBillAcceptorState(playerStation.playerStationIndex);
                 return;
             case JOYSTICK_ID:
                 playerStation = GetPlayerStationDataFromPlayerStationHash(playerStationHash);
@@ -541,6 +610,7 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
 
                 playerStation.joystickState = (byte)JoystickState.Connected;
                 playerStation.joystickType = bytePacket[6];
+                playerStation.SetFromRawJoystickValues(PlayerStationData.JOYSTICK_AXIS_OFFSET, PlayerStationData.JOYSTICK_AXIS_OFFSET);//Start from the center until we receive a joystick event
                 return;
             case PRINTER_ID:
                 playerStation = GetPlayerStationDataFromPlayerStationHash(playerStationHash);
@@ -552,6 +622,7 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
 
                 playerStation.paperAvailability = (byte)PaperStatus.OUT_OF_PAPER;
                 playerStation.printerState = (uint)CustomPrinterState.READY;
+                playerStation.printerTypeAssignedToStation = bytePacket[6];
                 return;
         }
     }
@@ -588,7 +659,7 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
                     Debug.LogError("There was an error disconnecting our BILL ACCEPTOR.... I don't know how we got here");
                 }
                 playerStationData.billAcceptorType = (byte)BillAcceptorType.NONE;
-                playerStationData.billAcceptorState = (byte)BillAcceptorState.ERROR;
+                playerStationData.billAcceptorState = (ushort)BillAcceptorState.DISCONNECTED;
                 return;
             case JOYSTICK_ID:
                 playerStationData = GetPlayerStationDataFromPlayerStationHash(playerStationHash);
@@ -1131,14 +1202,14 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
 
         if (playerStationData != null)
         {
-            playerStationData.billAcceptorState = packetEvent[5];
+            playerStationData.billAcceptorState = (ushort)((packetEvent[5] << 8) + packetEvent[6]);
             playerStationData.OnBillAcceptorStateReceivedEvent.Invoke();
         }
 
     }
 
     /// Returns the byte that describes the state of our Bill Acceptor
-    private byte GetRawBillAcceptorState(int playerStationIndex)
+    private ushort GetRawBillAcceptorState(int playerStationIndex)
     {
         PlayerStationData playerStationData = GetPlayerStationDataFromPlayerStationIndexInOverseer(playerStationIndex);
         if (playerStationData == null)
@@ -1156,7 +1227,7 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
         PlayerStationData playerStationData = GetPlayerStationDataFromPlayerStationIndexInOverseer(playerStationIndex);
         if (playerStationData == null)
         {
-            return BillAcceptorState.ERROR;
+            return BillAcceptorState.DISCONNECTED;
         }
         return (BillAcceptorState)playerStationData.billAcceptorState;
     }
@@ -1243,7 +1314,7 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
         uint playerStationHash = GetPlayerStationHashFromPlayerStationIndex(playerIndex);
         if (playerStationHash == 0)
         {
-            Debug.LogWarning("There is no player station associated with this ");
+            Debug.LogWarning("There is no player station associated with this bill acceptor");
             return;
         }
         
@@ -1414,7 +1485,7 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
     /// Sends an event to our python appliation to print out a test ticket. This is primarily to ensure that our printers are properly connected and functioning correctly
     /// </summary>
     /// <param name="playerStationIndex"></param>
-    public bool PrintTestticket(int playerStationIndex)
+    public bool PrintTestTicket(int playerStationIndex)
     {
         uint playerStationHash = GetPlayerStationHashFromPlayerStationIndex(playerStationIndex);
         if (playerStationHash == 0)
@@ -1429,18 +1500,7 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
             return false;
         }
 
-        DateTime dateTimeOfPrint = DateTime.Now;
-
-        string testTicketDataString = "";
-
-        testTicketDataString += "|" + dateTimeOfPrint.Year;
-        testTicketDataString += "|" + dateTimeOfPrint.Month;
-        testTicketDataString += "|" + dateTimeOfPrint.Day;
-        testTicketDataString += "|" + dateTimeOfPrint.Hour;
-        testTicketDataString += "|" + dateTimeOfPrint.Minute;
-        testTicketDataString += "|" + dateTimeOfPrint.Second;
-
-        QueueEventToSendToPython(PRINTER_TEST_TICKET, Encoding.ASCII.GetBytes(testTicketDataString), playerStationHash);
+        QueueEventToSendToPython(PRINTER_TEST_TICKET, new byte[]{}, playerStationHash);
 
         BeginCoroutineToBlockPrintUntilPrintJobVerificationReturned(playerStationHash);
         return true;
@@ -1601,10 +1661,10 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
             return;
         }
 
-        if (playerStationDataOrderList[playerStationIndexToAssign].playerStationHash == playerStationHash)
+        PlayerStationData originallyAssignedPlayerStation = GetPlayerStationDataFromPlayerStationHash(playerStationHash);
+        if (originallyAssignedPlayerStation != null)
         {
-            //This player station is already correctly assigned. No need to carry out this function
-            return;
+            originallyAssignedPlayerStation.playerStationHash = 0;//This is to ensure that we do not have duplicate player station hashes assigned to different player stations
         }
 
         AddPlayerStationToDeviceDictionaryIfNotAssigned(playerStationHash, playerStationDataOrderList[playerStationIndexToAssign]);
@@ -1613,29 +1673,20 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
         playerStationData.playerStationHash = playerStationHash;
     }
 
-    /// This will check if the player station index that is passed in is a valid index to assign. Meaning that there is no valid player station hash already
-    /// assigned, the player station index is valid, and the player station hash is valid as well. If all those conditions are met we will assign this
-    /// player station hash to the associated player station index
-
-    /// NOTE: If you want to force an assign, you should use 'AssignPlayerStationHashToPlayerStationIndex'
-    private void AddPlayerStationToDeviceDictionaryIfNotAssigned(uint playerStationHash, int playerStationIndex)
+    public void AssignPlayerStationHashToNextAvailablePlayerStation(uint playerStationHash)
     {
         if (playerStationHash == 0)
         {
+            Debug.LogError("You are attempting to assigne a player station hash with the value 0. This is not allowed");
             return;
         }
-        if (playerStationIndex < 0 || playerStationIndex >= playerStationDataOrderList.Length)
+        for (int i = 0; i < playerStationDataOrderList.Length; ++i)
         {
-            return;
-        }
-
-        if (playerStationDataOrderList[playerStationIndex].playerStationHash == 0)
-        {
-            return;
-        }
-        else 
-        {
-            AddPlayerStationToDeviceDictionaryIfNotAssigned(playerStationHash, playerStationDataOrderList[playerStationIndex]);
+            if (playerStationDataOrderList[i].playerStationHash == 0)
+            {
+                AssignPlayerStationHashToPlayerStationIndex(playerStationHash, i);
+                return;
+            }
         }
     }
 
@@ -1684,7 +1735,16 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
 
         return playerStationHash;
     }
-
+    
+    public byte[] GetByteArrayFromPlayerStationHash(uint playerStationHash)
+    {
+        byte[] playerStationHashBytes = new byte[4];
+        for (int i = 0; i < playerStationHashBytes.Length; i++)
+        {
+            playerStationHashBytes[i] = (byte)(playerStationHash >> (8 * (playerStationHashBytes.Length - 1 - i)) & 0xff);
+        }
+        return playerStationHashBytes;
+    }
 
     /// <summary>
     /// Returns the player station index based on the hash that was passed through. If the value is negative, the hash that was passed in was invalid
@@ -1993,7 +2053,7 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
         /// <summary>
         /// The current state of our bill acceptor
         /// </summary>
-        public byte billAcceptorState;
+        public ushort billAcceptorState;
 
         /// The version of the bill acceptor that we are using. This is sent as a string from our bill acceptor and we pass along those ascii bytes from our python application
         public string billAcceptorVersion;
@@ -2395,6 +2455,7 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
                     Debug.LogError(e);
                     if (socket != null)
                     {
+                        socket.Disconnect(true);
                         socket.Close();
                         socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                     }
@@ -2555,10 +2616,19 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
     public void SavePeripheralSettings()
     {
         PeripheralSaveData PeripheralSaveData = new PeripheralSaveData();
-        PersistedPlayerStationValues[] PersistedPlayerStationValuesList = new PersistedPlayerStationValues[playerStationDataOrderList.Length];
+        PeripheralSaveData.PersistedPlayerStationValuesList = new PersistedPlayerStationValues[playerStationDataOrderList.Length];
         for (int i = 0; i < playerStationDataOrderList.Length; ++i)
         {
-            PersistedPlayerStationValuesList[i] = playerStationDataOrderList[i].persistedValues;
+            PeripheralSaveData.PersistedPlayerStationValuesList[i] = playerStationDataOrderList[i].persistedValues;
+        }
+        try
+        {
+            Directory.CreateDirectory(BookkeepingManager.LinuxPersistentDirectory);
+        }
+        catch (Exception e)
+        {
+            Debug.LogError("There was a problem creating a new directory for our peripheral save file");
+            Debug.LogError(e);
         }
 
         FileStream fs = new FileStream(PERIPHERAL_SAVE_DIRECTORY, FileMode.Create);
@@ -2590,18 +2660,19 @@ public class DragonMasterIOManagerPy3 : MonoBehaviour {
     public void LoadPeripheralSettings()
     {
         PeripheralSaveData peripheralSaveData = null;
-        FileStream fs = new FileStream(PERIPHERAL_SAVE_DIRECTORY, FileMode.Open);
 
         try
         {
+            FileStream fs = new FileStream(PERIPHERAL_SAVE_DIRECTORY, FileMode.Open);
             BinaryFormatter formatter = new BinaryFormatter();
 
             peripheralSaveData = (PeripheralSaveData) formatter.Deserialize(fs);
             
             for (int i = 0; i < Mathf.Min(peripheralSaveData.PersistedPlayerStationValuesList.Length, playerStationDataOrderList.Length); ++i)
             {
-                if (peripheralSaveData.PersistedPlayerStationValuesList[i] != null)
+                if (peripheralSaveData.PersistedPlayerStationValuesList[i] != null && peripheralSaveData.PersistedPlayerStationValuesList[i].PlayerStationHash != 0)
                 {
+                    AssignPlayerStationHashToPlayerStationIndex(peripheralSaveData.PersistedPlayerStationValuesList[i].PlayerStationHash, i);
                     playerStationDataOrderList[i].AssignPersistedPlayerstationDataFromLoad(peripheralSaveData.PersistedPlayerStationValuesList[i]);
                 }
             }
