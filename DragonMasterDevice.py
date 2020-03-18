@@ -241,7 +241,7 @@ as the product name of the joystick
 """
 class BaoLianJoystick(Joystick):
     
-    JOYSTICK_DEVICE_NAME = "HID d209:0513"
+    JOYSTICK_DEVICE_NAME = "Baolian Industry Co., Ltd."
 
 
     """
@@ -328,7 +328,7 @@ class Printer(DragonMasterDevice):
                 self.currentState = self.get_updated_printer_state_and_paper_state()
                 
                 if self.currentState != self.lastSentPrinterState:
-                    self.dragonMasterDeviceManager.add_event_to_send(DragonMasterDeviceManager.DragonMasterDeviceManager.PRINTER_STATE_EVENT, [self.currentState[0].to_bytes(4, byteorder='big'), self.currentState[1]], self.get_player_station_hash())
+                    self.add_printer_state_to_send_queue()
                     self.lastSentPrinterState = self.currentState
             except Exception as e:
                 print ("There was a problem getting the state of the printer")
@@ -336,6 +336,16 @@ class Printer(DragonMasterDevice):
                 self.dragonMasterDeviceManager.remove_device(self)
             
             sleep (.2)
+
+    """
+
+    """
+    def add_printer_state_to_send_queue(self):
+        self.dragonMasterDeviceManager.add_event_to_send(DragonMasterDeviceManager.DragonMasterDeviceManager.PRINTER_STATE_EVENT, self.currentState[0].to_bytes(4, byteorder='big') + self.currentState[1].to_bytes(1, byteorder='big'), self.get_player_station_hash())
+        print (self.currentState)
+        return
+
+
 
     """
     This method will print out a voucher ticket. The general format should apply to all of our printer types

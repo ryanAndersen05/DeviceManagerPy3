@@ -569,6 +569,8 @@ class DragonMasterDeviceManager:
         elif eventCommandByte == DragonMasterDeviceManager.PRINTER_TEST_TICKET:
             self.on_print_test_ticket_event(playerStationHash)
             return
+        elif eventCommandByte == DragonMasterDeviceManager.PRINTER_STATE_EVENT:
+            self.on_printer_state_request(playerStationHash)
             
         #Bill Acceptor Outputs
         elif eventCommandByte == DragonMasterDeviceManager.BA_IDLE_EVENT:
@@ -807,6 +809,16 @@ class DragonMasterDeviceManager:
 
         printerDevice.add_event_to_queue(printerDevice.print_voucher_ticket, DragonMasterDeviceManager.PRINTER_TEST_TICKET, []) #Alwasy want to print our voucher ticket with a value of 0 when it is a test ticket
         return
+
+    """
+    This will send an event to our Unity application to return the current state of our printer device
+    """
+    def on_printer_state_request(self, playerStationHash):
+        printerDevice = self.get_printer_from_player_station_hash(playerStationHash)
+        if printerDevice == None:
+            return
+
+        printerDevice.add_printer_state_to_send_queue()
 
     """
     This method should be called whenever a reprint is requested from our Unity application

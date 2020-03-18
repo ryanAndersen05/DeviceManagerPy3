@@ -498,11 +498,13 @@ class DBV400(BillAcceptor):
         escrowMessage[5] = message[5]
         self.send_dbv_message(escrowMessage)
         self.AmountStored = message[11]
+        print ("I am here")
         if self.AutoReject:
             self.send_dbv_message(DBV400.REJECT_COMMAND)
         else :
             self.send_dbv_message(DBV400.HOLD_BILL)
         self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_INSERTED_EVENT, [self.AmountStored])
+        print ("I finished")
 
     """ A bil inserted to the DBV was rejected due to an error (invalid bill, invalid state, etc.) """
     def on_bill_rejected(self, message):
@@ -1357,7 +1359,7 @@ class Draxboard(SerialDevice):
         if inputPacket == None or (inputPacket[0] != Draxboard.INPUT_EVENT_ID and inputPacket[0] != Draxboard.INPUT_REQUEST_EVENT_ID):
             print ("Invalid Input Event Packet. Please Be sure you are correctly interpreting our input packets")
             return
-        inputData = [inputPacket[Draxboard.INPUT_INDEX], inputPacket[Draxboard.DOOR_STATE_INDEX]]
+        inputData = [inputPacket[Draxboard.DOOR_STATE_INDEX], inputPacket[Draxboard.INPUT_INDEX]]
 
         if DragonMasterDeviceManager.DragonMasterDeviceManager.DEBUG_SHOW_DRAX_BUTTONS:
             print (str(self.playerStationHash) + ": " + str(inputData))#For debug purposes only
