@@ -634,7 +634,7 @@ class DragonMasterDeviceManager:
         if len(eventData) < 2:
             return
         
-        draxboard.add_event_to_queue(draxboard.increment_meter_ticks, eventData[0], eventData[1])        
+        draxboard.add_event_to_queue(draxboard.increment_meter_ticks, eventData[0], (eventData[1] << 8) + eventData[2])        
         return
 
     """
