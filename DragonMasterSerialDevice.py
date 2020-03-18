@@ -1379,6 +1379,7 @@ class Draxboard(SerialDevice):
     NOTE: Any other value aside from 0-2 will result in this method not running
     """
     def toggle_output_state_of_drax(self, outputToggleu32, toggleMessageType=0):
+        print (outputToggleu32)
         if toggleMessageType == 0:
             pass
             # self.draxOutputState = outputToggleu32

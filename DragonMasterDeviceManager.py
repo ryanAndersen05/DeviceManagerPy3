@@ -652,7 +652,7 @@ class DragonMasterDeviceManager:
             return
         if len(eventData) < 2:
             return
-        draxboard.add_event_to_queue(draxboard.toggle_output_state_of_drax, eventData[0] << 8 + eventData[1], 0)
+        draxboard.add_event_to_queue(draxboard.toggle_output_state_of_drax, (eventData[0] << 8) + eventData[1], 0)
         return
 
     """
@@ -670,8 +670,8 @@ class DragonMasterDeviceManager:
             return
         if len(eventData) < 2:
             return
-        
-        draxboard.add_event_to_queue(draxboard.toggle_output_state_of_drax, eventData[0] << 8 + eventData[1], 1)
+        draxboard.add_event_to_queue(draxboard.toggle_output_state_of_drax, (eventData[0] << 8) + eventData[1], 1)
+
         return
 
     """
@@ -690,7 +690,7 @@ class DragonMasterDeviceManager:
         if not len(eventData):
             return
         
-        draxboard.add_event_to_queue(draxboard.toggle_output_state_of_drax, eventData[0] << 8 + eventData[1], 2)
+        draxboard.add_event_to_queue(draxboard.toggle_output_state_of_drax, (eventData[0] << 8) + eventData[1], 2)
         return
     #endregion draxboard tcp events
 
