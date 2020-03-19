@@ -144,6 +144,10 @@ class DragonMasterDeviceManager:
         print()
         self.search_for_devices()
 
+        periodicallySearchForNewDevicesThread = threading.Thread(target=self.periodically_poll_for_devices_thread)
+        periodicallySearchForNewDevicesThread.daemon = True
+        periodicallySearchForNewDevicesThread.start()
+
         #Begins a thread that allows a user to enter debug commands into a terminal if there is one available. This will not work if run through the bash script
         if DragonMasterDeviceManager.DEBUG_MODE:
             print ()
@@ -176,7 +180,14 @@ class DragonMasterDeviceManager:
     newly connected event thread fails to detect a new connection
     """
     def periodically_poll_for_devices_thread(self):
-        
+        while (True):
+            sleep(10)
+            if not self.searchingForDevices:
+                try:
+                    self.search_for_devices()
+                except Exception as e:
+                    print ("There was an error with our periodic polling")
+                    print (e)
         return
 
     """
