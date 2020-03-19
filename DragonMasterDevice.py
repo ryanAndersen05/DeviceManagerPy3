@@ -241,7 +241,7 @@ as the product name of the joystick
 """
 class BaoLianJoystick(Joystick):
     
-    JOYSTICK_DEVICE_NAME = "Baolian Industry Co., Ltd."
+    JOYSTICK_DEVICE_NAME = "BL digital joystick # 1"
 
 
     """
@@ -779,7 +779,7 @@ class CustomTG02(Printer):
         self.printerObject.device = deviceElement
         if self.printerObject.device.is_kernel_driver_active(0):
             self.printerObject.device.detach_kernel_driver(0)
-            
+
         self.printerObject.device.reset()
         self.printerObject.device.set_configuration()
         self.config_text()
