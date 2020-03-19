@@ -807,7 +807,7 @@ class DragonMasterDeviceManager:
         if printerDevice == None:
             return
 
-        printerDevice.add_event_to_queue(printerDevice.print_voucher_ticket, DragonMasterDeviceManager.PRINTER_TEST_TICKET, []) #Alwasy want to print our voucher ticket with a value of 0 when it is a test ticket
+        printerDevice.add_event_to_queue(printerDevice.print_voucher_ticket, DragonMasterDeviceManager.PRINTER_TEST_TICKET, []) #Always want to print our voucher ticket with a value of 0 when it is a test ticket
         return
 
     """

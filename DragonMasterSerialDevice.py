@@ -1211,7 +1211,6 @@ class Draxboard(SerialDevice):
     """
     def on_request_status_received(self, bytePacket):
         requestStatus = bytePacket
-        print (bytePacket.hex())
         if len(requestStatus) < Draxboard.REQUEST_STATUS_SIZE:
             print ("Reqeust Status length was too short or invalid: " + str(requestStatus))
             return
@@ -1379,7 +1378,6 @@ class Draxboard(SerialDevice):
     NOTE: Any other value aside from 0-2 will result in this method not running
     """
     def toggle_output_state_of_drax(self, outputToggleu32, toggleMessageType=0):
-        print (outputToggleu32)
         if toggleMessageType == 0:
             pass
             # self.draxOutputState = outputToggleu32

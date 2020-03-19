@@ -342,7 +342,6 @@ class Printer(DragonMasterDevice):
     """
     def add_printer_state_to_send_queue(self):
         self.dragonMasterDeviceManager.add_event_to_send(DragonMasterDeviceManager.DragonMasterDeviceManager.PRINTER_STATE_EVENT, self.currentState[0].to_bytes(4, byteorder='big') + self.currentState[1].to_bytes(1, byteorder='big'), self.get_player_station_hash())
-        print (self.currentState)
         return
 
 
@@ -372,7 +371,7 @@ class Printer(DragonMasterDevice):
             if dateTimeOfPrint == None:#An older version of the game may not provide the datetime of the print. This probably won't be an issue, but just in case....
                 dateTimeOfPrint = datetime.datetime.now()
                 print ("Date Time was None, defaulting to the current time on our system clock")
-            # self.config_text()
+            self.printerObject.set()
             self.printerObject.set(align='center', font='b', height=12, bold=False)
             if ticketType == DragonMasterDeviceManager.DragonMasterDeviceManager.PRINTER_REPRINT_TICKET:
                 self.printerObject.textln("***REPRINT***")
@@ -753,6 +752,7 @@ class Printer(DragonMasterDevice):
     pass
 
     def config_text(self):
+        self.printerObject.set()
         return
 
     def get_footer_string(self):
@@ -775,6 +775,9 @@ class CustomTG02(Printer):
         if self.printerObject == None:
             return False
         self.printerObject.device = deviceElement
+        self.printerObject.device.set_configuration()
+        self.printerObject.device.reset()
+        self.config_text()
         super().start_device(deviceElement)
 
         return True
@@ -803,6 +806,7 @@ class CustomTG02(Printer):
     def config_text(self):
         msg = '\x1b\xc1\x30'
         self.printerObject._raw(msg)
+        Printer.config_text(self)
         return
 
 
@@ -847,11 +851,14 @@ class ReliancePrinter(Printer):
             return False
 
         self.printerObject.device = deviceElement
+        if self.printerObject.device.is_kernel_driver_active(0):
+            self.printerObject.device.detach_kernel_driver(0)
 
         self.associatedRelianceSerial = self.get_matching_reliance_serial(deviceElement)
         if self.associatedRelianceSerial == None:
             return False
 
+        self.printerObject.set()
         super().start_device(deviceElement)
         if self.deviceParentPath == None:
             return False
