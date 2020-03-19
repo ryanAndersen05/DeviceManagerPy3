@@ -1026,6 +1026,9 @@ class iVizion(DBV400):
     def get_ba_type(self):
         return DragonMasterDeviceManager.DragonMasterDeviceManager.BA_iVIZION
 
+    def check_begin_firmware_download(self):
+        return
+
 
 """
 New device, that is functionally similar to our DBV-400, with additional features. This class will handle the functionality of
@@ -1039,6 +1042,9 @@ class DBV500(DBV400):
 
     def get_ba_type(self):
         return DragonMasterDeviceManager.DragonMasterDeviceManager.BA_DBV_500
+
+    def check_begin_firmware_download(self):
+        return
     pass
 
 """

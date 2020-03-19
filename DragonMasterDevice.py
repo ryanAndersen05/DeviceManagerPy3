@@ -371,7 +371,7 @@ class Printer(DragonMasterDevice):
             if dateTimeOfPrint == None:#An older version of the game may not provide the datetime of the print. This probably won't be an issue, but just in case....
                 dateTimeOfPrint = datetime.datetime.now()
                 print ("Date Time was None, defaulting to the current time on our system clock")
-            self.printerObject.set()
+            self.config_text()
             self.printerObject.set(align='center', font='b', height=12, bold=False)
             if ticketType == DragonMasterDeviceManager.DragonMasterDeviceManager.PRINTER_REPRINT_TICKET:
                 self.printerObject.textln("***REPRINT***")
@@ -769,15 +769,22 @@ class CustomTG02(Printer):
 
     ##Override Methods
     def start_device(self, deviceElement):
+
         if deviceElement == None:
             return False
         self.printerObject = Usb(idVendor=CustomTG02.VENDOR_ID, idProduct=CustomTG02.PRODUCT_ID, in_ep=CustomTG02.IN_EP, out_ep=CustomTG02.OUT_EP)
+
         if self.printerObject == None:
             return False
         self.printerObject.device = deviceElement
-        self.printerObject.device.set_configuration()
+        if self.printerObject.device.is_kernel_driver_active(0):
+            self.printerObject.device.detach_kernel_driver(0)
+            
         self.printerObject.device.reset()
+        self.printerObject.device.set_configuration()
         self.config_text()
+        
+        
         super().start_device(deviceElement)
 
         return True
