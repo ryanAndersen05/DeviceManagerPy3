@@ -241,7 +241,7 @@ as the product name of the joystick
 """
 class BaoLianJoystick(Joystick):
     
-    JOYSTICK_DEVICE_NAME = "BL digital joystick # 1"
+    JOYSTICK_DEVICE_NAME = "Baolian industry Co., Ltd. BL digital joystick #1"
 
 
     """
@@ -318,6 +318,9 @@ class Printer(DragonMasterDevice):
     def get_printer_id():
         return 0x00
 
+    def get_printer_object(self):
+        return None
+
     """
     Method that will check the current state of the connected printer. This will send a message to our Unity
     Application if the state has changed
@@ -343,6 +346,13 @@ class Printer(DragonMasterDevice):
     def add_printer_state_to_send_queue(self):
         self.dragonMasterDeviceManager.add_event_to_send(DragonMasterDeviceManager.DragonMasterDeviceManager.PRINTER_STATE_EVENT, self.currentState[0].to_bytes(4, byteorder='big') + self.currentState[1].to_bytes(1, byteorder='big'), self.get_player_station_hash())
         return
+
+    
+    """
+    sends a command to the connected printer to print a QR Code
+    """
+    def print_qr_code(self, stringToPrint, sizeOfQR):
+        self.printerObject.qr(content=stringToPrint, size=sizeOfQR) # Print the QR code to be scanned. We need to figure out the content of these codes.
 
 
 
@@ -371,12 +381,14 @@ class Printer(DragonMasterDevice):
             if dateTimeOfPrint == None:#An older version of the game may not provide the datetime of the print. This probably won't be an issue, but just in case....
                 dateTimeOfPrint = datetime.datetime.now()
                 print ("Date Time was None, defaulting to the current time on our system clock")
-            self.config_text()
+            # self.config_text()
             self.printerObject.set(align='center', font='b', height=12, bold=False)
             if ticketType == DragonMasterDeviceManager.DragonMasterDeviceManager.PRINTER_REPRINT_TICKET:
                 self.printerObject.textln("***REPRINT***")
 
+            self.printerObject.set()
             self.printerObject.set(align='center', font='b', height=12, bold=False)
+            self.printerObject.textln('========================')
             self.printerObject.textln("THANKS FOR PLAYING")
             self.printerObject.textln("VALID ON DATE OF \nISSUE ONLY!")
             self.printerObject.textln('========================')
@@ -433,7 +445,7 @@ class Printer(DragonMasterDevice):
 
             qrData = "$"+ totalCreditsWon + " " + dateTimeOfPrint.strftime('%I:%M:%S %p  %x')
             self.printerObject.set(align='center', font='b', height=12)
-            self.printerObject.qr(content=qrData, size=8) # Print the QR code to be scanned. We need to figure out the content of these codes.
+            self.print_qr_code(qrData, 8)
 
             self.printerObject.set(align='center', font='b', height=12, bold=False)
 
@@ -588,7 +600,7 @@ class Printer(DragonMasterDevice):
             self.printerObject.textln('=' * line_length)
 
             self.printerObject.set(align='center', font='b', height=12)
-            self.printerObject.qr(content=auditInfoString[20], size=4)
+            self.print_qr_code(auditInfoString[20], 4)
 
             self.printerObject.set(align='center')
             self.printerObject.textln('FILL/TIME REMAINING')
@@ -702,7 +714,7 @@ class Printer(DragonMasterDevice):
             self.printerObject.textln(" " + codexTicketArray[14] + " " + spaceChar + " " + codexTicketArray[15] + " " + spaceChar + " " + codexTicketArray[16] + " ")
 
             self.printerObject.set(align='center', font='b', height=12)
-            self.printerObject.qr(content=codexTicketArray[17], size=4)
+            self.print_qr_code(codexTicketArray[17], 4)
 
             self.printerObject.textln('=' * lineLength)
             self.printerObject.set(align='center', font='b', height=12, bold=False)
@@ -772,7 +784,7 @@ class CustomTG02(Printer):
 
         if deviceElement == None:
             return False
-        self.printerObject = Usb(idVendor=CustomTG02.VENDOR_ID, idProduct=CustomTG02.PRODUCT_ID, in_ep=CustomTG02.IN_EP, out_ep=CustomTG02.OUT_EP)
+        self.printerObject = self.get_printer_object()
 
         if self.printerObject == None:
             return False
@@ -819,6 +831,9 @@ class CustomTG02(Printer):
 
     def to_string(self):
         return "CustomTG02(" + ")"
+
+    def get_printer_object(self):
+        return Usb(idVendor=CustomTG02.VENDOR_ID, idProduct=CustomTG02.PRODUCT_ID, in_ep=CustomTG02.IN_EP, out_ep=CustomTG02.OUT_EP)
     #End Override Methods
 
     @staticmethod
@@ -831,6 +846,43 @@ Extension of our printer class. Handles special properties for our NextGen Coupo
 """
 class NextGen(Printer):
     
+    pass
+
+class PyramidPrinter(CustomTG02):
+    VENDOR_ID = 0x0425
+    PRODUCT_ID = 0x0412
+    IN_EP = 0x81
+    OUT_EP = 0x02
+
+    def start_device(self, deviceElement):
+        if deviceElement == None:
+            return False
+        self.printerObject = self.get_printer_object()
+        if self.printerObject == None:
+            return False
+        self.printerObject.device = deviceElement
+        if self.printerObject.device.is_kernel_driver_active(0):
+            self.printerObject.device.detach_kernel_driver(0)
+        self.printerObject.device.reset()
+        self.printerObject.device.set_configuration()
+        self.config_text()
+        
+        super().start_device(deviceElement)
+        return True
+
+    def get_printer_object(self):
+        return Usb(*(PyramidPrinter.VENDOR_ID, PyramidPrinter.PRODUCT_ID, None, 0, PyramidPrinter.IN_EP, PyramidPrinter.OUT_EP))
+
+    def print_qr_code(self, stringToPrint, sizeOfQR):
+        stringLenBytes = len(stringToPrint).to_bytes(2, 'little')
+        print (stringLenBytes)
+        payload = [0x0d, 0x1d, 0x28, 0x6b, len(stringToPrint) + 3, 0x00, 0x31, 0x50, 0x31]
+        payload += [ord(c) for c in stringToPrint]
+
+        payload += [0x1d, 0x28, 0x6b, 0x03, 0x00, 0x51, 0x31]
+        print (str(payload))
+        self.printerObject._raw(payload)
+
     pass
 
 """
@@ -853,7 +905,7 @@ class ReliancePrinter(Printer):
     def start_device(self, deviceElement):
 
 
-        self.printerObject = Usb(idVendor=ReliancePrinter.VENDOR_ID, idProduct=ReliancePrinter.PRODUCT_ID, in_ep=ReliancePrinter.IN_EP, out_ep=ReliancePrinter.OUT_EP)
+        self.printerObject = self.get_printer_object()
         if self.printerObject == None:
             return False
 
@@ -992,6 +1044,9 @@ class ReliancePrinter(Printer):
         self.associatedRelianceSerial.retract()
         Printer.print_codex_ticket(self, codexTicketInfo, lineLength, whiteSpaceUnderTicket)
         self.associatedRelianceSerial.cut()
+
+    def get_printer_object(self):
+        return Usb(idVendor=ReliancePrinter.VENDOR_ID, idProduct=ReliancePrinter.PRODUCT_ID, in_ep=ReliancePrinter.IN_EP, out_ep=ReliancePrinter.OUT_EP)
     #endregion override printer methods
 
     @staticmethod
@@ -1020,6 +1075,9 @@ def get_all_connected_joystick_devices():
 
     return listOfUltramarkJoysticks, listOfBoaLianJoysticks
 
+def get_all_connected_printers():
+    return get_all_connected_custom_tg02_printer_elements(), get_all_connected_reliance_printer_elements(), get_all_connected_pyramid_printer_elements()
+
 """
 Returns a list of all the connected custom TG02 printers. We do this by searching for a matching vid and pid
 """
@@ -1031,6 +1089,12 @@ Searches for a list of all connected reliance printers. This is done be searchin
 """
 def get_all_connected_reliance_printer_elements():
     return usb.core.find(idVendor=ReliancePrinter.VENDOR_ID, idProduct=ReliancePrinter.PRODUCT_ID, find_all=True)
+
+"""
+
+"""
+def get_all_connected_pyramid_printer_elements():
+    return usb.core.find(idVendor=PyramidPrinter.VENDOR_ID, idProduct=PyramidPrinter.PRODUCT_ID, find_all=True)
 
 
 ##End Retrieve device method

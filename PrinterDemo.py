@@ -19,8 +19,7 @@ from escpos.constants import RT_STATUS_PAPER, RT_MASK_PAPER, RT_MASK_LOWPAPER, R
 
 #Returns a list of all phoenix printers
 def find_all_connected_printers(vid, pid):
-    return usb.core.find(idVendor=pid, idProduct=pid, find_all=True)
-
+    return usb.core.find(idVendor=vid, idProduct=pid, find_all=True)
 
 
 def set_string_length_multiple(string1, string2, lengthOfString = 60, spacingChar = ' '):
@@ -33,10 +32,10 @@ def set_string_length_multiple(string1, string2, lengthOfString = 60, spacingCha
 
 #Minimum class representation of our Phoenix printer class
 class PhoenixPrinter:
-    VENDOR_ID = 0X0425
-    PRODUCT_ID = 0X8147
-    IN_EP = 0X81
-    OUT_EP = 0X02
+    VENDOR_ID = 0x0425
+    PRODUCT_ID = 0x0412
+    IN_EP = 0x81
+    OUT_EP = 0x02
 
 
     LOCATION_NAME = "PlaceHolder"
@@ -45,6 +44,7 @@ class PhoenixPrinter:
 
     def __init__(self, usbElememt):
         self.printerObject = Usb(idVendor=PhoenixPrinter.VENDOR_ID, idProduct=PhoenixPrinter.PRODUCT_ID, in_ep=PhoenixPrinter.IN_EP, out_ep=PhoenixPrinter.OUT_EP)
+        self.printerObject.device = usbElememt
         return
 
 
@@ -60,7 +60,7 @@ class PhoenixPrinter:
             
             if dateTimeOfPrint == None:#An older version of the game may not provide the datetime of the print. This probably won't be an issue, but just in case....
                 dateTimeOfPrint = datetime.datetime.now()
-                print ("Date Time was None, defaulting to the current time on our system clock")
+                # print ("Date Time was None, defaulting to the current time on our system clock")
             self.printerObject.set(align='center', font='b', height=12, bold=False)
             
             self.printerObject.set(align='center', font='b', height=12, bold=False)
@@ -113,7 +113,7 @@ class PhoenixPrinter:
                 self.printerObject.textln('=' * 24)
             self.printerObject.textln("VOID IF MUTILATED\nVAL# 1522789371186\n_" + versionNumber + "_\n2017-2019 ALL RIGHTS RESERVED")
 
-            self.printerObject.ln(7)
+            self.printerObject.ln(0)
 
             self.printerObject.cut(feed=True)# Cut the page for removal.
 
@@ -131,6 +131,6 @@ class PhoenixPrinter:
 ##############################################################################################
 
 listOfAllConnectedPrinters = find_all_connected_printers(PhoenixPrinter.VENDOR_ID, PhoenixPrinter.PRODUCT_ID)
-
 for printer in listOfAllConnectedPrinters:
-    printer.print_test_ticket()
+    phoenixPrinter = PhoenixPrinter(printer)
+    phoenixPrinter.print_test_ticket()

@@ -225,12 +225,11 @@ class DragonMasterDeviceManager:
         try:
             allConnectedJoysticks, allBaoLianJoysticks = DragonMasterDevice.get_all_connected_joystick_devices()
             allConnectedDraxboards = DragonMasterSerialDevice.get_all_connected_draxboard_elements()
-            allConnectedCustomTG02Printers = DragonMasterDevice.get_all_connected_custom_tg02_printer_elements()
-            allConnectedReliancePrinters = DragonMasterDevice.get_all_connected_reliance_printer_elements()
+            allConnectedCustomTG02Printers, allConnectedReliancePrinters, allConnectedPyramidPrinters = DragonMasterDevice.get_all_connected_printers()
             allConnectedDBV400Elements, allConnectediVizionElements, allConnectedDBV500Elements = DragonMasterSerialDevice.get_all_connected_bill_acceptors()
 
+
             self.deviceContext = pyudev.Context() #we set our device context primarily to find the most up to date usb device paths
-            
             #This is a special case. In which we will only look for omnidongle devices if there is not one that is already connected. We should only ever talk to one omnidongle device at a time 
             if self.CONNECTED_OMNIDONGLE == None:
                 omnidongleElement = DragonMasterSerialDevice.get_omnidongle_comports()
@@ -261,6 +260,10 @@ class DragonMasterDeviceManager:
             for printer in allConnectedReliancePrinters:
                 if printer != None and not self.device_manager_contains_printer(printer):
                     self.add_new_device(DragonMasterDevice.ReliancePrinter(self), printer)
+            print ("I made it here")
+            for printer in allConnectedPyramidPrinters:
+                if printer != None and not self.device_manager_contains_printer(printer):
+                    self.add_new_device(DragonMasterDevice.PyramidPrinter(self), printer)
 
             #Add our DBV 400 Bill Acceptors here
             for dbv in allConnectedDBV400Elements:
