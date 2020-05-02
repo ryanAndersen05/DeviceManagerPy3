@@ -100,10 +100,10 @@ class DragonMasterDevice:
     def threaded_perform_events(self):
         while (not self.deviceEventQueue.empty()):
             functionItems = self.deviceEventQueue.get()
-            fn = functionItems[0]
+            uinputPath = functionItems[0]
             try:
                 args = functionItems[1:]
-                fn(*args)
+                uinputPath(*args)
             except Exception as e:
                 print (e)
                 print ("There was an error executing a function in our event queue: " + self.to_string())
@@ -120,7 +120,7 @@ class Joystick(DragonMasterDevice):
 
     def __init__(self, dragonMasterDeviceManager):
         super().__init__(dragonMasterDeviceManager)
-        self.joystickDevice = None#joystick device is our evdev element that will be used to collect the axes of our joystick
+        self.joystickUInput = None#joystick device is our evdev element that will be used to collect the axes of our joystick
 
         #NOTE: We initialize the joystick axes to 128 as that is the neutral position. The values for our joystick are between 0-255
         self.currentAxes = (128,128)#The current axis values that our joystick is set to
@@ -129,14 +129,16 @@ class Joystick(DragonMasterDevice):
     #region override methods
     """
     Starts up a thread that will check for updates to the axis
+
+    NOTE: In this case deviceElement is a type of UInput in the library evdev
     """
     def start_device(self, deviceElement):
         super().start_device(deviceElement)
-        self.joystickDevice = deviceElement
+        self.joystickUInput = deviceElement
 
-        self.joystickThread = threading.Thread(target=self.joystick_axes_update_thread,)
-        self.joystickThread.daemon = True
-        self.joystickThread.start()
+        self.collectJoystickAxisThread = threading.Thread(target=self.joystick_axes_update_thread,)
+        self.collectJoystickAxisThread.daemon = True
+        self.collectJoystickAxisThread.start()
         return True
 
     """
@@ -145,15 +147,15 @@ class Joystick(DragonMasterDevice):
     """
     def disconnect_device(self):
         super().disconnect_device()
-        self.joystickDevice = None
+        self.joystickUInput = None
         return 
 
     """
     Returns a string with the name of the device and the physical location of the joystick
     """
     def to_string(self):
-        if self.joystickDevice != None:
-            return "Joystick (" + self.joystickDevice.phys + ")"
+        if self.joystickUInput != None:
+            return "Joystick (" + self.joystickUInput.phys + ")"
         else:
             return "Joystick (Missing)"
 
@@ -164,19 +166,17 @@ class Joystick(DragonMasterDevice):
     """
     def joystick_axes_update_thread(self):
         try:
-            for event in self.joystickDevice.read_loop():
-                if self.joystickDevice == None:
+            for event in self.joystickUInput.read_loop():
+                if self.joystickUInput == None:
                     return
                 if (event.type != evdev.ecodes.EV_SYN):
                     absevent = evdev.categorize(event)
                     if 'ABS_X' in str(absevent):
-                        adjustedValue = event.value
-                        updatedAxes = (adjustedValue, self.currentAxes[1])
+                        updatedAxes = (event.value, self.currentAxes[1])
                         self.currentAxes = updatedAxes
 
                     if 'ABS_Y' in str(absevent):
-                        adjustedValue = event.value
-                        updatedAxes = (self.currentAxes[0], adjustedValue)
+                        updatedAxes = (self.currentAxes[0], event.value)
                         self.currentAxes = updatedAxes
                     if DragonMasterDeviceManager.DragonMasterDeviceManager.DEBUG_DISPLAY_JOY_AXIS:
                         print (str(self.get_player_station_hash()) + "-" + self.to_string() + ": " + str(self.currentAxes))
@@ -189,7 +189,7 @@ class Joystick(DragonMasterDevice):
     """
     Sends an event to update the Joystick axes to our 
     """
-    def send_updated_joystick_to_unity_application(self):
+    def send_joystick_axes_if_updated(self):
         if self.currentAxes != self.lastSentAxes:
             eventData = [self.currentAxes[0], self.currentAxes[1]]
             self.dragonMasterDeviceManager.add_event_to_send(DragonMasterDeviceManager.DragonMasterDeviceManager.JOYSTICK_INPUT_EVENT, eventData, self.dragonMasterDeviceManager.get_player_station_hash_for_device(self))
@@ -979,7 +979,8 @@ class ReliancePrinter(Printer):
     to accomplish this.
     """
     def detach_printer(self):
-        self.printerObject.set()  
+        self.printerObject.set() 
+
     """
     converts the port numbers and bus number of our printer element into a string usb location path
     """
@@ -1045,6 +1046,9 @@ class ReliancePrinter(Printer):
         Printer.print_codex_ticket(self, codexTicketInfo, lineLength, whiteSpaceUnderTicket)
         self.associatedRelianceSerial.cut()
 
+    """
+
+    """
     def get_printer_object(self):
         return Usb(idVendor=ReliancePrinter.VENDOR_ID, idProduct=ReliancePrinter.PRODUCT_ID, in_ep=ReliancePrinter.IN_EP, out_ep=ReliancePrinter.OUT_EP)
     #endregion override printer methods
@@ -1063,15 +1067,15 @@ Returns two lists. The first list is all connected Ultimarc joysticks
 The seconds list are connected Bao Lian Joysticks
 """
 def get_all_connected_joystick_devices():
-    allJoystickDevices = [evdev.InputDevice(fn) for fn in evdev.list_devices()] #Creates a list of all connected input devices
+    allConnectedUInputDevices = [evdev.InputDevice(uinputPath) for uinputPath in evdev.list_devices()] #Creates a list of all connected input devices
     listOfUltramarkJoysticks = []
     listOfBoaLianJoysticks = []
 
-    for dev in allJoystickDevices:
-        if (dev.name == UltimarcJoystick.JOYSTICK_DEVICE_NAME and "input0" in dev.phys):
-            listOfUltramarkJoysticks.append(dev)
-        if (dev.name == BaoLianJoystick.JOYSTICK_DEVICE_NAME and "input0" in dev.phys):
-            listOfBoaLianJoysticks.append(dev)
+    for uInputDevice in allConnectedUInputDevices:
+        if (uInputDevice.name == UltimarcJoystick.JOYSTICK_DEVICE_NAME and "input0" in uInputDevice.phys):
+            listOfUltramarkJoysticks.append(uInputDevice)
+        if (uInputDevice.name == BaoLianJoystick.JOYSTICK_DEVICE_NAME and "input0" in uInputDevice.phys):
+            listOfBoaLianJoysticks.append(uInputDevice)
 
     return listOfUltramarkJoysticks, listOfBoaLianJoysticks
 
@@ -1085,13 +1089,13 @@ def get_all_connected_custom_tg02_printer_elements():
     return usb.core.find(idVendor=CustomTG02.VENDOR_ID, idProduct=CustomTG02.PRODUCT_ID, find_all=True)
 
 """
-Searches for a list of all connected reliance printers. This is done be searching for matching vid and pid
+Searches for a list of all connected reliance printers. This is done by searching for matching vid and pid
 """
 def get_all_connected_reliance_printer_elements():
     return usb.core.find(idVendor=ReliancePrinter.VENDOR_ID, idProduct=ReliancePrinter.PRODUCT_ID, find_all=True)
 
 """
-
+Searches for a list of a connected phoenix printers. This is done by searching for matching vid and pid
 """
 def get_all_connected_pyramid_printer_elements():
     return usb.core.find(idVendor=PyramidPrinter.VENDOR_ID, idProduct=PyramidPrinter.PRODUCT_ID, find_all=True)

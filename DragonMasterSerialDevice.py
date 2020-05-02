@@ -836,7 +836,7 @@ class DBV400(BillAcceptor):
         return
 
     """
-
+    This method should be called if there is a firmware mismatch error sent during the download process
     """
     def on_firmware_mismatch_error(self, packetData):
         print ("Firmware Mismatch")

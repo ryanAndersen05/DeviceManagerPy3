@@ -9,7 +9,6 @@ import re
 import queue
 import threading
 from time import sleep
-import pytz
 import os
 import time
 import datetime
@@ -221,9 +220,10 @@ class DragonMasterDeviceManager:
         self.searchingForDevices = True
 
         originalCountOfDevices = len(self.allConnectedDevices) #this is only used for debugging. can be ignored
-
         try:
-            allConnectedJoysticks, allBaoLianJoysticks = DragonMasterDevice.get_all_connected_joystick_devices()
+            #List of UInputs from evdev library
+            allConnectedUltimarcJoystickList, allConnectedBaoLianJoysticks = DragonMasterDevice.get_all_connected_joystick_devices()
+            
             allConnectedDraxboards = DragonMasterSerialDevice.get_all_connected_draxboard_elements()
             allConnectedCustomTG02Printers, allConnectedReliancePrinters, allConnectedPyramidPrinters = DragonMasterDevice.get_all_connected_printers()
             allConnectedDBV400Elements, allConnectediVizionElements, allConnectedDBV500Elements = DragonMasterSerialDevice.get_all_connected_bill_acceptors()
@@ -242,12 +242,12 @@ class DragonMasterDeviceManager:
                     self.add_new_device(DragonMasterSerialDevice.Draxboard(self), draxElement)
 
             #Add our Ultimarc joysticks here
-            for joystick in allConnectedJoysticks:
+            for joystick in allConnectedUltimarcJoystickList:
                 if (joystick != None and not self.device_manager_contains_joystick(joystick)):
                     self.add_new_device(DragonMasterDevice.UltimarcJoystick(self), joystick)
 
             #Add our Bao Lian Joysticks here
-            for joystick in allBaoLianJoysticks:
+            for joystick in allConnectedBaoLianJoysticks:
                 if joystick != None and not self.device_manager_contains_joystick(joystick):
                     self.add_new_device(DragonMasterDevice.BaoLianJoystick(self), joystick)
 
@@ -260,7 +260,7 @@ class DragonMasterDeviceManager:
             for printer in allConnectedReliancePrinters:
                 if printer != None and not self.device_manager_contains_printer(printer):
                     self.add_new_device(DragonMasterDevice.ReliancePrinter(self), printer)
-            print ("I made it here")
+
             for printer in allConnectedPyramidPrinters:
                 if printer != None and not self.device_manager_contains_printer(printer):
                     self.add_new_device(DragonMasterDevice.PyramidPrinter(self), printer)
@@ -883,7 +883,7 @@ class DragonMasterDeviceManager:
     @type eventList: list
     @param eventList: list of events that have been received from our unity application and will be interpreted
     """
-    def execute_received_event(self, eventList):
+    def execute_all_events_processed_from_tcp(self, eventList):
         if (len(eventList) <= 0):
             return
 
@@ -1006,7 +1006,7 @@ class DragonMasterDeviceManager:
     def check_for_joystick_events(self):
         for key in self.playerStationDictionary:
             if self.playerStationDictionary[key].connectedJoystick != None:
-                self.playerStationDictionary[key].connectedJoystick.send_updated_joystick_to_unity_application()
+                self.playerStationDictionary[key].connectedJoystick.send_joystick_axes_if_updated()
         return
 
 
@@ -1200,13 +1200,13 @@ class TCPManager:
                 fullResponse = bytearray()
                 socketRead.connect((self.HOST_ADDRESS, self.RECEIVE_PORT))
                 
-                buff = socketRead.recv(1024)
+                buff = socketRead.recv(TCPManager.MAX_RECV_BUFFER)
                 while buff:
                     fullResponse += buff
-                    buff = socketRead.recv(1024)
+                    buff = socketRead.recv(TCPManager.MAX_RECV_BUFFER)
 
                 if (len(fullResponse) > 0):
-                    self.deviceManager.execute_received_event(self.separate_events_received_into_list(fullResponse))
+                    self.deviceManager.execute_all_events_processed_from_tcp(self.separate_events_received_into_list(fullResponse))
                 socketRead.close()
             except Exception as e:
                 socketRead.close()
