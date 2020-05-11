@@ -954,10 +954,10 @@ class DragonMasterDeviceManager:
     Returns whether or not the joystick that is passed into the method was already added to our
     device manager list
     """
-    def device_manager_contains_joystick(self, joystickDevice):
+    def device_manager_contains_joystick(self, joystickUInputElement):
         for dev in self.allConnectedDevices:
             if isinstance(dev, DragonMasterDevice.Joystick):
-                if dev.joystickDevice.phys == joystickDevice.phys:
+                if dev.joystickUInput.phys == joystickUInputElement.phys:
                     return True
         return False
 
