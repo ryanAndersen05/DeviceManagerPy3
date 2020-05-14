@@ -630,7 +630,6 @@ class DragonMasterDeviceManager:
     @param eventMessage: a list of bytes that will be sent to our omnidongle device
     """
     def on_omnidongle_event_received(self, eventMessage):
-        print ("I am trying to send an omnidongle event")
         if self.CONNECTED_OMNIDONGLE != None:
             self.CONNECTED_OMNIDONGLE.add_event_to_queue(self.CONNECTED_OMNIDONGLE.send_data_to_omnidongle_wait_for_response, eventMessage[1:])
         return
