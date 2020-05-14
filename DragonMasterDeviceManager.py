@@ -39,6 +39,12 @@ class DragonMasterDeviceManager:
     RETRIEVE_CONNECTED_DEVICES = 0x04 #This will return a device connected event for every currently connected device. This is good on soft reboot when our IO manager does not know what devices are currently connected
     KILL_APPLICATION_EVENT = 0x05 #This event will trigger an event to kill the main thread, effectively shutting down the entire application
 
+    #Stuff to remove later #######################################################################################################################
+    SEND_DM_VERSION_NUMBER = 0X06
+    SEND_LOCATION_NAME = 0X07
+    SEND_MACHINE_NUMBER = 0X08
+    ##############################################################################################################################################
+
     ##DRAX COMMANDS
     DRAX_ID = 0x10
 
@@ -103,7 +109,7 @@ class DragonMasterDeviceManager:
     #endregion TCP Device Commands
 
     #region const variables
-    STATUS_MAX_SECONDS_TO_WAIT = 65
+    STATUS_MAX_SECONDS_TO_WAIT = 60
     #endregion const variables
 
     #region debug variables
@@ -124,6 +130,7 @@ class DragonMasterDeviceManager:
     def __init__(self,):
 
         self.tcpManager = TCPManager(self)
+        self.recievedStatusFromGameFlag = False
 
         self.CONNECTED_OMNIDONGLE = None #Since there should only be one omnidongle in our machine, we will only search until this value is no longer None
         self.allConnectedDevices = [] #(DragonMasterDevice)
@@ -147,6 +154,10 @@ class DragonMasterDeviceManager:
         periodicallySearchForNewDevicesThread.daemon = True
         periodicallySearchForNewDevicesThread.start()
 
+        verifyThatDragonMasterGameIsStillRunningThread = threading.Thread(target=self.verify_game_is_not_locked_thread)
+        verifyThatDragonMasterGameIsStillRunningThread.daemon = True
+        verifyThatDragonMasterGameIsStillRunningThread.start()
+
         #Begins a thread that allows a user to enter debug commands into a terminal if there is one available. This will not work if run through the bash script
         if DragonMasterDeviceManager.DEBUG_MODE:
             print ()
@@ -154,6 +165,7 @@ class DragonMasterDeviceManager:
             debugThread = threading.Thread(target=debug_command_thread, args=(self,))
             debugThread.daemon = True
             debugThread.start()
+
         
         
         return
@@ -187,6 +199,15 @@ class DragonMasterDeviceManager:
                 except Exception as e:
                     print ("There was an error with our periodic polling")
                     print (e)
+        return
+
+    def verify_game_is_not_locked_thread(self):
+        while (True):
+            sleep(DragonMasterDeviceManager.STATUS_MAX_SECONDS_TO_WAIT)
+            if not self.recievedStatusFromGameFlag:
+                print ("This is hwere we should shut down the game")
+            self.recievedStatusFromGameFlag = False
+
         return
 
     """
@@ -544,9 +565,17 @@ class DragonMasterDeviceManager:
             self.on_omnidongle_event_received(eventMessage)
             return
         elif eventCommandByte == DragonMasterDeviceManager.KILL_APPLICATION_EVENT:
-            DragonMasterDeviceManager.KILL_DEVICE_MANAGER_APPLICATION = True #This will kill the main thread at the next available time. So processes may still run for a second
+            DragonMasterDeviceManager.KILL_DEVICE_MANAGER_APPLICATION = True #This will kill the main thread at the next available time. Just keep in mind, this may not be an immediate termination
             return
-        
+        elif eventCommandByte == DragonMasterDeviceManager.SEND_DM_VERSION_NUMBER:
+
+            return
+        elif eventCommandByte == DragonMasterDeviceManager.SEND_LOCATION_NAME:
+
+            return
+        elif eventCommandByte == DragonMasterDeviceManager.SEND_MACHINE_NUMBER:
+
+            return
         #All event functions below this point need to have a playerStationHash as they are specific to a specific player station
         if len(eventMessage) < 5:
             print (eventMessage.hex())
@@ -617,10 +646,25 @@ class DragonMasterDeviceManager:
         return
 
     """
-    We call this method whenever we receive a message from unity telling us that we are completely connected
+    We call this method whenever we receive a message from unity telling us that we are completely connected.
     """
     def on_status_from_unity(self):
-        
+        self.recievedStatusFromGameFlag = True
+        return
+
+    """
+
+    """
+    def on_dragon_master_version_number_received(self):
+
+        return
+
+    def on_location_name_received(self):
+    
+        return
+
+    def on_machine_number_received(self):
+
         return
 
     """
