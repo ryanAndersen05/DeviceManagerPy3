@@ -652,21 +652,32 @@ class DragonMasterDeviceManager:
         self.recievedStatusFromGameFlag = True
         return
 
+    #STUFF TO REMOVE LATER###############################################################################################################
     """
-
+    This will set the dragon master version that we are using from our dragon master game
+    NOTE: This may be something to remove later on, due to this only being used by the printers. I also recommend not including things that are irrelevant to hardware
     """
-    def on_dragon_master_version_number_received(self):
-
+    def on_dragon_master_version_number_received(self, dragonMasterVersionMessage):
+        DragonMasterDeviceManager.DRAGON_MASTER_VERSION_NUMBER = str(dragonMasterVersionMessage[1:])
         return
 
-    def on_location_name_received(self):
+    """
+    This will set the name of the location that our game is being run at.
+    NOTE: Again this may be something to remove later on as this is only really used by the printer and is not hardware specific 
+    """
+    def on_location_name_received(self, locationNameMessage):
+        DragonMasterDevice.Printer.LOCATION_NAME = str(locationNameMessage[1:])
+        return
+
+    """
+    This will set the number of our machine that is currently running the game.
+    NOTE: This should probably be removed in the future as it is only used for our printer and is not directly related to hardware...
+    """
+    def on_machine_number_received(self, machineNumberMessage):
+        DragonMasterDevice.Printer.MACHINE_NUMBER = str(machineNumberMessage[1:])
+        return
+    ###########################################################################################################################################
     
-        return
-
-    def on_machine_number_received(self):
-
-        return
-
     """
     Sends an event to the current connected Omnidongle device
 
