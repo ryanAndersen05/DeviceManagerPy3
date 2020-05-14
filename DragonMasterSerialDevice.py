@@ -1648,6 +1648,7 @@ class Omnidongle(SerialDevice):
     If we do not receive a message we should probably throw an error of some kind here. The dongle should always return something
     """
     def send_data_to_omnidongle_wait_for_response(self, packetToSend):
+        print ("I made it to the send event")
         if (packetToSend == None):
             print ("Packet to send was None")
             return
@@ -1662,7 +1663,9 @@ class Omnidongle(SerialDevice):
             return
 
         sleep(.025)#Give it a small buffer time before reading the packet in. Omnidonge message can get very long and we may miss something if we start reading immediately
-        self.dragonMasterDeviceManager.add_event_to_send(DragonMasterDeviceManager.DragonMasterDeviceManager.OMNI_EVENT ,firstByteOfPacket + self.serialObject.read(self.serialObject.in_waiting))#returns the response from our omnidongle
+        fullOmnidongleResponse = firstByteOfPacket + self.serialObject.read(self.serialObject.in_waiting)
+        print (fullOmnidongleResponse)
+        self.dragonMasterDeviceManager.add_event_to_send(DragonMasterDeviceManager.DragonMasterDeviceManager.OMNI_EVENT , fullOmnidongleResponse)#returns the response from our omnidongle
 
     """
     Returns the type of device as well as the comport that this device is associated with
