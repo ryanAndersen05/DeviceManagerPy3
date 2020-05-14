@@ -213,10 +213,10 @@ class DragonMasterDeviceManager:
             if not self.recievedStatusFromGameFlag:
                 try:
                     print ("Attempting to Kill Dragon Master Process")
-                    pid = check_output(["pidof", DragonMasterDeviceManager.GAME_APPLICATION_NAME])
-                    print ("PID OF GAME: " + str(pid))
+                    pid = check_output(["pidof", DragonMasterDeviceManager.GAME_APPLICATION_NAME]).decode('utf-8')
+                    print ("PID OF GAME: " + pid)
 
-                    os.system("kill -9 " + str(pid))#NOTE: Since python needs to be run with elevated priveledges, we typically do not need to prefix with sudo
+                    os.system("kill -9 " + pid)#NOTE: Since python needs to be run with elevated priveledges, we typically do not need to prefix with sudo
                 except Exception as e:
                     print (e)
                     print ("There was a problem attempting to shut down the Unity Application. Perhaps it wasn't running when we attempted to shut it down.")
