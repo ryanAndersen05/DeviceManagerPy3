@@ -1,4 +1,5 @@
 #external lib imports
+from subprocess import check_output
 import socket
 import pyudev
 import sys
@@ -30,6 +31,8 @@ class DragonMasterDeviceManager:
     VERSION = "2.3.0"
     KILL_DEVICE_MANAGER_APPLICATION = False #Setting this value to true will kill the main thread of our Device Manager application effectively closing all other threads
     DRAGON_MASTER_VERSION_NUMBER = "CFS101 0000"
+    GAME_APPLICATION_NAME = "DragonMaster.x86_64"
+
     #region TCP Device Commands
     #This command will be sent as a single byte event simply to inform python that we are still connected to the our Unity application
     STATUS_FROM_UNITY = 0x00 #Periodic update that we should receive from Unity to enusre the game is still running. We will close the application if we have not received a message in 60+ seconds
@@ -154,9 +157,9 @@ class DragonMasterDeviceManager:
         periodicallySearchForNewDevicesThread.daemon = True
         periodicallySearchForNewDevicesThread.start()
 
-        verifyThatDragonMasterGameIsStillRunningThread = threading.Thread(target=self.verify_game_is_not_locked_thread)
-        verifyThatDragonMasterGameIsStillRunningThread.daemon = True
-        verifyThatDragonMasterGameIsStillRunningThread.start()
+        checkIfOurGameHasLockedUpThread = threading.Thread(target=self.verify_game_is_not_locked_thread)
+        checkIfOurGameHasLockedUpThread.daemon = True
+        checkIfOurGameHasLockedUpThread.start()
 
         #Begins a thread that allows a user to enter debug commands into a terminal if there is one available. This will not work if run through the bash script
         if DragonMasterDeviceManager.DEBUG_MODE:
@@ -201,13 +204,23 @@ class DragonMasterDeviceManager:
                     print (e)
         return
 
+    """
+    This thread will be used to shut down our game in the case of an 
+    """
     def verify_game_is_not_locked_thread(self):
         while (True):
             sleep(DragonMasterDeviceManager.STATUS_MAX_SECONDS_TO_WAIT)
             if not self.recievedStatusFromGameFlag:
-                print ("This is hwere we should shut down the game")
-            self.recievedStatusFromGameFlag = False
+                try:
+                    print ("Attempting to Kill Dragon Master Process")
+                    pid = check_output(["pidof", DragonMasterDeviceManager.GAME_APPLICATION_NAME])
+                    print ("PID OF GAME: " + str(pid))
 
+                    os.system("kill -9 " + str(pid))#NOTE: Since python needs to be run with elevated priveledges, we typically do not need to prefix with sudo
+                except Exception as e:
+                    print (e)
+                    print ("There was a problem attempting to shut down the Unity Application. Perhaps it wasn't running when we attempted to shut it down.")
+            self.recievedStatusFromGameFlag = False
         return
 
     """
@@ -677,7 +690,7 @@ class DragonMasterDeviceManager:
         DragonMasterDevice.Printer.MACHINE_NUMBER = str(machineNumberMessage[1:])
         return
     ###########################################################################################################################################
-    
+
     """
     Sends an event to the current connected Omnidongle device
 
