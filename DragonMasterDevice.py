@@ -375,7 +375,8 @@ class Printer(DragonMasterDevice):
                 playerStation = voucherTicketPropertiesSplit[1]
                 validationNumber = voucherTicketPropertiesSplit[2]
                 TerminalID = voucherTicketPropertiesSplit[3]
-                dateTimeOfPrint = datetime.datetime(voucherTicketPropertiesSplit[4], voucherTicketPropertiesSplit[5], voucherTicketPropertiesSplit[6], voucherTicketPropertiesSplit[7], voucherTicketPropertiesSplit[8], voucherTicketPropertiesSplit[9])
+                dateTimeOfPrint = datetime.datetime(int(voucherTicketPropertiesSplit[4]), int(voucherTicketPropertiesSplit[5]), \
+                    int(voucherTicketPropertiesSplit[6]), int(voucherTicketPropertiesSplit[7]), int(voucherTicketPropertiesSplit[8]), int(voucherTicketPropertiesSplit[9]))
 
             if dateTimeOfPrint == None:#An older version of the game may not provide the datetime of the print. This probably won't be an issue, but just in case....
                 dateTimeOfPrint = datetime.datetime.now()
