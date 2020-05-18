@@ -369,9 +369,8 @@ class Printer(DragonMasterDevice):
         dateTimeOfPrint = None
 
         try:
-
             if ticketType != DragonMasterDeviceManager.DragonMasterDeviceManager.PRINTER_TEST_TICKET:
-                voucherTicketPropertiesSplit = str(printerVoucherDataString).split('|') #if this is not a test ticket then we will split the components in our printerVoucherDataString using the delimeter '|'
+                voucherTicketPropertiesSplit = printerVoucherDataString.split('|') #if this is not a test ticket then we will split the components in our printerVoucherDataString using the delimeter '|'
                 totalCreditsWon = voucherTicketPropertiesSplit[0]
                 playerStation = voucherTicketPropertiesSplit[1]
                 validationNumber = voucherTicketPropertiesSplit[2]
@@ -396,13 +395,6 @@ class Printer(DragonMasterDevice):
             self.printerObject.textln(Printer.LOCATION_NAME)
             self.printerObject.set(align='center', font='b', height=12, bold=False)
             self.printerObject.textln('========================')
-
-            # Print text and image
-            # try:
-            #     self.printerObject.image(Printer.CROSS_FIRE_PNG_PATH, high_density_horizontal=True, high_density_vertical=True)  # Cross Fire Image
-            # except Exception as e:
-            #     print ("There was an error reading the image 'Cross-fire.png'")
-            #     self.printerObject.textln("Cross Fire")#Instead of loading the image we use the actual text
 
             self.printerObject.set(align='center', font='b', height=12, bold=False)
             self.printerObject.textln(self.dragonMasterDeviceManager.DRAGON_MASTER_VERSION_NUMBER)
@@ -483,11 +475,11 @@ class Printer(DragonMasterDevice):
 
     TODO: Update this to match the current voucher ticket from our Python2.7 application
     """
-    def print_audit_ticket(self, auditTicketData, line_length = 32, whiteSpaceUnderTicket=7):
+    def print_audit_ticket(self, auditTicketDataString, line_length = 32, whiteSpaceUnderTicket=7):
         '''
-        auditTicketDataList parameter list / order (ex. auditTicketDataList[1] = parentDeviceKey)
+        auditTicketDataList parameter list / order (ex. auditTicketDataList[0] = Player Station)
         0: Player station ( 0 = Machine wide Audit, 1-8 = Player station specific)
-        1: Security Level (1-5) (If security level < 5, we will not print the archive values)
+        1: Security Level (1-5) (If security level < 5, we will not print the archive values) #NOTE: Not currently in use
         2: List Clear Date (Archive, Weekly, Daily)
         3: List Clear Time (Archive, Weekly, Daily)
         4: Credit In (Archive, Weekly, Daily)
@@ -511,9 +503,7 @@ class Printer(DragonMasterDevice):
         22: small progressive reward value
         23: TerminalID
         '''
-
         try:
-            auditTicketDataString = str(auditTicketData, 'utf-8')
             auditTicketDataList = auditTicketDataString.split('|')#Here we break up all the components of the audit ticket from the string that is passed. We separate each value based on the delimiter '|'
 
             self.config_text()
@@ -541,7 +531,6 @@ class Printer(DragonMasterDevice):
             self.printerObject.set(align='center', font='b', height=1, bold=False)
             self.printerObject.textln(DragonMasterDeviceManager.DragonMasterDeviceManager.DRAGON_MASTER_VERSION_NUMBER)
             self.printerObject.textln("TID: " + auditTicketDataList[23])
-            # self.printerObject.textln('Ver: ' + DragonMasterDeviceManager.DRAGON_MASTER_VERSION_NUMBER)
 
             if str(auditTicketDataList[2]) == '0':
                 self.printerObject.textln("MACHINE AUDIT (" + periodName + ")")
@@ -552,10 +541,6 @@ class Printer(DragonMasterDevice):
             self.printerObject.textln('=' * line_length)
 
             self.printerObject.textln(currentDateTime)
-
-            if str(auditTicketDataList[1]) != '5':  # If the security level is not 5, we want to print "N/A" for the archive values.
-                for x in range(4, 46, 3):  # Archive values start at 4, and are present every 3rd value. (ex. 4,7,10)
-                    pass
 
 
 
@@ -647,7 +632,7 @@ class Printer(DragonMasterDevice):
         17: QR JSON
         """
         try:
-            codexTicketDataString = str(codexTicketData, 'utf-8')
+            codexTicketDataString = codexTicketData
             codexTicketDataList = codexTicketDataString.split('|') #We are breaking up the string that is passed in through python into a list of ticket components
 
             self.config_text()

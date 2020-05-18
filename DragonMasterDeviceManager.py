@@ -853,7 +853,7 @@ class DragonMasterDeviceManager:
         if printerDevice == None:
             return
 
-        printerDevice.add_event_to_queue(printerDevice.print_voucher_ticket, DragonMasterDeviceManager.PRINTER_CASHOUT_TICKET, eventData)
+        printerDevice.add_event_to_queue(printerDevice.print_voucher_ticket, DragonMasterDeviceManager.PRINTER_CASHOUT_TICKET, str(eventData, 'utf-8'))
         return
 
     """
@@ -865,7 +865,7 @@ class DragonMasterDeviceManager:
         if printerDevice == None:
             return
 
-        printerDevice.add_event_to_queue(printerDevice.print_codex_ticket, str(eventData))
+        printerDevice.add_event_to_queue(printerDevice.print_codex_ticket, str(eventData, 'utf-8'))
         return
 
     """
@@ -876,7 +876,7 @@ class DragonMasterDeviceManager:
         if printerDevice == None:
             return
 
-        printerDevice.add_event_to_queue(printerDevice.print_audit_ticket, str(eventData))
+        printerDevice.add_event_to_queue(printerDevice.print_audit_ticket, str(eventData, 'utf-8'))
         return
 
     """
@@ -909,7 +909,7 @@ class DragonMasterDeviceManager:
         if printerDevice == None:
             return
 
-        printerDevice.add_event_to_queue(printerDevice.print_voucher_ticket, DragonMasterDeviceManager.PRINTER_REPRINT_TICKET,eventData)
+        printerDevice.add_event_to_queue(printerDevice.print_voucher_ticket, DragonMasterDeviceManager.PRINTER_REPRINT_TICKET, str(eventData, 'utf-8'))
         return
 
     #endregion printer tcp events
@@ -2120,24 +2120,24 @@ def debug_print_test_ticket(deviceManager, playerStationHash = -1):
 Prints a codes ticket with all values set to 0
 """
 def debug_print_codex_ticket(deviceManager, playerStationHash = -1):
-    printDataBytesString = "123456|"
-    printDataBytesString += "111111|"
-    printDataBytesString += "CFS|"
-    printDataBytesString += "102|"
-    printDataBytesString += "02|"
-    printDataBytesString += "DM1|"
-    printDataBytesString += "90|"
-    printDataBytesString += "1.5|"
-    printDataBytesString += "987|"
-    printDataBytesString += "654|"
-    printDataBytesString += "321|"
-    printDataBytesString += "111|"
-    printDataBytesString += "222|"
-    printDataBytesString += "333|"
-    printDataBytesString += "444|"
-    printDataBytesString += "555|"
-    printDataBytesString += "666|"
-    printDataBytesString += "This is a JSON EXAMPLE"
+    printDataBytesString = "123456|"                        #0
+    printDataBytesString += "111111|"                       #1
+    printDataBytesString += "CFS|"                          #2
+    printDataBytesString += "102|"                          #3
+    printDataBytesString += "02|"                           #4
+    printDataBytesString += "DM1|"                          #5
+    printDataBytesString += "90|"                           #6
+    printDataBytesString += "1.5|"                          #7
+    printDataBytesString += "987|"                          #8
+    printDataBytesString += "654|"                          #9
+    printDataBytesString += "321|"                          #10
+    printDataBytesString += "111|"                          #11
+    printDataBytesString += "222|"                          #12
+    printDataBytesString += "333|"                          #13
+    printDataBytesString += "444|"                          #14
+    printDataBytesString += "555|"                          #15
+    printDataBytesString += "666|"                          #16
+    printDataBytesString += "This is a JSON EXAMPLE"        #17
 
     if playerStationHash < 0:
         for pStation in deviceManager.playerStationDictionary.values():
@@ -2162,30 +2162,30 @@ Prints an audit ticket with all values set to 0
 def debug_print_audit_ticket(deviceManager, playerStationHash = -1):
     debugLastArchiveClear = datetime.datetime(1999, 1, 1, 11, 11, 11)
 
-    printDataByteString = "0|"#0
-    printDataByteString += "0|"#1
-    printDataByteString += debugLastArchiveClear.strftime("%m/%d/%Y") + "|"#2
-    printDataByteString += debugLastArchiveClear.strftime("%H:%M:%S") + "|"#3
-    printDataByteString += "100|"#4
-    printDataByteString += "200|"#5
-    printDataByteString += "-100|"#6
-    printDataByteString += "-100|"#7
-    printDataByteString += "400|"#8
-    printDataByteString += "500|"#9
-    printDataByteString += "-100|"#10
-    printDataByteString += "-25|"#11
-    printDataByteString += "1001|"#12
-    printDataByteString += "100|"#13
-    printDataByteString += "100|"#14
-    printDataByteString += "0|"#15
-    printDataByteString += "0|"#16
-    printDataByteString += "10|"#17
-    printDataByteString += "99|"#18
-    printDataByteString += "2|"#19
-    printDataByteString += "This is a JSON string|"#20
-    printDataByteString += "1000000|"#21
-    printDataByteString += "10000|"#22
-    printDataByteString += "123456|"#23
+    printDataByteString = "0|"                                              #0                                        
+    printDataByteString += "0|"                                             #1
+    printDataByteString += debugLastArchiveClear.strftime("%m/%d/%Y") + "|" #2
+    printDataByteString += debugLastArchiveClear.strftime("%H:%M:%S") + "|" #3
+    printDataByteString += "100|"                                           #4
+    printDataByteString += "200|"                                           #5
+    printDataByteString += "-100|"                                          #6
+    printDataByteString += "-100|"                                          #7
+    printDataByteString += "400|"                                           #8
+    printDataByteString += "500|"                                           #9
+    printDataByteString += "-100|"                                          #10
+    printDataByteString += "-25|"                                           #11
+    printDataByteString += "1001|"                                          #12
+    printDataByteString += "100|"                                           #13
+    printDataByteString += "100|"                                           #14
+    printDataByteString += "0|"                                             #15
+    printDataByteString += "0|"                                             #16
+    printDataByteString += "10|"                                            #17
+    printDataByteString += "99|"                                            #18
+    printDataByteString += "2|"                                             #19
+    printDataByteString += "This is a JSON string|"                         #20
+    printDataByteString += "1000000|"                                       #21
+    printDataByteString += "10000|"                                         #22
+    printDataByteString += "123456|"                                        #23
 
 
     if playerStationHash < 0:

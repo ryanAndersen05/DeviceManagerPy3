@@ -243,16 +243,17 @@ class DBV400(BillAcceptor):
     NOTE_STAY_STATE = 13 # A bill has been left in the acceptor slot of the DBV. When removed, the DBV will proceed as normal.
     ACTIVE_STATE = 14 # DBV is actively holding or accepting bill.
     WAITING_STATE = 15
-    DOWNLOAD_IDLE = 0x0401
-    DOWNLOAD_WRITE = 0x0402
-    ABNORMAL = 0x02d1
-    FIRMWARE_MISMATCH = 0x03d2
+    #States have been switched to hex, becuaes I realized that the states have a ushort value that is associated with it
+    DOWNLOAD_IDLE = 0x0401 #Means that the bill acceptor is ready to receive the next download packet
+    DOWNLOAD_WRITE = 0x0402 #Means that the bill acceptor is currently writing the information that you sent it
+    ABNORMAL = 0x02d1 #Something went wrong while you were trying to download new firmware
+    FIRMWARE_MISMATCH = 0x03d2 #Firmware mismatch... noe entirely sure how you get this
 
     #endregion
     #region variables
     UidSet = False # UID of this device has been set. If this is true,
     State = NOT_INIT_STATE # Current state of the DBV
-    AutoReject = False # If set to true, immediately reject any bills inserted into the DBV.
+    AutoReject = False # If set to true, immediately reject any bills inserted into the DBV. NOTE: We really don't use this anymore. This is handled on Unity's side now
     AmountStored = 0 # Current amount stored the
     #endregion
 
@@ -498,13 +499,11 @@ class DBV400(BillAcceptor):
         escrowMessage[5] = message[5]
         self.send_dbv_message(escrowMessage)
         self.AmountStored = message[11]
-        print ("I am here")
         if self.AutoReject:
             self.send_dbv_message(DBV400.REJECT_COMMAND)
         else :
             self.send_dbv_message(DBV400.HOLD_BILL)
         self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_INSERTED_EVENT, [self.AmountStored])
-        print ("I finished")
 
     """ A bil inserted to the DBV was rejected due to an error (invalid bill, invalid state, etc.) """
     def on_bill_rejected(self, message):
@@ -515,7 +514,7 @@ class DBV400(BillAcceptor):
         self.send_event_message(DragonMasterDeviceManager.DragonMasterDeviceManager.BA_BILL_REJECTED_EVENT,[self.AmountStored])
         self.AmountStored = 0
 
-    """ A bill was returned by the DBV due to a reject command or powering up with a bill inserted """
+    """ A bill was returned by the DBV due to a reject command from a player or powering up with a bill inserted """
     def on_bill_returned(self, message):
         # print ("Bill Returned Event")
         returnAck = DBV400.RETURN_ACK
