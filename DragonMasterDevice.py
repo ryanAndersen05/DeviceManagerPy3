@@ -349,7 +349,7 @@ class Printer(DragonMasterDevice):
 
     
     """
-    sends a command to the connected printer to print a QR Code
+    Sends a command to the connected printer to print a QR Code
     """
     def print_qr_code(self, stringToPrint, sizeOfQR):
         self.printerObject.qr(content=stringToPrint, size=sizeOfQR) # Print the QR code to be scanned. We need to figure out the content of these codes.
@@ -360,6 +360,19 @@ class Printer(DragonMasterDevice):
     This method will print out a voucher ticket. The general format should apply to all of our printer types
     """
     def print_voucher_ticket(self, ticketType, printerVoucherDataString, whiteSpaceUnderTicket=1):
+
+        """
+        0: Total Credits Redeemed (Format should be "0.00")
+        1: The player station Index that is redeeming this ticket (Players 1 - 8)
+        2: Validation Number
+        3: TerminalID (From Omnidongle)
+        4: DateTime - Year
+        5: DateTime - Month
+        6: DateTime - Day
+        7: DateTime - Hour
+        8: DateTime - Minute
+        9: DateTime - Second
+        """
 
         #Placeholder values for our test ticket. These should be assigned by the printerVoucherDataString otherwise
         totalCreditsWon = "0.00"
